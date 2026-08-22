@@ -27,7 +27,7 @@ import os, sys
 import json
 sys.path.append(os.path.abspath(__file__).split("src")[0] + "src")
 
-import core.models as models
+import core.models
 import core.visualization as visualization
 from core.logger import logger
 
@@ -624,7 +624,7 @@ if __name__ == "__main__":
     # N = 2
     # data = sparse_stimulus_generator(N, K=5, size=50, plot=True)
 
-    test_equal_tuning(n=10, nj=3)
+    test_equal_tuning(n=10, nj=5)
 
 
 

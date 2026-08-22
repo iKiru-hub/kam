@@ -1,0 +1,1 @@
+{"date": "22.8.2026", "settings": {"num_parameters": 7, "generations": 196, "population_size": 9, "pause_time": 0.01, "direction": "maximize", "metric_name": "weighted_accuracy", "workers": null}, "best": [6.0, 8.0, 5.0, 16.614032804965973, 31.912865161895752, 35.84439945220947, 0.011175743103027352], "fitness": 0.6998451458944787, "workers": 9}

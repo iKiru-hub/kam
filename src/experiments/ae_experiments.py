@@ -16,13 +16,17 @@ from core.logger import logger
 
 """ train functions """
 
+
 def train_random_data(settings_sim: dict,
                       settings_data: dict,
                       settings_ae: dict,
                       save: bool=False,
+                      name: str="ae_random_",
                       plot: bool=False):
 
     """ train the autoencoder with uniform random samples """ 
+
+    disable = settings_sim.get("disable", False)
 
     training_data = dg.sparse_stimulus_generator(N=settings_sim["data_training_size"],
                                                  K=settings_data["K"],
@@ -33,6 +37,81 @@ def train_random_data(settings_sim: dict,
                                              K=settings_data["K"],
                                              size=settings_data["size"],
                                              plot=False)
+
+    autoencoder = models.Autoencoder(input_dim=settings_ae["input_dim"],
+                                     encoding_dim=settings_ae["encoding_dim"],
+                                     K=settings_ae["K"],
+                                     beta=settings_ae["beta"],
+                                     gain_out=settings_ae["gain_out"],
+                                     offset_out=settings_ae["offset_out"],
+                                     use_bias=settings_ae["use_bias"])
+
+    info, autoencoder = aect.train_autoencoder(training_data=training_data,
+                                               test_data=test_data,
+                                               autoencoder=autoencoder,
+                                               epochs=settings_sim["epochs"],
+                                               batch_size=settings_sim["batch_size"],
+                                               learning_rate=settings_sim["learning_rate"],
+                                               disable=disable,
+                                               device=settings_sim.get("device"))
+
+    if plot:
+        ltrain, ltest = info["loss"], info["test"]
+        plt.plot(range(len(ltrain)), ltrain, '-b', label="train")
+        plt.plot(range(len(ltest)), ltest, '-r', label="test")
+        plt.legend()
+        plt.grid()
+
+        results = aect.reconstruct_data(data=test_data, model=autoencoder,
+                                        num=5, column=False, show=True, plot=True)
+
+    if save:
+        session = {"settings_sim": settings_sim,
+                   "settings_data": settings_data,
+                   "settings_ae": settings_ae,
+                   "results": info}
+        nb = len([f for f in os.listdir(aect.AE_PATH) if name in f])
+        aect.save_autoencoder(autoencoder=autoencoder, session=session,
+                              name=name + str(nb))
+
+    return info["test"][-1]
+
+
+def make_meclec_data(num: int, size: int):
+
+    num_cue_patterns = 5
+    lec_size = size // 2
+    num_laps = num
+    cue_positions = [10, 30]
+    cue_sequence = []
+    for l in range(num_laps):
+       cue_sequence += [np.random.choice(list(range(num_cue_patterns)), replace=False, size=len(cue_positions)).tolist()] 
+
+    laps = {
+        "n": num_laps,
+        "length": 50,
+        "cues_positions": cue_positions,
+        "cues_patterns": dg.make_cues(n=num_cue_patterns, size=lec_size, fixed=True, p=0.2),
+        "cues_sequence": cue_sequence
+    }
+
+    return dg.sparse_stimulus_generator_sensory(laps=laps, mec_sigma=5, lec_sigma=5)[0].reshape(-1, size)
+
+
+def train_meclec_data(settings_sim: dict,
+                      settings_data: dict,
+                      settings_ae: dict,
+                      save: bool=False,
+                      name: str="ae_meclec_",
+                      plot: bool=False):
+
+    """ train the autoencoder with uniform random samples """ 
+
+    training_data = make_meclec_data(num=settings_sim["data_training_size"],
+                                     size=settings_data["size"])
+
+    test_data = make_meclec_data(num=settings_sim["data_test_size"],
+                                 size=settings_data["size"])
 
     autoencoder = models.Autoencoder(input_dim=settings_ae["input_dim"],
                                      encoding_dim=settings_ae["encoding_dim"],
@@ -58,14 +137,14 @@ def train_random_data(settings_sim: dict,
         plt.grid()
 
         results = aect.reconstruct_data(data=test_data, model=autoencoder,
-                                        num=5, column=False, show=True, plot=True)
+                                        num=64,
+                                        column=False, show=True, plot=True)
 
     if save:
         session = {"settings_sim": settings_sim,
                    "settings_data": settings_data,
                    "settings_ae": settings_ae,
                    "results": info}
-        name = "ae_random_"
         nb = len([f for f in os.listdir(aect.AE_PATH) if name in f])
         aect.save_autoencoder(autoencoder=autoencoder, session=session,
                               name=name + str(nb))
@@ -78,10 +157,10 @@ def search_a():
 
     # setup
     settings_sim = {
-            "data_training_size": 1000,
-            "data_test_size": 100,
+            "data_training_size": 1024,
+            "data_test_size": 96,
             "epochs": 252,
-            "batch_size": 50,
+            "batch_size": 32,
             "learning_rate": 1e-3
     }
 
@@ -92,7 +171,7 @@ def search_a():
 
     settings_ae = {
         "input_dim": settings_data["size"],
-        "encoding_dim": 30,
+        "encoding_dim": 50,
         "K": 5,
         "beta": 70.,
         "gain_out": 20.,
@@ -101,9 +180,9 @@ def search_a():
     }
 
     # parameters to iterate over
-    beta_size = 4
-    gain_size = 4
-    encoding_dim_size = 4
+    beta_size = 5
+    gain_size = 5
+    encoding_dim_size = 5
     variables = {
         "beta": np.linspace(1, 100, beta_size).tolist(),
         "gain_out": np.linspace(1, 100, gain_size).tolist(),
@@ -160,9 +239,43 @@ def main(save: bool=False, plot: bool=False):
 
     # setup
     settings_sim = {
-            "data_training_size": 2000,
-            "data_test_size": 200,
-            "epochs": 5000,
+            "data_training_size": 2048,
+            "data_test_size": 256,
+            "epochs": 2048,
+            "batch_size": 100,
+            "learning_rate": 1e-3
+    }
+
+    settings_data = {
+            "size": 50,
+            "K": 5,
+    }
+
+    settings_ae = {
+        "input_dim": settings_data["size"],
+        "encoding_dim": 50,
+        "K": 5,
+        "beta": 25.,
+        "gain_out": 20.,
+        "offset_out": 0.,
+        "use_bias": False,
+    }
+
+    train_random_data(settings_sim=settings_sim,
+                      settings_data=settings_data,
+                      settings_ae=settings_ae,
+                      save=save,
+                      name="ae_random_nb_",
+                      plot=plot)
+
+
+def main_meclec(save: bool=False, plot: bool=False):
+
+    # setup
+    settings_sim = {
+            "data_training_size": 48,
+            "data_test_size": 8,
+            "epochs": 1024,
             "batch_size": 50,
             "learning_rate": 1e-3
     }
@@ -174,18 +287,19 @@ def main(save: bool=False, plot: bool=False):
 
     settings_ae = {
         "input_dim": settings_data["size"],
-        "encoding_dim": 30,
+        "encoding_dim": 50,
         "K": 5,
-        "beta": 30.,
+        "beta": 25.,
         "gain_out": 20.,
         "offset_out": 0.,
-        "use_bias": True,
+        "use_bias": False,
     }
 
-    train_random_data(settings_sim=settings_sim,
+    train_meclec_data(settings_sim=settings_sim,
                       settings_data=settings_data,
                       settings_ae=settings_ae,
                       save=save,
+                      name="ae_meclec_nb_",
                       plot=plot)
 
 
@@ -193,5 +307,6 @@ def main(save: bool=False, plot: bool=False):
 
 if __name__ == "__main__":
 
-    main(save=True, plot=True)
+    # main(save=True, plot=True)
+    main_meclec(save=True, plot=True)
     # search_a()

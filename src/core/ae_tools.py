@@ -192,7 +192,7 @@ def train_autoencoder(training_data: np.ndarray,
         # test_loss = test_loss.item()
 
         results["loss"] += [total_loss / len(dataloader)]
-        results["test"] += [test_loss]
+        results["test"] += [test_loss.item()]
 
         if (epoch+1) % epoch_log == 0:
             pbar.set_description(f"Epoch [{epoch+1}], " + \
@@ -365,7 +365,7 @@ def load_autoencoder(name: str):
     if not isinstance(session, dict):
         raise ValueError(f"Session metadata must contain a dictionary: {metadata_path}")
 
-    logger(f"Autoencoder loaded from {session_path}")
+    # logger(f"Autoencoder loaded from {session_path}")
     return autoencoder, session
 
 

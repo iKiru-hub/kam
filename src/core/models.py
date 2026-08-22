@@ -130,15 +130,21 @@ class Autoencoder(nn.Module):
 
 class MTL(nn.Module):
 
-    def __init__(self, W_ei_ca1: torch.Tensor,
+    def __init__(self,
+                 W_ei_ca1: torch.Tensor,
                  W_ca1_eo: torch.Tensor,
                  K_lat: int,
                  K_out: int,
+                 K_ca3: int,
                  dim_ca3: int,
-                 beta: float,
+                 beta_eo: float,
+                 beta_is: float,
+                 beta_ca1: float,
+                 beta_ca3: float,
                  alpha: float=0.01,
-                 K_ca3: int=10,
-                 num_swaps: int=0,
+                 nb_ei_ca3: int=10,
+                 num_swaps_ca1: int=0,
+                 num_swaps_ca3: int=0,
                  identity_IS : bool=False,
                  random_IS : bool=False,
                  B_ei_ca1: torch.Tensor|None=None,
@@ -185,22 +191,40 @@ class MTL(nn.Module):
         self._dim_ca3 = dim_ca3
 
         # network parameters
-        self._K_lat = K_lat
-        self._K_ca3 = K_ca3
-        self._K_out = K_out
-        self._beta = beta
-        self._beta_ca3 = 100*beta
-        self._alpha = alpha
-        self._num_swaps = num_swaps
+        self._K_lat = abs(int(K_lat))
+        self._K_ca3 = abs(int(K_ca3))
+        self._K_out = abs(int(K_out))
+        self._beta_eo = abs(float(beta_eo))
+        self._beta_is = abs(float(beta_is))
+        self._beta_ca3 = abs(float(beta_ca3))
+        self._beta_ca1 = abs(float(beta_ca1))
+        self._alpha = abs(float(alpha))
+        self._num_swaps_ca1 = abs(int(num_swaps_ca1))
+        self._num_swaps_ca3 = abs(int(num_swaps_ca3))
+        self._nb_ei_ca3 = int(nb_ei_ca3)
 
         # Initialize weight matrices for each layer
         # self.W_ei_ca3 = nn.Parameter(torch.randn(dim_ca3,
         #                                          self._dim_ei) / dim_ca3)
-        self.W_ei_ca3 = nn.Parameter(torch.Tensor(
-                        utils.make_equal_tuning(dim_ca3, self._dim_ei)) / dim_ca3)
+        assert self._dim_ca3 == self._dim_ei, "unqual dimension ei-ca3"
+        if not 1 <= self._nb_ei_ca3 <= self._dim_ei:
+            raise ValueError(
+                "nb_ei_ca3 must be between 1 and the EC input dimension "
+                f"({self._dim_ei}), got {self._nb_ei_ca3}"
+            )
+        connection_indices = utils.make_equal_tuning(
+            dim_ca3,
+            self._nb_ei_ca3,
+        )
+        W_ei_ca3 = torch.zeros(dim_ca3, self._dim_ei)
+        for ca3_index, ec_indices in enumerate(connection_indices):
+            W_ei_ca3[ca3_index, ec_indices] = 1.0 / dim_ca3
+        self.W_ei_ca3 = nn.Parameter(W_ei_ca3)
         self.W_ei_ca1 = nn.Parameter(W_ei_ca1)
         self.W_ca3_ca1 = nn.Parameter(torch.zeros(self._dim_ca1, dim_ca3))
         self.W_ca1_eo = nn.Parameter(W_ca1_eo)
+
+        # if B_ei_ca1 is None: print(">>> no bias uses in MTL")
 
         self.B_ei_ca1 = nn.Parameter(torch.zeros(self._dim_ca1, 1) \
                                     if B_ei_ca1 is None else B_ei_ca1)
@@ -227,11 +251,14 @@ class MTL(nn.Module):
         self.recordings["W_ca3_ca1"] = []
 
     def __repr__(self):
-        return f"MTL(dim_ei={self._dim_ei}, dim_ca1={self._dim_ca1}," + \
-            f" dim_ca3={self.W_ei_ca3.shape[0]}, dim_eo={self._dim_eo}, " + \
+        return f"MTLev(dim_ei={self._dim_ei}, dim_ca1={self._dim_ca1}," + \
+            f" dim_ca3={self.W_ei_ca3.shape[0]}, dim_eo={self._dim_eo}," + \
             f" bias={self.is_bias}, " + \
-            f"beta={self._beta}, alpha={self._alpha}, K_lat={self._K_lat}, " + \
-            f"K_out={self._K_out}, num_swaps={self._num_swaps}"
+            f" beta_is={self._beta_is},  beta_ca3={self._beta_ca3}," + \
+            f" beta_eo={self._beta_eo},  beta_ca1={self._beta_ca1}," + \
+            f" alpha={self._alpha}, K_lat={self._K_lat}," + \
+            f" K_out={self._K_out}, num_swaps_ca1={self._num_swaps_ca1}" + \
+            f" num_swaps_ca3={self._num_swaps_ca3}"
 
     def forward(self, x_ei: torch.Tensor, ca1: bool=False, test: bool=False):
 
@@ -260,17 +287,17 @@ class MTL(nn.Module):
                                  beta=self._beta_ca3).reshape(-1, 1)
 
         x_ca3 = utils.get_sample_from_num_swaps(x_0=x_ca3,
-                                                num_swaps=self._num_swaps)
+                                                num_swaps=self._num_swaps_ca3)
 
         # forward pass through CA3 to CA1
-        x_ca1 = self.W_ca3_ca1 @ x_ca3 # 50, 1
+        x_ca1 = self.W_ca3_ca1 @ x_ca3 + self.B_ca1_eo # 50, 1
         x_ca1 = functions.sparsemoid(x_ca1.reshape(1, -1),
                                  K=self._K_lat,
-                                 beta=self._beta_ca3,
+                                 beta=self._beta_ca1,
                                  flag=False).reshape(-1, 1)
 
         x_ca1 = utils.get_sample_from_num_swaps(x_0=x_ca1,
-                                                num_swaps=self._num_swaps)
+                                                num_swaps=self._num_swaps_ca1)
 
         # compute instructive signal
         if self.identity_IS:
@@ -278,14 +305,18 @@ class MTL(nn.Module):
         else:
             IS = self.W_ei_ca1 @ x_ei + self.B_ei_ca1
             IS = functions.sparsemoid(IS.reshape(1, -1), K=self._K_lat,
-                                  beta=self._beta).reshape(-1, 1)
+                                      beta=self._beta_is).reshape(-1, 1)
             if self.random_IS:
                 # permute the IS
                 IS = IS[torch.randperm(IS.size(0))]
 
         # weight update
         if self.mode == "train" and not test:
-            self.W_ca3_ca1 = nn.Parameter((1 - IS * self._alpha) * \
+            # method 1
+            # self.W_ca3_ca1 = nn.Parameter((1 - IS * self._alpha) * \
+            #     self.W_ca3_ca1 + self._alpha * (IS @ x_ca3.T))
+            # method 2
+            self.W_ca3_ca1 = nn.Parameter((1 - self._alpha) * \
                 self.W_ca3_ca1 + self._alpha * (IS @ x_ca3.T))
 
         # Forward pass through CA1 to entorhinal cortex output
@@ -293,8 +324,8 @@ class MTL(nn.Module):
 
         # activation function
         x_eo = functions.sparsemoid(x_eo.reshape(1, -1),
-                                K=self._K_out,
-                                beta=self._beta).reshape(-1, 1)
+                                    K=self._K_out,
+                                    beta=self._beta_eo).reshape(-1, 1)
 
         self._ca1 = x_ca1
         self._ca3 = x_ca3
@@ -358,4 +389,3 @@ class MTL(nn.Module):
 
 if __name__ == "__main__":
     print(f"[{__file__.split("/")[-1]} done]")
-

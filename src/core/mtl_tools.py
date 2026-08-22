@@ -61,10 +61,18 @@ def train_for_accuracy(data: np.ndarray,
 
     # data
     num_samples = len(data)
-    dataset = TensorDataset(torch.tensor(data, dtype=torch.float32))
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
+    datasets = []
+    for k in range(num_samples):
+        tensor_data = torch.tensor(data[:k+1], dtype=torch.float32)
+        dataloader = DataLoader(TensorDataset(tensor_data),
+                                batch_size=1,
+                                shuffle=False)
+        datasets += [dataloader]
 
-    results = np.zeros((num_samples, num_samples))
+    logs = {
+        "train_loss": np.zeros((num_samples, num_samples)),
+        "rec_loss": np.zeros((num_samples, num_samples))
+    }
 
     if isinstance(model, models.Autoencoder):
         device = aect._resolve_device("mps")
@@ -83,14 +91,18 @@ def train_for_accuracy(data: np.ndarray,
         with torch.no_grad():
 
             # forward one pattern at a time
-            for k, batch in enumerate(dataloader):
-                if k > i: break
-                if isinstance(model, models.Autoencoder):
-                    x = batch[0].to(device, non_blocking=device.type == "cuda")
-                else:
-                    x = batch[-1].reshape(-1, 1)
+            # for k, batch in enumerate(dataloader):
+            for j, batch in enumerate(datasets[i]):
+                # if k > i: break
+                # if isinstance(model, models.Autoencoder):
+                #     x = batch[0].to(device, non_blocking=device.type == "cuda")
+                # else:
+                #     x = batch[-1].reshape(-1, 1)
+                x = batch[-1].reshape(-1, 1)
+                y = model(x)
 
-                _ = model(x)
+                logs["train_loss"][i, j] = criterion(x, y)
+
 
         # --- test a dataset with pattern index 0.. i
         if isinstance(model, models.MTL):
@@ -98,17 +110,20 @@ def train_for_accuracy(data: np.ndarray,
         model.eval()
         with torch.no_grad():
             # forward one pattern at a time
-            for j, batch in enumerate(dataloader):
-                if j > i: break
-                if isinstance(model, models.Autoencoder):
-                    x = batch[0].to(device, non_blocking=device.type == "cuda")
-                else:
-                    x = batch[-1].reshape(-1, 1)
+            # for j, batch in enumerate(dataloader):
+            #     if j > i: break
+                # if isinstance(model, models.Autoencoder):
+                #     x = batch[0].to(device, non_blocking=device.type == "cuda")
+                # else:
+                #     x = batch[-1].reshape(-1, 1)
+            # for j, test_x in enumerate(data):
+            for j, batch in enumerate(datasets[i]):
+                x = batch[-1].reshape(-1, 1)
 
                 y = model(x)
-                results[i, j] = criterion(x, y)
+                logs["rec_loss"][i, j] = criterion(x, y)
 
-    return results, model
+    return logs, model
 
 
 
