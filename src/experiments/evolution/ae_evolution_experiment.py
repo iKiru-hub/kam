@@ -127,7 +127,7 @@ def evaluate_ae_random(population: list,
 
 def aesearch(generations=64, pause=0.01, live_plot=True, workers=None, save: bool=False,
              settings_sim: dict|None=None, settings_data: dict|None=None,
-             save_name: str="mtl_evolution_1", verbose: bool=True):
+             save_name: str="ae_evolution_1", verbose: bool=True):
 
     settings_sim = dict(AE_SETTINGS_SIM if settings_sim is None else settings_sim)
     settings_data = dict(AE_SETTINGS_DATA if settings_data is None else settings_data)

@@ -258,6 +258,7 @@ def make_record(direction="minimize", metric_name="fitness"):
 def evolution_run(settings: dict, evaluate: Callable,
                   sanitizer: Callable|None=None,
                   evaluate_individual: Callable|None=None,
+                  disable: bool=False,
                   live_plot=True):
     """Run CMA-ES, optionally evaluating population members in worker processes.
 
@@ -271,6 +272,8 @@ def evolution_run(settings: dict, evaluate: Callable,
     population_size = settings["population_size"]
     direction = settings.get("direction", "minimize")
     verbose = settings.get("verbose", True)
+    disable = settings.get("disable", False)
+    if verbose: disable = True
     metric_name = settings.get("metric_name", "fitness")
     requested_workers = settings.get("workers")
     available_cpus = os.cpu_count() or 1
@@ -336,7 +339,7 @@ def evolution_run(settings: dict, evaluate: Callable,
             )
 
     try:
-        for generation in tqdm(range(generations), disable=not verbose):
+        for generation in tqdm(range(generations), disable=disable):
 
             # CMA-ES must be updated with the exact latent samples it generated.
             # Decoding/clipping is used only for evaluator-facing parameters.

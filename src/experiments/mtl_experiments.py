@@ -20,15 +20,15 @@ from core.logger import logger
 
 def train_mtl_random_data(settings_sim: dict,
                           settings_data: dict,
-                          settings_mtl: dict,
-                          plot: bool=False,
-                          disable: bool=False):
+                          settings_mtl: dict):
 
     """ train the autoencoder with uniform random samples """ 
 
     num_samples = settings_sim["data_training_size"]
     ae_name = settings_sim.get("ae_name", "ae_random_0")
     use_bias = settings_sim.get("use_bias", False)
+    disable = settings_sim.get("disable", False)
+    plot = settings_sim.get("plot", False)
 
     autoencoder, info = aect.load_autoencoder(name=ae_name)
     params = autoencoder.get_weights(bias=use_bias)
@@ -96,6 +96,8 @@ def main_random(plot: bool):
         "criterion": mtlct.cosine_criterion,
         "reps": 10,
         "use_bias": False,
+        "disable": False,
+        "plot": True,
         "ae_name": "ae_random_nb_0"
     }
 
@@ -121,8 +123,7 @@ def main_random(plot: bool):
 
     train_mtl_random_data(settings_sim=settings_sim,
                           settings_data=settings_data,
-                          settings_mtl=settings_mtl,
-                          plot=True)
+                          settings_mtl=settings_mtl)
 
 if __name__ == "__main__":
 

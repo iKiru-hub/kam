@@ -13,41 +13,51 @@ import core.datagen as dg
 import core.training as ct
 import core.utils as utils
 import core.ae_tools as aect
+import core.mtl_tools as mtlct
 from core.logger import logger
+import evolution._lib as _lib
 
-import ae_experiments as aexp
+import mtl_experiments as mtlexp
 
 
-SIZE = 15  # gets split | total number of samples
-SETUP = {"K": (2, 49), "beta": (1, 128), "gain_out": (1, 128)}
+SIZE = 10  # gets split | total number of samples
+SETUP = {"K_ca3": (2, 49), "beta_is": (1, 128), "beta_ca1": (1, 128)}
 NAMES = list(SETUP.keys())
-REPS = 7
+REPS = 8
+HORIZON = 64
 BASE_SEED = 3980
-DISCRETE_PARAMETERS = {"K"}
+DISCRETE_PARAMETERS = {"K_ca3", "K_lat", "K_out", "nb_ei_ca3"}
 
 # setup
 settings_sim = {
-        "data_training_size": 512,
-        "data_test_size": 96,
-        "epochs": 64,
-        "batch_size": 32,
-        "learning_rate": 1e-3,
-        "disable": True
+    "data_training_size": 96,
+    "criterion": mtlct.cosine_criterion,
+    # Repetition is controlled by the outer parameter sweep.
+    "reps": 1,
+    "use_bias": False,
+    "disable": True,
+    "plot": False,
+    "ae_name": "ae_random_nb_0"
 }
 
 settings_data = {
-        "size": 50,
-        "K": 5,
+    "size": 50,
+    "K": 5,
 }
 
-settings_ae = {
-    "input_dim": settings_data["size"],
-    "encoding_dim": 50,
-    "K": 5,
-    "beta": 25.,
-    "gain_out": 20.,
-    "offset_out": 0.,
-    "use_bias": False,
+settings_mtl = {
+    "K_ca3": 8,
+    "K_lat": 10,
+    "K_out": 10,
+    "dim_ca3": 50,
+    "beta_is": 25,
+    "beta_ca3": 105,
+    "beta_ca1": 10,
+    "beta_eo": 20,
+    "alpha": 0.166,
+    "num_swaps_ca1": 1,
+    "num_swaps_ca3": 1,
+    "random_IS": False,
 }
 
 
@@ -55,7 +65,7 @@ def _plot(results: np.ndarray):
 
     # plot
     fig, ax = plt.subplots()
-    ax.imshow(results, cmap="magma_r")
+    ax.imshow(results, cmap="magma")
     ax.set_yticks(range(len(NAMES)))
     ax.set_yticklabels(NAMES)
     ax.set_xticks(range(SIZE))
@@ -66,7 +76,7 @@ def _plot(results: np.ndarray):
     )
     ax.set_xlabel("position within each parameter range")
     ax.set_ylabel("parameters")
-    ax.set_title("Autoencoder validation MSE (lower is better)")
+    ax.set_title("MTL weighted accuracy (higher is better)")
 
     avg = results.mean()
     # Robust color version
@@ -75,7 +85,7 @@ def _plot(results: np.ndarray):
            val = results[i, j]
            # white for dark cells, black for light cells
            text_color = "white" if val > avg else "black"
-           ax.text(j, i, f'{val:.4f}', ha='center', va='center', color=text_color)
+           ax.text(j, i, f'{val:.2f}', ha='center', va='center', color=text_color)
 
     plt.show()
 
@@ -88,20 +98,23 @@ def _parameter_values(name: str) -> np.ndarray:
 
 
 def _run(_key: str, _value: float, seed: int|None=None):
-    if _key not in settings_ae:
-        raise KeyError(f"unknown autoencoder parameter: {_key}")
+    if _key not in settings_mtl:
+        raise KeyError(f"unknown MTL parameter: {_key}")
     if seed is not None:
         np.random.seed(seed)
         torch.manual_seed(seed)
 
-    _settings_ae = settings_ae.copy()
-    _settings_ae[_key] = int(_value) \
+    _settings_mtl = settings_mtl.copy()
+    _settings_mtl[_key] = int(_value) \
         if _key in DISCRETE_PARAMETERS else float(_value)
-    return aexp.train_random_data(settings_sim=settings_sim,
-                                  settings_data=settings_data,
-                                  settings_ae=_settings_ae,
-                                  save=False,
-                                  plot=False)
+    results = mtlexp.train_mtl_random_data(settings_sim=settings_sim,
+                                           settings_data=settings_data,
+                                           settings_mtl=_settings_mtl)
+
+    score = float(_lib.exp_eval(results, sigma=HORIZON).mean())
+    if not np.isfinite(score):
+        score = 0.
+    return float(np.clip(score, 0., 1.))
 
 
 def _main():
@@ -111,7 +124,7 @@ def _main():
     for i, name in enumerate(NAMES):
         logger(f"running `{name}`")
         values = _parameter_values(name)
-        logger(f"{np.around(values, 1)} [{settings_ae[name]}]")
+        logger(f"{np.around(values, 1)} [{settings_mtl[name]}]")
 
         for j, value in utils.tqdm_enumerate(values):
             for r in range(REPS):
