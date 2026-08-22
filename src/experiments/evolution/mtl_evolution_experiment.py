@@ -1,6 +1,7 @@
 """Reusable live logging for a black-box CMA-ES optimization."""
 
 import argparse
+import functools
 import sys, os
 from collections.abc import Callable
 from pathlib import Path
@@ -87,6 +88,7 @@ MTL_PARAMETER_UPPER = np.array([49., 49., 49., 196., 196., 196., 1., 49])
 MTL_EVALUATION_SEED = 3980
 
 HORIZON = 64
+PLASTICITY_VARIANTS = ("base", "nois", "isout", "err1", "err2")
 
 
 def sanitizer(genome):
@@ -108,7 +110,10 @@ def sanitizer(genome):
     parameters[[0, 1, 2, 7]] = np.rint(parameters[[0, 1, 2, 7]])
     return parameters
 
-def evaluate_mtl_individual(ind):
+
+
+
+def evaluate_mtl_individual(ind: list, plasticity: str="base"):
     """Train and score one decoded MTL candidate."""
 
     settings_sim = {
@@ -127,6 +132,11 @@ def evaluate_mtl_individual(ind):
     np.random.seed(MTL_EVALUATION_SEED)
     torch.manual_seed(MTL_EVALUATION_SEED)
 
+    for i in range(len(ind)):
+        if np.isnan(ind[i]) and i != 6:
+            ind[i] = 2
+
+
     settings_mtl = {
         "K_ca3": ind[0],
         "K_lat": ind[1],
@@ -141,6 +151,7 @@ def evaluate_mtl_individual(ind):
         "num_swaps_ca1": 1,
         "num_swaps_ca3": 1,
         "random_IS": False,
+        "plasticity": plasticity
     }
 
     results = mtl_experiments.train_mtl_random_data(settings_sim=settings_sim,
@@ -153,13 +164,20 @@ def evaluate_mtl_individual(ind):
         score = 0.
     return float(np.clip(score, 0., 1.))
 
+def evaluate_mtl_random(population: list, plasticity: str="base"):
+    return [evaluate_mtl_individual(ind=ind, plasticity=plasticity) for ind in tqdm(population)]
 
-def evaluate_mtl_random(population: list):
-    return [evaluate_mtl_individual(ind) for ind in tqdm(population)]
 
+def mtlsearch(num_parameters: int|None=None, generations: int=96, pause: float=0.01,
+              live_plot: bool=False, workers=None, plasticity: str="base",
+              save_name: str="mtl_evolution_1", verbose: bool=True):
+    plasticity = str(plasticity).lower()
+    if plasticity not in PLASTICITY_VARIANTS:
+        raise ValueError(
+            f"plasticity must be one of {PLASTICITY_VARIANTS}, "
+            f"got {plasticity!r}"
+        )
 
-def mtlsearch(num_parameters=None, generations=96, pause=0.01,
-              live_plot=True, workers=None):
     expected_parameters = len(MTL_PARAMETER_NAMES)
     if num_parameters is None:
         num_parameters = expected_parameters
@@ -177,12 +195,23 @@ def mtlsearch(num_parameters=None, generations=96, pause=0.01,
         "population_size": population_size,
         "pause_time": pause,
         "direction": "maximize",
+        "verbose": verbose,
         "metric_name": "weighted_accuracy",
         "workers": workers,
+        "plasticity": plasticity,
     }
+
+    batch_evaluator = functools.partial(
+        evaluate_mtl_random,
+        plasticity=plasticity,
+    )
+    individual_evaluator = functools.partial(
+        evaluate_mtl_individual,
+        plasticity=plasticity,
+    )
     record = _lib.evolution_run(settings=settings,
-                                evaluate=evaluate_mtl_random,
-                                evaluate_individual=evaluate_mtl_individual,
+                                evaluate=batch_evaluator,
+                                evaluate_individual=individual_evaluator,
                                 sanitizer=sanitizer,
                                 live_plot=live_plot)
 
@@ -198,7 +227,8 @@ def mtlsearch(num_parameters=None, generations=96, pause=0.01,
         "workers": record["workers"],
     }
 
-    _lib.save_genome(info=logs, name="mtl_evolution_1")
+    if save_name is not None:
+        _lib.save_genome(info=logs, name=save_name)
     return record
 
 

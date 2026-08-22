@@ -5,6 +5,7 @@ import multiprocessing as mp
 import warnings
 from collections.abc import Callable
 from pathlib import Path
+from tqdm import tqdm
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -269,6 +270,7 @@ def evolution_run(settings: dict, evaluate: Callable,
     generations = settings["generations"]
     population_size = settings["population_size"]
     direction = settings.get("direction", "minimize")
+    verbose = settings.get("verbose", True)
     metric_name = settings.get("metric_name", "fitness")
     requested_workers = settings.get("workers")
     available_cpus = os.cpu_count() or 1
@@ -327,13 +329,14 @@ def evolution_run(settings: dict, evaluate: Callable,
                     os.environ.pop(variable, None)
                 else:
                     os.environ[variable] = value
-        print(
-            f"parallel_evaluation workers={workers} "
-            f"start_method={start_method}"
-        )
+        if verbose:
+            print(
+                f"parallel_evaluation workers={workers} "
+                f"start_method={start_method}"
+            )
 
     try:
-        for generation in range(generations):
+        for generation in tqdm(range(generations), disable=not verbose):
 
             # CMA-ES must be updated with the exact latent samples it generated.
             # Decoding/clipping is used only for evaluator-facing parameters.
@@ -407,7 +410,7 @@ def evolution_run(settings: dict, evaluate: Callable,
             record["raw_optimizer_means"].append(raw_optimizer_mean.copy())
             record["raw_best_candidates"].append(best_raw_candidate.copy())
 
-            if generation % 5 == 0 or generation == generations - 1:
+            if (generation % 5 == 0 or generation == generations - 1) and verbose:
                 print(
                     f"generation={generation:4d}  "
                     f"best_{metric_name}={best_fitness:.4f}  "

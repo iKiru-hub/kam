@@ -121,11 +121,17 @@ def evaluate_ae_random(population: list,
 
     return [
         evaluate_ae_individual(ind, settings_sim, settings_data)
-        for ind in tqdm(population)
+        for ind in tqdm(population, disable=settings_sim["disable"])
     ]
 
 
-def aesearch(generations=64, pause=0.01, live_plot=True, workers=None):
+def aesearch(generations=64, pause=0.01, live_plot=True, workers=None, save: bool=False,
+             settings_sim: dict|None=None, settings_data: dict|None=None,
+             save_name: str="mtl_evolution_1", verbose: bool=True):
+
+    settings_sim = dict(AE_SETTINGS_SIM if settings_sim is None else settings_sim)
+    settings_data = dict(AE_SETTINGS_DATA if settings_data is None else settings_data)
+
     num_parameters = len(AE_PARAMETER_NAMES)
     if num_parameters != len(AE_PARAMETER_NAMES):
         raise ValueError(
@@ -141,10 +147,11 @@ def aesearch(generations=64, pause=0.01, live_plot=True, workers=None):
         "population_size": population_size,
         "pause_time": pause,
         "direction": "minimize",
+        "verbose": verbose,
         "metric_name": "validation_mse",
         "workers": workers,
     }
-    evaluation_settings = dict(AE_SETTINGS_SIM)
+    evaluation_settings = dict(settings_sim)
     if workers is None or workers > 1:
         # A process per CPU core should not make every process compete for the
         # same CUDA/MPS device. A serial run may still use the best accelerator.
@@ -152,12 +159,12 @@ def aesearch(generations=64, pause=0.01, live_plot=True, workers=None):
     individual_evaluator = functools.partial(
         evaluate_ae_individual,
         settings_sim=evaluation_settings,
-        settings_data=AE_SETTINGS_DATA,
+        settings_data=settings_data,
     )
     batch_evaluator = functools.partial(
         evaluate_ae_random,
         settings_sim=evaluation_settings,
-        settings_data=AE_SETTINGS_DATA,
+        settings_data=settings_data,
     )
     record = _lib.evolution_run(settings=settings,
                                 evaluate=batch_evaluator,
@@ -165,21 +172,23 @@ def aesearch(generations=64, pause=0.01, live_plot=True, workers=None):
                                 sanitizer=sanitizer,
                                 live_plot=live_plot)
 
-    import time
+    if save:
+        import time
 
-    logs = {
-        "date": f"{time.localtime().tm_mday}.{time.localtime().tm_mon}.{time.localtime().tm_year}",
-        "settings": settings,
-        "best": record["best_candidates"][-1].tolist(),
-        "best_parameters": dict(zip(
-            AE_PARAMETER_NAMES,
-            record["best_candidates"][-1].tolist(),
-        )),
-        "validation_mse": record["best_fitness"][-1],
-        "workers": record["workers"],
-    }
+        logs = {
+            "date": f"{time.localtime().tm_mday}.{time.localtime().tm_mon}.{time.localtime().tm_year}",
+            "settings": settings,
+            "best": record["best_candidates"][-1].tolist(),
+            "best_parameters": dict(zip(
+                AE_PARAMETER_NAMES,
+                record["best_candidates"][-1].tolist(),
+            )),
+            "validation_mse": record["best_fitness"][-1],
+            "workers": record["workers"],
+        }
 
-    _lib.save_genome(info=logs, name="ae_evolution_1")
+        _lib.save_genome(info=logs, name=save_name)
+
     return record
 
 

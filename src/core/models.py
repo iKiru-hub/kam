@@ -147,6 +147,7 @@ class MTL(nn.Module):
                  num_swaps_ca3: int=0,
                  identity_IS : bool=False,
                  random_IS : bool=False,
+                 plasticity: str="base",
                  B_ei_ca1: torch.Tensor|None=None,
                  B_ca1_eo: torch.Tensor|None=None):
 
@@ -202,6 +203,7 @@ class MTL(nn.Module):
         self._num_swaps_ca1 = abs(int(num_swaps_ca1))
         self._num_swaps_ca3 = abs(int(num_swaps_ca3))
         self._nb_ei_ca3 = int(nb_ei_ca3)
+        self._plasticity = str(plasticity).lower()
 
         # Initialize weight matrices for each layer
         # self.W_ei_ca3 = nn.Parameter(torch.randn(dim_ca3,
@@ -313,11 +315,38 @@ class MTL(nn.Module):
         # weight update
         if self.mode == "train" and not test:
             # method 1
-            # self.W_ca3_ca1 = nn.Parameter((1 - IS * self._alpha) * \
-            #     self.W_ca3_ca1 + self._alpha * (IS @ x_ca3.T))
-            # method 2
-            self.W_ca3_ca1 = nn.Parameter((1 - self._alpha) * \
-                self.W_ca3_ca1 + self._alpha * (IS @ x_ca3.T))
+            if self._plasticity == "base":
+                self.W_ca3_ca1 = nn.Parameter((1 - IS * self._alpha) * \
+                    self.W_ca3_ca1 + self._alpha * (IS @ x_ca3.T))
+            elif self._plasticity == "nois":
+                # method 2
+                self.W_ca3_ca1 = nn.Parameter((1 - self._alpha) * \
+                    self.W_ca3_ca1 + self._alpha * (IS @ x_ca3.T))
+            elif self._plasticity == "isout":
+                # method 3
+                self.W_ca3_ca1 = nn.Parameter((1 - self._alpha) * IS * \
+                    self.W_ca3_ca1 + self._alpha * (IS @ x_ca3.T))
+            elif self._plasticity == "err1":
+                # Normalized error-correcting (LMS/delta) rule.
+                error = IS - x_ca1
+                normalizer = x_ca3.square().sum().clamp_min(1e-6)
+                update = self._alpha * (error @ x_ca3.T) / normalizer
+                self.W_ca3_ca1 = nn.Parameter(
+                    (self.W_ca3_ca1 + update).clamp(0.0, 1.0)
+                )
+            elif self._plasticity == "err2":
+                # Bounded error-driven potentiation and depression.
+                positive_error = torch.relu(IS - x_ca1)
+                negative_error = torch.relu(x_ca1 - IS)
+                potentiation = self._alpha * \
+                    (positive_error @ x_ca3.T) * (1.0 - self.W_ca3_ca1)
+                depression = self._alpha * \
+                    (negative_error @ x_ca3.T) * self.W_ca3_ca1
+                self.W_ca3_ca1 = nn.Parameter(
+                    (self.W_ca3_ca1 + potentiation - depression).clamp(0.0, 1.0)
+                )
+            else:
+                raise NameError("wrong plasticity provided")
 
         # Forward pass through CA1 to entorhinal cortex output
         x_eo = self.W_ca1_eo @ x_ca1 + self.B_ca1_eo

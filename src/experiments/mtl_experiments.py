@@ -48,7 +48,8 @@ def train_mtl_random_data(settings_sim: dict,
                        num_swaps_ca1=settings_mtl["num_swaps_ca1"],
                        B_ei_ca1=params[2],
                        B_ca1_eo=params[3],
-                       random_IS=settings_mtl["random_IS"])
+                       random_IS=settings_mtl["random_IS"],
+                       plasticity=settings_mtl.get("plasticity", "base"))
 
     reps = settings_sim.get("reps", 1)
     criterion = settings_sim.get("criterion", mtlct.cosine_criterion)
