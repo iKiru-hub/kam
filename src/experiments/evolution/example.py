@@ -14,7 +14,7 @@ import time
 
 sys.path.append(os.path.abspath(__file__).split("src")[0] + "src/experiments")
 
-import evolution._lib import *
+from evolution._lib import *
 
 """ example """
 

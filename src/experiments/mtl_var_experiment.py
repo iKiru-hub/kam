@@ -20,13 +20,15 @@ import evolution._lib as _lib
 import mtl_experiments as mtlexp
 
 
-SIZE = 10  # gets split | total number of samples
-SETUP = {"K_ca3": (2, 49), "beta_is": (1, 128), "beta_ca1": (1, 128)}
+SIZE = 20  # gets split | total number of samples
+SETUP = {"K_ca3": (2, 49), "K_lat": (2, 49), "beta_is": (1, 256), "beta_ca3": (1, 256),
+         "beta_ca1": (1, 256), "alpha": (0.0001, 0.2), "nb_ei_ca3": (1, 48)}
 NAMES = list(SETUP.keys())
-REPS = 8
+REPS = 4
 HORIZON = 64
 BASE_SEED = 3980
 DISCRETE_PARAMETERS = {"K_ca3", "K_lat", "K_out", "nb_ei_ca3"}
+_PLASTICITY = "err2"
 
 # setup
 settings_sim = {
@@ -45,20 +47,46 @@ settings_data = {
     "K": 5,
 }
 
-settings_mtl = {
-    "K_ca3": 8,
-    "K_lat": 10,
-    "K_out": 10,
+settings_mtl_base = {
+    "K_ca3": 5,
+    "K_lat": 15,
+    "K_out": 5,
     "dim_ca3": 50,
-    "beta_is": 25,
-    "beta_ca3": 105,
-    "beta_ca1": 10,
+    "beta_is": 48,
+    "beta_ca3": 196,
+    "beta_ca1": 24,
     "beta_eo": 20,
-    "alpha": 0.166,
+    "alpha": 0.018,
+    "nb_ei_ca3": 2,
     "num_swaps_ca1": 1,
     "num_swaps_ca3": 1,
     "random_IS": False,
+    "plasticity": "base",
 }
+
+settings_mtl_err2 = {
+    "K_ca3": 2,
+    "K_lat": 19,
+    "K_out": 5,
+    "dim_ca3": 50,
+    "beta_is": 59,
+    "beta_ca3": 196,
+    "beta_ca1": 42,
+    "beta_eo": 20,
+    "alpha": 0.052,
+    "nb_ei_ca3": 2,
+    "num_swaps_ca1": 1,
+    "num_swaps_ca3": 1,
+    "random_IS": False,
+    "plasticity": "err2",
+}
+
+if _PLASTICITY == "base":
+    settings_mtl = settings_mtl_base
+elif _PLASTICITY == "err2":
+    settings_mtl = settings_mtl_err2
+else:
+    raise NameError("plasticity name mistake")
 
 
 def _plot(results: np.ndarray):
@@ -84,7 +112,7 @@ def _plot(results: np.ndarray):
        for j in range(len(results[0])):
            val = results[i, j]
            # white for dark cells, black for light cells
-           text_color = "white" if val > avg else "black"
+           text_color = "white" if val < avg else "black"
            ax.text(j, i, f'{val:.2f}', ha='center', va='center', color=text_color)
 
     plt.show()

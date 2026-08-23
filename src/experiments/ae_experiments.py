@@ -14,6 +14,8 @@ import core.utils as utils
 import core.ae_tools as aect
 from core.logger import logger
 
+
+
 """ train functions """
 
 
@@ -77,9 +79,9 @@ def train_random_data(settings_sim: dict,
     return info["test"][-1]
 
 
-def make_meclec_data(num: int, size: int):
+def make_cue_data(num: int, size: int):
 
-    num_cue_patterns = 5
+    num_cue_patterns = 20
     lec_size = size // 2
     num_laps = num
     cue_positions = [10, 30]
@@ -98,19 +100,19 @@ def make_meclec_data(num: int, size: int):
     return dg.sparse_stimulus_generator_sensory(laps=laps, mec_sigma=5, lec_sigma=5)[0].reshape(-1, size)
 
 
-def train_meclec_data(settings_sim: dict,
-                      settings_data: dict,
-                      settings_ae: dict,
-                      save: bool=False,
-                      name: str="ae_meclec_",
-                      plot: bool=False):
+def train_cue_data(settings_sim: dict,
+                   settings_data: dict,
+                   settings_ae: dict,
+                   save: bool=False,
+                   name: str="ae_cue_",
+                   plot: bool=False):
 
     """ train the autoencoder with uniform random samples """ 
 
-    training_data = make_meclec_data(num=settings_sim["data_training_size"],
+    training_data = make_cue_data(num=settings_sim["data_training_size"],
                                      size=settings_data["size"])
 
-    test_data = make_meclec_data(num=settings_sim["data_test_size"],
+    test_data = make_cue_data(num=settings_sim["data_test_size"],
                                  size=settings_data["size"])
 
     autoencoder = models.Autoencoder(input_dim=settings_ae["input_dim"],
@@ -269,7 +271,7 @@ def main(save: bool=False, plot: bool=False):
                       plot=plot)
 
 
-def main_meclec(save: bool=False, plot: bool=False):
+def main_cue(save: bool=False, plot: bool=False):
 
     # setup
     settings_sim = {
@@ -295,11 +297,11 @@ def main_meclec(save: bool=False, plot: bool=False):
         "use_bias": False,
     }
 
-    train_meclec_data(settings_sim=settings_sim,
+    train_cue_data(settings_sim=settings_sim,
                       settings_data=settings_data,
                       settings_ae=settings_ae,
                       save=save,
-                      name="ae_meclec_nb_",
+                      name="ae_cue_nb_",
                       plot=plot)
 
 
@@ -308,5 +310,5 @@ def main_meclec(save: bool=False, plot: bool=False):
 if __name__ == "__main__":
 
     # main(save=True, plot=True)
-    main_meclec(save=True, plot=True)
+    main_cue(save=True, plot=True)
     # search_a()

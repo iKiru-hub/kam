@@ -15,6 +15,7 @@ import time
 sys.path.append(os.path.abspath(__file__).split("src")[0] + "src/experiments")
 
 import mtl_experiments
+import mtl_cue_experiments
 import _lib
 
 
@@ -37,8 +38,14 @@ MTL_PARAMETER_UPPER = np.array([49., 49., 49., 196., 196., 196., 1., 49])
 MTL_EVALUATION_SEED = 3980
 
 HORIZON = 128
-DATA_TRAINING_SIZE = 96
+DATA_TRAINING_SIZE = 4
+# DATA_LABEL = "random"
+DATA_LABEL = "cue"
+# EVAL_FUNC = _lib.exp_eval
+EVAL_FUNC = _lib.id_eval
+# EVAL_FUNC = _lib.mean_eval
 PLASTICITY_VARIANTS = ("base", "nois", "isout", "err1", "err2")
+_PLASTICITY = "err2"
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -85,14 +92,21 @@ def evaluate_mtl_individual(ind: list, plasticity: str="base",
                             horizon: float=HORIZON):
     """Train and score one decoded MTL candidate."""
 
+    if DATA_LABEL == "random":
+        ae_name = "ae_random_nb_0"
+    elif DATA_LABEL == "cue":
+        ae_name = "ae_cue_nb_0"
+    else:
+        raise NameError("wrong data label")
+
     settings_sim = {
         "data_training_size": DATA_TRAINING_SIZE,
         "criterion": mtl_experiments.mtlct.cosine_criterion,
-        "reps": 1,
+        "reps": 3,
         "use_bias": False,
         "disable": True,
         "plot": False,
-        "ae_name": "ae_random_nb_0"
+        "ae_name": ae_name
     }
 
     settings_data = {
@@ -125,10 +139,19 @@ def evaluate_mtl_individual(ind: list, plasticity: str="base",
         "plasticity": plasticity
     }
 
-    results = mtl_experiments.train_mtl_random_data(settings_sim=settings_sim,
-                                                    settings_data=settings_data,
-                                                    settings_mtl=settings_mtl)
-    score = float(_lib.exp_eval(results, sigma=horizon).mean())
+    if DATA_LABEL == "random":
+        results = mtl_experiments.train_mtl_random_data(settings_sim=settings_sim,
+                                                        settings_data=settings_data,
+                                                        settings_mtl=settings_mtl)
+    elif DATA_LABEL == "cue":
+        results = mtl_cue_experiments.train_mtl_cue_data(settings_sim=settings_sim,
+                                                         settings_data=settings_data,
+                                                         settings_mtl=settings_mtl)
+    else:
+        raise NameError("wrong data label")
+
+
+    score = float(EVAL_FUNC(results, sigma=horizon).mean())
     if not np.isfinite(score):
         score = 0.
     return float(np.clip(score, 0., 1.))
@@ -218,7 +241,7 @@ if __name__ == "__main__":
         pause=args.pause,
         live_plot=not args.no_plot,
         workers=args.workers,
-        plasticity="err2",
+        plasticity=_PLASTICITY,
         save=True
     )
     print("[done]")

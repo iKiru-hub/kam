@@ -18,10 +18,10 @@ from core.logger import logger
 import ae_experiments as aexp
 
 
-SIZE = 15  # gets split | total number of samples
+SIZE = 20  # gets split | total number of samples
 SETUP = {"K": (2, 49), "beta": (1, 128), "gain_out": (1, 128)}
 NAMES = list(SETUP.keys())
-REPS = 7
+REPS = 5
 BASE_SEED = 3980
 DISCRETE_PARAMETERS = {"K"}
 

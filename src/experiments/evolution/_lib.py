@@ -200,6 +200,7 @@ class LivePlot:
         self.candidate_ax.set_title(
             f"Generation {generations[-1]} | best {self.fitness_label} "
             f"{record['best_fitness'][-1]:.4f}"
+            f"{np.around(record['best_candidates'][-1], 3)}"
         )
 
         self.generation_best_line.set_data(generations, record["generation_best"])
@@ -439,6 +440,40 @@ def evolution_run(settings: dict, evaluate: Callable,
 
 
 """ functions """
+
+def mean_eval(data: np.ndarray, **kwargs):
+    return data.mean(axis=0)
+
+
+def id_eval(data: np.ndarray, **kwargs):
+
+    """
+    evaluation of the results as weighted average
+    with explonential weights
+
+    Parameters
+    ----------
+    data: np.ndarray
+        shape (num_stimuli, num_stimuli)
+    sigma: float
+        standard deviation of the exponential kernel
+
+    Return
+    ------
+    float
+    """
+
+    n = len(data)
+    out = np.zeros(n)
+    for r in range(n):
+        denom = 0.
+        _iter = list(range(r, -1, -1))
+        for c in _iter:
+            out[r] += np.clip(data[r, c], 0., 1.)
+
+        out[r] = out[r] / len(_iter)
+
+    return out
 
 def exp_eval(data: np.ndarray, sigma: float):
 

@@ -19,14 +19,45 @@ from experiments.evolution._lib import id_eval
 
 
 
-def train_mtl_random_data(settings_sim: dict,
-                          settings_data: dict,
-                          settings_mtl: dict):
+NUM_CUE_PATTERNS = 2
+SIZE = 50
+LEC_SIZE = SIZE // 2
 
-    """ train the autoencoder with uniform random samples """ 
+NUM = 1
+NUM_LAPS = NUM
+LAP_LENGTH = 50
+CUE_POSITIONS = [10, 30]
+REPS = 128
 
-    num_samples = settings_sim["data_training_size"]
-    ae_name = settings_sim.get("ae_name", "ae_random_0")
+
+def make_cue_data():
+
+    cue_sequence = []
+    for l in range(NUM_LAPS):
+       cue_sequence += [np.random.choice(list(range(NUM_CUE_PATTERNS)),
+                                         replace=False,
+                                         size=len(CUE_POSITIONS)).tolist()] 
+
+    laps = {
+        "n": NUM_LAPS,
+        "length": LAP_LENGTH,
+        "cues_positions": CUE_POSITIONS,
+        "cues_patterns": dg.make_cues(n=NUM_CUE_PATTERNS, size=LEC_SIZE, fixed=True, p=0.2),
+        "cues_sequence": cue_sequence
+    }
+
+    return dg.sparse_stimulus_generator_sensory(laps=laps, mec_sigma=5, lec_sigma=5)[0].reshape(-1, SIZE)
+
+
+
+def train_mtl_cue_data(settings_sim: dict,
+                       settings_data: dict,
+                       settings_mtl: dict):
+
+    """ train the autoencoder with cue samples """
+
+    num_samples = NUM * LAP_LENGTH
+    ae_name = settings_sim.get("ae_name", None)
     use_bias = settings_sim.get("use_bias", False)
     disable = settings_sim.get("disable", False)
     plot = settings_sim.get("plot", False)
@@ -52,17 +83,14 @@ def train_mtl_random_data(settings_sim: dict,
                        random_IS=settings_mtl["random_IS"],
                        plasticity=settings_mtl.get("plasticity", "base"))
 
-    reps = settings_sim.get("reps", 1)
+    reps = settings_sim.get("reps", 32)
     criterion = settings_sim.get("criterion", mtlct.cosine_criterion)
 
     results = np.zeros((reps, num_samples, num_samples))
     rdisable = not(reps > 2)
     for r in tqdm(range(reps), disable=not(rdisable and (not disable))):
 
-        training_data = dg.sparse_stimulus_generator(N=num_samples,
-                                                     K=settings_data["K"],
-                                                     size=settings_data["size"],
-                                                     plot=False)
+        training_data = make_cue_data()
 
         logs, model = mtlct.train_for_accuracy(data=training_data,
                                                model=model,
@@ -92,17 +120,17 @@ def train_mtl_random_data(settings_sim: dict,
 """ main functions """
 
 
-def main_random(plot: bool):
+def main_cue(plot: bool):
 
     # setup
     settings_sim = {
         "data_training_size": 1024,
         "criterion": mtlct.cosine_criterion,
-        "reps": 5,
+        "reps": REPS,
         "use_bias": False,
-        "disable": False,
+        "disable": True,
         "plot": True,
-        "ae_name": "ae_random_nb_0"
+        "ae_name": "ae_cue_nb_0"
     }
 
     settings_data = {
@@ -144,11 +172,10 @@ def main_random(plot: bool):
         "plasticity": "err2",
     }
 
-    train_mtl_random_data(settings_sim=settings_sim,
-                          settings_data=settings_data,
-                          settings_mtl=settings_mtl_err2)
-                          # settings_mtl=settings_mtl)
+    train_mtl_cue_data(settings_sim=settings_sim,
+                       settings_data=settings_data,
+                       settings_mtl=settings_mtl)
 
 if __name__ == "__main__":
 
-    main_random(plot=False)
+    main_cue(plot=False)
