@@ -34,6 +34,7 @@ DEFAULT_DATA_SETTINGS = {
     "num_laps": 50,
     "lap_length": 50,
     "size": 50,
+    "num_cue_patterns": 2,
     "cue_positions": [10, 30],
     "swap_every": 10,
     "cue_sigma": 4.0,
@@ -48,16 +49,16 @@ DEFAULT_DATA_SETTINGS = {
 # Defaults are initialized from the latest saved cue-evolution result.  The
 # command-line options make every value replaceable without editing this file.
 DEFAULT_MTL_SETTINGS = {
-    "K_ca3": 2,
+    "K_ca3": 3,
     "dim_ca3": 50,
     "beta_ca3": 100.61739206314087,
-    "beta_ca1": 11.801433563232422,
+    "beta_ca1": 51.801433563232422,
     "alpha": 0.09247108435630799,
     "nb_ei_ca3": 19,
     "num_swaps_ca1": 0,
     "num_swaps_ca3": 0,
     "random_IS": False,
-    "plasticity": "base",
+    "plasticity": "err2",
 }
 
 
@@ -73,7 +74,7 @@ def parse_args():
     parser.add_argument("--lap-length", type=int, default=50)
     parser.add_argument("--swap-every", type=int, default=10)
     parser.add_argument("--seed", type=int, default=384)
-    parser.add_argument("--ae-name", default="ae_cue_nb_5")
+    parser.add_argument("--ae-name", default="ae_cue_nb_9")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument(
         "--figure",
@@ -511,7 +512,7 @@ def save_results(results: dict, output: Path) -> Path:
 
 
 def run_experiment(reps: int = 5, seed: int = 3980,
-                   ae_name: str = "ae_cue_nb_5",
+                   ae_name: str = "ae_cue_nb_10",
                    data_settings: dict | None = None,
                    mtl_settings: dict | None = None,
                    quiet: bool = False):

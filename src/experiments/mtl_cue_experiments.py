@@ -276,13 +276,13 @@ def main_cue(plot: bool):
 
     # setup
     settings_sim = {
-        "data_training_size": 50*10,
+        "data_training_size": 48,
         "criterion": mtlct.cosine_criterion,
-        "reps": REPS,
+        "reps": 1,
         "use_bias": False,
-        "disable": True,
+        "disable": False,
         "plot": plot,
-        "ae_name": "ae_cue_nb_8"
+        "ae_name": "ae_cue_nb_10"
     }
 
     settings_data = {
@@ -296,18 +296,14 @@ def main_cue(plot: bool):
         "cue_alpha": 0.2,
         "mec_binarized": True,
         "mec_sigma": 4,
-        "cue_spacing": 5,
+        "cue_spacing": 10,
     }
 
     settings_mtl = {
         "K_ca3": 5,
-        "K_lat": 15,
-        "K_eo": 5,
         "dim_ca3": 50,
-        "beta_is": 48,
         "beta_ca3": 196,
         "beta_ca1": 24,
-        "beta_eo": 20,
         "alpha": 0.018,
         "nb_ei_ca3": 2,
         "num_swaps_ca1": 1,
@@ -317,12 +313,12 @@ def main_cue(plot: bool):
     }
 
     settings_mtl_err2 = {
-        "K_ca3": 10,
+        "K_ca3": 2,
         "dim_ca3": 50,
-        "beta_ca3": 81,
-        "beta_ca1": 38,
-        "alpha": 0.022,
-        "nb_ei_ca3": 2,
+        "beta_ca3": 118,
+        "beta_ca1": 52,
+        "alpha": 0.08,
+        "nb_ei_ca3": 20,
         "num_swaps_ca1": 1,
         "num_swaps_ca3": 1,
         "random_IS": False,

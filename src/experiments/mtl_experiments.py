@@ -131,7 +131,7 @@ def train_mtl_random_data(settings_sim: dict,
     criterion = settings_sim.get("criterion", mtlct.cosine_criterion)
 
     results = np.zeros((reps, num_samples, num_samples))
-    rdisable = not(reps > 2)
+    rdisable = not(reps > 1)
     for r in tqdm(range(reps), disable=not(rdisable and (not disable))):
 
         training_data = dg.sparse_stimulus_generator(N=num_samples,
@@ -177,13 +177,13 @@ def main_random(plot: bool):
 
     # setup
     settings_sim = {
-        "data_training_size": 1024,
+        "data_training_size": 3024,
         "criterion": mtlct.cosine_criterion,
-        "reps": 5,
+        "reps": 1,
         "use_bias": False,
         "disable": False,
         "plot": True,
-        "reconstruction_samples": 64,
+        "reconstruction_samples": 3024,
         "ae_name": "ae_random_nb_1"
     }
 

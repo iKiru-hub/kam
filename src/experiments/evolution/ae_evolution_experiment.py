@@ -21,16 +21,16 @@ AE_PARAMETER_NAMES = (
     # "encoding_dim",
     "K_ca1",
     "K_eo",
-    "beta_ei",
+    # "beta_ei",
     "beta_eo",
 )
 # The zero genome represents a known sensible starting configuration. CMA-ES
 # searches standardized coordinates around it, while the decoder enforces the
 # parameter-specific domains below.
-AE_PARAMETER_CENTERS = np.array([5., 5., 25., 25.])
-AE_PARAMETER_SCALES = np.array([3., 3., 20., 20.])
-AE_PARAMETER_LOWER = np.array([1., 1., 1., 1.])
-AE_PARAMETER_UPPER = np.array([49., 49., 256., 256.])
+AE_PARAMETER_CENTERS = np.array([5., 5.,  25.])
+AE_PARAMETER_SCALES = np.array([3., 3., 20.])
+AE_PARAMETER_LOWER = np.array([1., 1., 1.])
+AE_PARAMETER_UPPER = np.array([49., 49., 256.])
 AE_EVALUATION_SEED = 1701
 
 
@@ -38,7 +38,6 @@ AE_EVALUATION_SEED = 1701
 AE_SETTINGS_DATA = {
     "size": 50,
     "K": 5,
-
     "num_cue_patterns": 5,
     "size": 50,
     "lap_length": 50,
@@ -125,8 +124,8 @@ def evaluate_ae_individual(ind,
         "dim_ca1": 50,
         "K_ca1": int(ind[0]),
         "K_eo": int(ind[1]),
-        "beta_ei": float(ind[2]),
-        "beta_eo": float(ind[3]),
+        "beta_ei": 96,
+        "beta_eo": float(ind[2]),
         "use_bias": False,
     }
     if DATA_LABEL == "random":

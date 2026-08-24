@@ -297,7 +297,7 @@ def main_cue(save: bool=False, plot: bool=False):
     settings_data = {
             "size": 50,
             "K": 5,
-            "num_cue_patterns": 3,
+            "num_cue_patterns": 2,
             "lap_length": 50,
             "cue_positions": [10., 30.],
             "cue_sigma": 3.,
@@ -311,9 +311,9 @@ def main_cue(save: bool=False, plot: bool=False):
     settings_ae = {
             "dim_ei": settings_data["size"],
             "dim_ca1": 50,
-            "K_ca1": 9,
+            "K_ca1": 17,
             "K_eo": 5,
-            "beta_ei": 3.,
+            "beta_ei": 96.,
             "beta_eo": 25.,
             "use_bias": False,
     }

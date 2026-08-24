@@ -56,7 +56,7 @@ EVAL_FUNC = _lib.exp_eval # "_lib.id_eval" "_lib.mean_eval"
 # Use one complete cue lap in both conditions so the cue task includes both
 # cue locations and the random baseline carries the same memory load.
 DATA_TRAINING_SIZE = 50*3
-CUE_SPACING = 5
+CUE_SPACING = 10
 DATA_LABEL = "cue" # | "random"
 
 PLASTICITY_VARIANTS = ("base", "nois", "isout", "err1", "err2")
@@ -118,7 +118,7 @@ def evaluate_mtl_individual(ind: list, plasticity: str="base",
     if DATA_LABEL == "random":
         ae_name = "ae_random_nb_0"
     elif DATA_LABEL == "cue":
-        ae_name = "ae_cue_nb_8" # 6: 4 cues
+        ae_name = "ae_cue_nb_9" # 6: 4 cues
     else:
         raise NameError("wrong data label")
 
@@ -143,7 +143,7 @@ def evaluate_mtl_individual(ind: list, plasticity: str="base",
     settings_data = {
         "size": 50,
         "K": 5,
-        "num_cue_patterns": 3,
+        "num_cue_patterns": 2,
         "lap_length": 50,
         "cue_positions": [10., 30.],
         "cue_sigma": 3.,
@@ -169,8 +169,8 @@ def evaluate_mtl_individual(ind: list, plasticity: str="base",
         "beta_ca1": ind[2],
         "alpha": ind[3],
         "nb_ei_ca3": int(ind[4]),
-        "num_swaps_ca1": 1,
-        "num_swaps_ca3": 1,
+        "num_swaps_ca1": 0,
+        "num_swaps_ca3": 0,
         "random_IS": False,
         "plasticity": plasticity
     }
