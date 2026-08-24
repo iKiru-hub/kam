@@ -311,12 +311,12 @@ def save_autoencoder(autoencoder: models.Autoencoder, session: dict, name: str):
     session_path.mkdir(parents=True, exist_ok=True)
 
     model_config = {
-        "input_dim": autoencoder._input_dim,
-        "encoding_dim": autoencoder._encoding_dim,
-        "K": autoencoder._K,
-        "beta": autoencoder._beta,
-        "gain_out": autoencoder._gain_out,
-        "offset_out": autoencoder._offset_out,
+        "dim_ei": autoencoder._dim_ei,
+        "dim_ca1": autoencoder._dim_ca1,
+        "K_ca1": autoencoder._K_ca1,
+        "K_eo": autoencoder._K_eo,
+        "beta_ei": autoencoder._beta_ei,
+        "beta_eo": autoencoder._beta_eo,
         "use_bias": autoencoder._use_bias,
     }
     checkpoint = {

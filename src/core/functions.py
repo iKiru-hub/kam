@@ -42,14 +42,68 @@ def sparsemoid(z: torch.Tensor, K: int,
     z = beta * (z - alpha)
     return torch.sigmoid(z)
 
+def generalized_sigmoid(x: float|np.ndarray, beta: float, alpha: float, top: float=1., offset: float=0.):
+    return np.clip(top / (1 + np.exp(-beta * (x - alpha))) - offset, 0., 1.)
+
 
 def cross_entropy(x: torch.Tensor, y: torch.Tensor, eps=1e-8):
     return F.binary_cross_entropy(x, y)
 
 
 def cosine_similarity_vec(x: torch.Tensor, y: torch.Tensor):
-    return (y.T @ x) / (torch.norm(x) * torch.norm(y))
+    denominator = (torch.norm(x) * torch.norm(y)).clamp_min(1e-8)
+    return (y.T @ x) / denominator
 
+def mse(x, y):
+    # return torch.mean((x - y)**2)
+    return -1. * F.mse_loss(x, y)*0.7 + 0.3*cosine_similarity_vec(x, y)
+
+def gaussian(x, y):
+    return torch.exp(-0.5*(torch.sum((x-y)**2)))
+
+def modified_mse_loss(x: torch.Tensor, y: torch.Tensor,
+                      cosine_weight: float=0.1) -> torch.Tensor:
+    """Combine magnitude-sensitive MSE and cosine distance.
+
+    The loss is zero for a perfect reconstruction. Unlike cosine distance on
+    its own, it penalizes outputs that have the right direction but the wrong
+    activity magnitude.
+    """
+
+    cosine_weight = float(cosine_weight)
+    if not 0. <= cosine_weight <= 1.:
+        raise ValueError("cosine_weight must be between 0 and 1")
+    if x.shape != y.shape:
+        raise ValueError(
+            f"x and y must have the same shape, got {x.shape} and {y.shape}"
+        )
+
+    x_vector = x.reshape(-1, 1)
+    y_vector = y.reshape(-1, 1)
+    cosine = cosine_similarity_vec(
+        x_vector, y_vector
+    ).squeeze().clamp(-1., 1.)
+    both_zero = (torch.norm(x_vector) <= 1e-8) & (
+        torch.norm(y_vector) <= 1e-8
+    )
+    cosine = torch.where(both_zero, torch.ones_like(cosine), cosine)
+    pixel_mse = F.mse_loss(y, x)
+    return (
+        cosine_weight * (1. - cosine)
+        + (1. - cosine_weight) * pixel_mse
+    ).clamp_min(0.)
+
+
+def modified_mse_score(x: torch.Tensor, y: torch.Tensor,
+                       cosine_weight: float=0.5) -> float:
+    """Return a higher-is-better score for evolutionary optimization."""
+
+    loss = modified_mse_loss(
+        x=x,
+        y=y,
+        cosine_weight=cosine_weight,
+    )
+    return float((1. - loss).clamp(0., 1.).item())
 
 def cosine_similarity_mat(matrix1: np.ndarray, matrix2: np.ndarray):
     """

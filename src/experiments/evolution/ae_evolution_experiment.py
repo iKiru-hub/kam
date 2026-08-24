@@ -12,9 +12,63 @@ import torch
 from tqdm import tqdm
 
 sys.path.append(os.path.abspath(__file__).split("src")[0] + "src/experiments")
-
 import ae_experiments
 import _lib
+
+
+
+AE_PARAMETER_NAMES = (
+    # "encoding_dim",
+    "K_ca1",
+    "K_eo",
+    "beta_ei",
+    "beta_eo",
+)
+# The zero genome represents a known sensible starting configuration. CMA-ES
+# searches standardized coordinates around it, while the decoder enforces the
+# parameter-specific domains below.
+AE_PARAMETER_CENTERS = np.array([5., 5., 25., 25.])
+AE_PARAMETER_SCALES = np.array([3., 3., 20., 20.])
+AE_PARAMETER_LOWER = np.array([1., 1., 1., 1.])
+AE_PARAMETER_UPPER = np.array([49., 49., 256., 256.])
+AE_EVALUATION_SEED = 1701
+
+
+
+AE_SETTINGS_DATA = {
+    "size": 50,
+    "K": 5,
+
+    "num_cue_patterns": 5,
+    "size": 50,
+    "lap_length": 50,
+    "cue_positions": [10, 30],
+    "cue_sigma": 5,
+    "cue_beta": 20,
+    "cue_alpha": 0.2,
+    "mec_binarized": True,
+    "mec_sigma": 5.,
+    "lec_sigma": 5.,
+}
+DATA_LABEL = "cue"
+if DATA_LABEL == "cue":
+    AE_SETTINGS_SIM = {
+        "data_training_size": 16,
+        "data_test_size": 4,
+        "epochs": 64,
+        "disable": True,
+        "batch_size": 32,
+        "learning_rate": 1e-3,
+    }
+else:
+    AE_SETTINGS_SIM = {
+        "data_training_size": 1024,
+        "data_test_size": 96,
+        "epochs": 64,
+        "disable": True,
+        "batch_size": 64,
+        "learning_rate": 1e-3,
+    }
 
 
 def parse_args():
@@ -30,38 +84,10 @@ def parse_args():
         help="parallel workers; defaults to min(population size, CPU count)",
     )
     parser.add_argument("--no-plot", action="store_true")
+    parser.add_argument("--save", action="store_true")
     return parser.parse_args()
 
 
-""" autoencoder search """
-
-AE_PARAMETER_NAMES = (
-    # "encoding_dim",
-    "K",
-    "beta",
-    "gain_out",
-)
-# The zero genome represents a known sensible starting configuration. CMA-ES
-# searches standardized coordinates around it, while the decoder enforces the
-# parameter-specific domains below.
-AE_PARAMETER_CENTERS = np.array([5., 25., 20.])
-AE_PARAMETER_SCALES = np.array([ 3., 20., 10.])
-AE_PARAMETER_LOWER = np.array([1., 1., 1.])
-AE_PARAMETER_UPPER = np.array([127., 256., 256.])
-AE_EVALUATION_SEED = 1701
-
-AE_SETTINGS_SIM = {
-    "data_training_size": 1024,
-    "data_test_size": 96,
-    "epochs": 64,
-    "disable": True,
-    "batch_size": 64,
-    "learning_rate": 1e-3,
-}
-AE_SETTINGS_DATA = {
-    "size": 50,
-    "K": 5,
-}
 
 def sanitizer(genome):
     """Decode a standardized CMA genome into valid AE hyperparameters."""
@@ -78,7 +104,9 @@ def sanitizer(genome):
         AE_PARAMETER_LOWER,
         AE_PARAMETER_UPPER,
     )
-    parameters[0] = int(np.clip(np.rint(parameters[0]), 1, 49))
+    # Both sparsity parameters index the two values surrounding the top-K
+    # threshold, so they must be integral and strictly smaller than dim=50.
+    parameters[[0, 1]] = np.rint(parameters[[0, 1]])
     return parameters
 
 
@@ -93,21 +121,33 @@ def evaluate_ae_individual(ind,
     torch.manual_seed(AE_EVALUATION_SEED)
 
     settings_ae = {
-        "input_dim": settings_data["size"],
-        "encoding_dim": 50,
-        "K": int(ind[0]),
-        "beta": float(ind[1]),
-        "gain_out": float(ind[2]),
-        "offset_out": 0.,
+        "dim_ei": settings_data["size"],
+        "dim_ca1": 50,
+        "K_ca1": int(ind[0]),
+        "K_eo": int(ind[1]),
+        "beta_ei": float(ind[2]),
+        "beta_eo": float(ind[3]),
         "use_bias": False,
     }
-    result = ae_experiments.train_random_data(
-        settings_sim=settings_sim,
-        settings_data=settings_data,
-        settings_ae=settings_ae,
-        save=False,
-        plot=False,
-    )
+    if DATA_LABEL == "random":
+        result = ae_experiments.train_random_data(
+            settings_sim=settings_sim,
+            settings_data=settings_data,
+            settings_ae=settings_ae,
+            save=False,
+            plot=False,
+        )
+    elif DATA_LABEL == "cue":
+        result = ae_experiments.train_cue_data(
+            settings_sim=settings_sim,
+            settings_data=settings_data,
+            settings_ae=settings_ae,
+            save=False,
+            plot=False,
+        )
+    else:
+        raise NameError("wrong data label")
+
     result = float(result)
     return result if np.isfinite(result) else 1.0
 
@@ -124,6 +164,7 @@ def evaluate_ae_random(population: list,
         for ind in tqdm(population, disable=settings_sim["disable"])
     ]
 
+""" autoencoder search """
 
 def aesearch(generations=64, pause=0.01, live_plot=True, workers=None, save: bool=False,
              settings_sim: dict|None=None, settings_data: dict|None=None,
@@ -132,12 +173,22 @@ def aesearch(generations=64, pause=0.01, live_plot=True, workers=None, save: boo
     settings_sim = dict(AE_SETTINGS_SIM if settings_sim is None else settings_sim)
     settings_data = dict(AE_SETTINGS_DATA if settings_data is None else settings_data)
 
-    num_parameters = len(AE_PARAMETER_NAMES)
-    if num_parameters != len(AE_PARAMETER_NAMES):
+    parameter_spec_lengths = {
+        "names": len(AE_PARAMETER_NAMES),
+        "centers": len(AE_PARAMETER_CENTERS),
+        "scales": len(AE_PARAMETER_SCALES),
+        "lower bounds": len(AE_PARAMETER_LOWER),
+        "upper bounds": len(AE_PARAMETER_UPPER),
+    }
+    if len(set(parameter_spec_lengths.values())) != 1:
         raise ValueError(
-            f"autoencoder search requires {len(AE_PARAMETER_NAMES)} parameters, "
-            f"got {num_parameters}"
+            "inconsistent autoencoder parameter specification lengths: "
+            + ", ".join(
+                f"{name}={length}"
+                for name, length in parameter_spec_lengths.items()
+            )
         )
+    num_parameters = len(AE_PARAMETER_NAMES)
 
     # Match the population size used internally by the C++ CMAES instance.
     population_size = 4 + int(3 * np.log(num_parameters))
@@ -188,6 +239,7 @@ def aesearch(generations=64, pause=0.01, live_plot=True, workers=None, save: boo
         }
 
         _lib.save_genome(info=logs, name=save_name)
+        print(f"saved as {save_name}")
 
     return record
 
@@ -198,6 +250,8 @@ if __name__ == "__main__":
         generations=args.generations,
         pause=args.pause,
         live_plot=not args.no_plot,
+        save=args.save,
         workers=args.workers,
+        save_name=f"ae_{DATA_LABEL}_x"
     )
     print("[done]")

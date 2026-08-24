@@ -10,7 +10,8 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "cpp1" / "build"))
+# sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "cpp1" / "build"))
+sys.path.append(os.path.abspath(__file__).split("src")[0] + "src/experiments/evolution")
 import evolution
 
 DATA_PATH = "/logs/"
@@ -65,11 +66,8 @@ class LivePlot:
         self.pause = pause
         self.fitness_label = fitness_label
         self.initialized = False
-        self.figure = plt.figure(figsize=(13, 8), constrained_layout=True)
-        grid = self.figure.add_gridspec(2, 2, height_ratios=(1.3, 1.0))
-        self.candidate_ax = self.figure.add_subplot(grid[0, :])
-        self.fitness_ax = self.figure.add_subplot(grid[1, 0])
-        self.history_ax = self.figure.add_subplot(grid[1, 1])
+        self.figure = None
+        self.has_reconstruction = False
         self.sigma_ax = None
         plt.ion()
 
@@ -95,6 +93,48 @@ class LivePlot:
         population = np.asarray(record["populations"][-1], dtype=float)
         if population.ndim != 2:
             raise ValueError("each population must be a 2D candidate matrix")
+
+        diagnostics = record.get("diagnostics", [])
+        diagnostic = diagnostics[-1] if diagnostics else None
+        self.has_reconstruction = (
+            isinstance(diagnostic, dict)
+            and "original_stimuli" in diagnostic
+            and "reconstructed_stimuli" in diagnostic
+        )
+        self.has_internal_activity = (
+            self.has_reconstruction
+            and "ca3_activity" in diagnostic
+            and "ca1_activity" in diagnostic
+        )
+        if self.has_reconstruction:
+            self.figure = plt.figure(
+                figsize=(13, 14 if self.has_internal_activity else 11),
+                constrained_layout=True,
+            )
+            grid = self.figure.add_gridspec(
+                4 if self.has_internal_activity else 3,
+                2,
+                height_ratios=(1.2, 1.0, 1.25, 1.0)
+                if self.has_internal_activity else (1.2, 1.0, 1.25),
+            )
+            self.candidate_ax = self.figure.add_subplot(grid[0, :])
+            self.fitness_ax = self.figure.add_subplot(grid[1, 0])
+            self.history_ax = self.figure.add_subplot(grid[1, 1])
+            self.original_ax = self.figure.add_subplot(grid[2, 0])
+            self.reconstruction_ax = self.figure.add_subplot(grid[2, 1])
+            if self.has_internal_activity:
+                self.ca3_ax = self.figure.add_subplot(grid[3, 0])
+                self.ca1_ax = self.figure.add_subplot(grid[3, 1])
+        else:
+            self.figure = plt.figure(
+                figsize=(13, 8), constrained_layout=True
+            )
+            grid = self.figure.add_gridspec(
+                2, 2, height_ratios=(1.3, 1.0)
+            )
+            self.candidate_ax = self.figure.add_subplot(grid[0, :])
+            self.fitness_ax = self.figure.add_subplot(grid[1, 0])
+            self.history_ax = self.figure.add_subplot(grid[1, 1])
 
         parameter_axis = np.arange(population.shape[1])
         self.population_lines = [
@@ -176,6 +216,108 @@ class LivePlot:
         )
         colorbar = self.figure.colorbar(self.history_image, ax=self.history_ax)
         colorbar.set_label("parameter value")
+
+        if self.has_reconstruction:
+            original = np.asarray(diagnostic["original_stimuli"], dtype=float)
+            reconstructed = np.asarray(
+                diagnostic["reconstructed_stimuli"], dtype=float
+            )
+            if original.ndim != 2 or reconstructed.shape != original.shape:
+                raise ValueError(
+                    "reconstruction diagnostics must contain equally shaped "
+                    "2D original and reconstructed arrays"
+                )
+            extent = (0, len(original), 0, original.shape[1])
+            self.original_image = self.original_ax.imshow(
+                original.T,
+                origin="lower",
+                aspect="auto",
+                interpolation="nearest",
+                extent=extent,
+                vmin=0.,
+                vmax=1.,
+                cmap="viridis",
+            )
+            self.reconstruction_image = self.reconstruction_ax.imshow(
+                reconstructed.T,
+                origin="lower",
+                aspect="auto",
+                interpolation="nearest",
+                extent=extent,
+                vmin=0.,
+                vmax=1.,
+                cmap="viridis",
+            )
+            for axis, title in (
+                    (self.original_ax, "Original track stimuli"),
+                    (self.reconstruction_ax, "Best-model reconstruction")):
+                axis.axhline(
+                    original.shape[1] / 2,
+                    color="white",
+                    linestyle="--",
+                    linewidth=1,
+                    alpha=0.8,
+                )
+                axis.set(
+                    xlabel="circular-track position",
+                    ylabel="EC unit (MEC below, LEC above)",
+                    title=title,
+                )
+            reconstruction_colorbar = self.figure.colorbar(
+                self.reconstruction_image,
+                ax=[self.original_ax, self.reconstruction_ax],
+                shrink=0.9,
+            )
+            reconstruction_colorbar.set_label("activity")
+
+            if self.has_internal_activity:
+                ca3_activity = np.asarray(
+                    diagnostic["ca3_activity"], dtype=float
+                )
+                ca1_activity = np.asarray(
+                    diagnostic["ca1_activity"], dtype=float
+                )
+                if (ca3_activity.ndim != 2 or ca1_activity.ndim != 2
+                        or len(ca3_activity) != len(original)
+                        or len(ca1_activity) != len(original)):
+                    raise ValueError(
+                        "CA3 and CA1 diagnostics must be 2D arrays with one "
+                        "row per reconstructed stimulus"
+                    )
+                self.ca3_image = self.ca3_ax.imshow(
+                    ca3_activity.T,
+                    origin="lower",
+                    aspect="auto",
+                    interpolation="nearest",
+                    extent=(0, len(original), 0, ca3_activity.shape[1]),
+                    vmin=0.,
+                    vmax=1.,
+                    cmap="magma",
+                )
+                self.ca1_image = self.ca1_ax.imshow(
+                    ca1_activity.T,
+                    origin="lower",
+                    aspect="auto",
+                    interpolation="nearest",
+                    extent=(0, len(original), 0, ca1_activity.shape[1]),
+                    vmin=0.,
+                    vmax=1.,
+                    cmap="magma",
+                )
+                for axis, title, region in (
+                        (self.ca3_ax, "Recalled CA3 activity", "CA3"),
+                        (self.ca1_ax, "Recalled CA1 activity", "CA1")):
+                    axis.set(
+                        xlabel="circular-track position",
+                        ylabel=f"{region} unit",
+                        title=title,
+                    )
+                internal_colorbar = self.figure.colorbar(
+                    self.ca1_image,
+                    ax=[self.ca3_ax, self.ca1_ax],
+                    shrink=0.9,
+                )
+                internal_colorbar.set_label("internal activity")
         self.initialized = True
 
     def __call__(self, record):
@@ -228,6 +370,69 @@ class LivePlot:
             limit = max(float(np.percentile(np.abs(finite_values), 98)), 1e-9)
             self.history_image.set_clim(-limit, limit)
 
+        if self.has_reconstruction:
+            diagnostic = record["diagnostics"][-1]
+            original = np.asarray(diagnostic["original_stimuli"], dtype=float)
+            reconstructed = np.asarray(
+                diagnostic["reconstructed_stimuli"], dtype=float
+            )
+            if reconstructed.shape != original.shape:
+                raise ValueError(
+                    "original and reconstructed diagnostic shapes changed"
+                )
+            extent = (0, len(original), 0, original.shape[1])
+            self.original_image.set_data(original.T)
+            self.original_image.set_extent(extent)
+            self.reconstruction_image.set_data(reconstructed.T)
+            self.reconstruction_image.set_extent(extent)
+            self.original_ax.set(xlim=(0, len(original)), ylim=(0, original.shape[1]))
+            self.reconstruction_ax.set(
+                xlim=(0, len(original)), ylim=(0, original.shape[1])
+            )
+            self.reconstruction_ax.set_title(
+                "Best-model reconstruction | generation "
+                f"{generations[-1]} | fidelity "
+                f"{diagnostic.get('reconstruction_fidelity', np.nan):.4f}"
+            )
+
+            if self.has_internal_activity:
+                ca3_activity = np.asarray(
+                    diagnostic["ca3_activity"], dtype=float
+                )
+                ca1_activity = np.asarray(
+                    diagnostic["ca1_activity"], dtype=float
+                )
+                if (ca3_activity.ndim != 2 or ca1_activity.ndim != 2
+                        or len(ca3_activity) != len(original)
+                        or len(ca1_activity) != len(original)):
+                    raise ValueError(
+                        "CA3 and CA1 diagnostic shapes changed"
+                    )
+                ca3_extent = (
+                    0, len(ca3_activity), 0, ca3_activity.shape[1]
+                )
+                ca1_extent = (
+                    0, len(ca1_activity), 0, ca1_activity.shape[1]
+                )
+                self.ca3_image.set_data(ca3_activity.T)
+                self.ca3_image.set_extent(ca3_extent)
+                self.ca1_image.set_data(ca1_activity.T)
+                self.ca1_image.set_extent(ca1_extent)
+                self.ca3_ax.set(
+                    xlim=(0, len(ca3_activity)),
+                    ylim=(0, ca3_activity.shape[1]),
+                )
+                self.ca1_ax.set(
+                    xlim=(0, len(ca1_activity)),
+                    ylim=(0, ca1_activity.shape[1]),
+                )
+                self.ca3_ax.set_title(
+                    f"Recalled CA3 activity | generation {generations[-1]}"
+                )
+                self.ca1_ax.set_title(
+                    f"Recalled CA1 activity | generation {generations[-1]}"
+                )
+
         self.figure.canvas.draw_idle()
         plt.pause(self.pause)
 
@@ -259,6 +464,7 @@ def make_record(direction="minimize", metric_name="fitness"):
 def evolution_run(settings: dict, evaluate: Callable,
                   sanitizer: Callable|None=None,
                   evaluate_individual: Callable|None=None,
+                  generation_diagnostics: Callable|None=None,
                   disable: bool=False,
                   live_plot=True):
     """Run CMA-ES, optionally evaluating population members in worker processes.
@@ -292,6 +498,8 @@ def evolution_run(settings: dict, evaluate: Callable,
     # supported at this template boundary by negating values before update.
     minimize = direction == "minimize"
     record = make_record(direction, metric_name)
+    if generation_diagnostics is not None:
+        record["diagnostics"] = []
     record["workers"] = workers if use_multiprocessing else 1
     optimizer = evolution.CMAES(num_parameters)
     live = LivePlot(
@@ -379,6 +587,37 @@ def evolution_run(settings: dict, evaluate: Callable,
 
             # - update
             optimizer_fitness = fitness if minimize else -fitness
+            boundary_penalty = float(settings.get("boundary_penalty", 0.))
+            if boundary_penalty > 0.:
+                latent_lower = np.asarray(
+                    settings["latent_lower"], dtype=float
+                )
+                latent_upper = np.asarray(
+                    settings["latent_upper"], dtype=float
+                )
+                expected_shape = (num_parameters,)
+                if (latent_lower.shape != expected_shape
+                        or latent_upper.shape != expected_shape):
+                    raise ValueError(
+                        "latent bounds must have shape "
+                        f"{expected_shape}, got {latent_lower.shape} and "
+                        f"{latent_upper.shape}"
+                    )
+                lower_violation = np.maximum(
+                    latent_lower - raw_population, 0.
+                )
+                upper_violation = np.maximum(
+                    raw_population - latent_upper, 0.
+                )
+                boundary_cost = np.sum(
+                    lower_violation ** 2 + upper_violation ** 2,
+                    axis=1,
+                )
+                # The C++ optimizer always minimizes, including when the
+                # user-facing objective is maximized through sign inversion.
+                optimizer_fitness = (
+                    optimizer_fitness + boundary_penalty * boundary_cost
+                )
             optimizer.update(raw_population.tolist(), optimizer_fitness.tolist())
 
             # - logs
@@ -413,6 +652,17 @@ def evolution_run(settings: dict, evaluate: Callable,
             record["raw_populations"].append(raw_population.copy())
             record["raw_optimizer_means"].append(raw_optimizer_mean.copy())
             record["raw_best_candidates"].append(best_raw_candidate.copy())
+
+            if generation_diagnostics is not None:
+                diagnostic = (
+                    generation_diagnostics(best_candidate.copy())
+                    if live is not None else None
+                )
+                if diagnostic is not None and not isinstance(diagnostic, dict):
+                    raise TypeError(
+                        "generation_diagnostics must return a dictionary or None"
+                    )
+                record["diagnostics"].append(diagnostic)
 
             if (generation % 5 == 0 or generation == generations - 1) and verbose:
                 print(

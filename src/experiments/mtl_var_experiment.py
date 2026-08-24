@@ -20,15 +20,15 @@ import evolution._lib as _lib
 import mtl_experiments as mtlexp
 
 
-SIZE = 20  # gets split | total number of samples
+SIZE = 15  # gets split | total number of samples
 SETUP = {"K_ca3": (2, 49), "K_lat": (2, 49), "beta_is": (1, 256), "beta_ca3": (1, 256),
          "beta_ca1": (1, 256), "alpha": (0.0001, 0.2), "nb_ei_ca3": (1, 48)}
 NAMES = list(SETUP.keys())
-REPS = 4
+REPS = 10
 HORIZON = 64
 BASE_SEED = 3980
 DISCRETE_PARAMETERS = {"K_ca3", "K_lat", "K_out", "nb_ei_ca3"}
-_PLASTICITY = "err2"
+_PLASTICITY = "base"
 
 # setup
 settings_sim = {

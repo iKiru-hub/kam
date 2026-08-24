@@ -11,6 +11,19 @@ import core.visualization as visualization
 import core.functions as functions
 from core.logger import logger
 
+
+DEFAULT_CUE_NUM_PATTERNS = 2
+DEFAULT_CUE_LAP_LENGTH = 50
+DEFAULT_CUE_POSITIONS = [10, 30]
+DEFAULT_CUE_MEC_SIGMA = 5.0
+DEFAULT_CUE_LEC_SIGMA = 5.0
+DEFAULT_CUE_SIGMA = 10.0
+DEFAULT_CUE_BETA = 10.0
+DEFAULT_CUE_ALPHA = 0.0
+DEFAULT_MEC_BINARIZED = True
+DEFAULT_CUE_SPACING = 10
+
+
 """
 =============================================================================
 STIMULUS GENERATOR
@@ -147,7 +160,7 @@ def place_field_activity(N_x: int, N_y: int, sigma: float, xi: float, yi: float)
     y = np.linspace(0, N_y-1, N_y)
     X, Y = np.meshgrid(x, y)
     # Calculate the squared Euclidean distance between (xi, yi) and each place cell location
-    dist_squared = circular_distance(X, xi, N_x) ** 2 + (Y - yi) ** 2
+    dist_squared = functions.circular_distance(X, xi, N_x) ** 2 + (Y - yi) ** 2
 
     # Compute Gaussian activity for each place cell
     activity = np.exp(-dist_squared / (2 * sigma ** 2))
@@ -178,10 +191,19 @@ def gaussian_activity(gridsize: tuple, center: tuple, sigma: float):
 def make_cues(n: int, size: int, fixed: bool=True, p: float=-1.):
     """ generate `n` cues of length `size` """
 
+    if n < 1:
+        raise ValueError("n must be at least 1")
+    if size < 1:
+        raise ValueError("size must be at least 1")
+    if fixed and n > size:
+        raise ValueError("fixed cues require n <= size")
+
     cuesize = size // n
     p = p if p > 0. else 1 / size
 
-    patterns = np.empty((n, size))
+    # Fixed cues only write their active block below, so this must be
+    # zero-initialized.  ``np.empty`` left every inactive element undefined.
+    patterns = np.zeros((n, size), dtype=np.float32)
     for k in range(n):
         if fixed:
             patterns[k, cuesize * k: cuesize * (k+1)] = 1
@@ -189,6 +211,102 @@ def make_cues(n: int, size: int, fixed: bool=True, p: float=-1.):
             patterns[k] = np.random.binomial(1, p, size)
 
     return patterns
+
+def make_random_cue_sequence(num_laps: int, cue_positions: list, num_cue_patterns):
+    return [
+        np.random.choice(
+            num_cue_patterns,
+            replace=False,
+            size=len(cue_positions),
+        ).tolist()
+        for _ in range(num_laps)
+    ]
+
+def make_spaced_cue_sequence(num_laps: int, cue_positions: list, num_cue_patterns,
+                             spacing: int):
+    sequence = []
+    head = 0
+    for lap in range(num_laps):
+        if lap % spacing == 0:
+            head += 1
+        sequence += [[head % num_cue_patterns, (head +1) % num_cue_patterns]]
+    return sequence
+
+def make_cue_track_data(
+        num_samples: int,
+        size: int = 50,
+        num_cue_patterns: int = DEFAULT_CUE_NUM_PATTERNS,
+        lap_length: int = DEFAULT_CUE_LAP_LENGTH,
+        cue_positions=DEFAULT_CUE_POSITIONS,
+        cue_sigma=DEFAULT_CUE_SIGMA,
+        cue_beta=DEFAULT_CUE_BETA,
+        cue_alpha=DEFAULT_CUE_ALPHA,
+        mec_binarized=DEFAULT_MEC_BINARIZED,
+        mec_sigma: float = DEFAULT_CUE_MEC_SIGMA,
+        lec_sigma: float = DEFAULT_CUE_LEC_SIGMA,
+        cue_spacing: int = DEFAULT_CUE_SPACING) -> np.ndarray:
+    """Generate exactly ``num_samples`` from the shared MEC+LEC cue task.
+
+
+    Autoencoder and MTL experiments use this function so their cue identities,
+    widths, positions, and track geometry cannot silently diverge.
+    """
+
+    if num_samples < 1:
+        raise ValueError("num_samples must be at least 1")
+    if size < 2 or size % 2:
+        raise ValueError("size must be an even integer of at least 2")
+    if lap_length < 1:
+        raise ValueError("lap_length must be at least 1")
+
+    cue_positions = tuple(int(position) for position in cue_positions)
+    if not cue_positions:
+        raise ValueError("cue_positions must not be empty")
+    if any(position < 0 or position >= lap_length for position in cue_positions):
+        raise ValueError("cue positions must lie within the lap")
+    if num_cue_patterns < len(cue_positions):
+        raise ValueError(
+            "num_cue_patterns must be at least the number of cue positions"
+        )
+
+    lec_size = size // 2
+    num_laps = int(np.ceil(num_samples / lap_length))
+    cue_patterns = make_cues(
+        n=num_cue_patterns,
+        size=lec_size,
+        fixed=True,
+        p=0.2,
+    )
+    # make cue sequence
+    # cue_sequence = [
+    #     np.random.choice(
+    #         num_cue_patterns,
+    #         replace=False,
+    #         size=len(cue_positions),
+    #     ).tolist()
+    #     for _ in range(num_laps)
+    # ]
+    cue_sequence = make_spaced_cue_sequence(num_laps=num_laps,
+                                            cue_positions=cue_positions,
+                                            num_cue_patterns=num_cue_patterns,
+                                            spacing=cue_spacing)
+    laps = {
+        "n": num_laps,
+        "length": lap_length,
+        "cues_positions": list(cue_positions),
+        "cues_patterns": cue_patterns,
+        "cues_sequence": cue_sequence,
+        "cue_sigma": cue_sigma,
+        "cue_beta": cue_beta,
+        "cue_alpha": cue_alpha,
+        "mec_binarized": mec_binarized
+    }
+    samples, _ = sparse_stimulus_generator_sensory(
+        laps=laps,
+        mec_sigma=mec_sigma,
+        lec_sigma=lec_sigma,
+    )
+    return samples.reshape(-1, size)[:num_samples]
 
 
 def sparse_stimulus_generator_sensory(laps: dict, mec_size: int=-1,
@@ -232,19 +350,30 @@ def sparse_stimulus_generator_sensory(laps: dict, mec_size: int=-1,
 
     # setup
     length = laps["length"]
-    num_cues_per_laps = len(laps["cues_positions"])
-    xbase = np.arange(mec_size)
-    for z in xbase:
-        z = length / z if z > 0 else 0.
+    if length < 1:
+        raise ValueError("lap length must be at least 1")
+    # MEC units are place cells whose field centers tile the *whole* circular
+    # track.  Using np.arange(mec_size) placed every center in [0, mec_size),
+    # which left an uncovered arc whenever track length exceeded mec_size.
+    mec_centers = np.linspace(0., float(length), mec_size, endpoint=False)
     samples = np.zeros((laps["n"], length, mec_size + lec_size))
+
+    cue_sigma = laps.get("cue_sigma", 10)
+    cue_alpha = laps.get("cue_alpha", 0.)
+    cue_beta = laps.get("cue_beta", 1)
+    mec_binarized = laps.get("mec_binarized", True)
 
     # --- loop over each time step in each lap
     for l in range(laps["n"]):
         for x in range(length):
 
             # -- add spatial MEC
-            mec_obs = np.around(functions.gaussian_circular_distance(xbase, x, length,
-                                                           mec_sigma), 3)
+            mec_obs = np.around(
+                functions.gaussian_circular_distance(
+                    mec_centers, x, length, mec_sigma
+                ), 3, )
+            if mec_binarized:
+                mec_obs = list(map(lambda x: np.random.binomial(1, np.clip(x, 0, 1)), mec_obs))
             samples[l, x, :mec_size] = mec_obs
 
             # -- add sensory LEC
@@ -252,8 +381,12 @@ def sparse_stimulus_generator_sensory(laps: dict, mec_size: int=-1,
             for cue in laps_cues[l]:
 
                 # probability of adding pattern k now
-                p = functions.gaussian_circular_distance(cue[0], x, length, lec_sigma)
-                if np.random.binomial(1, p):
+                cue_distance = functions.gaussian_circular_distance(cue[0], x, length, cue_sigma)
+                cue_probability = functions.generalized_sigmoid(x=cue_distance,
+                                                                beta=cue_beta,
+                                                                alpha=cue_alpha,
+                                                                top=2., offset=1.)
+                if np.random.binomial(1, cue_probability):
                     samples[l, x, mec_size:] = cue[1]
 
     return samples, laps_cues

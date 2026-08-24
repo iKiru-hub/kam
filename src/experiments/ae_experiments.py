@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
+from torch.nn import MSELoss
 
 from tqdm import tqdm
 import os, sys
@@ -10,6 +11,7 @@ sys.path.append(os.path.abspath(__file__).split("src")[0] + "src")
 import core.models as models
 import core.datagen as dg
 import core.training as ct
+import core.functions as functions
 import core.utils as utils
 import core.ae_tools as aect
 from core.logger import logger
@@ -40,12 +42,12 @@ def train_random_data(settings_sim: dict,
                                              size=settings_data["size"],
                                              plot=False)
 
-    autoencoder = models.Autoencoder(input_dim=settings_ae["input_dim"],
-                                     encoding_dim=settings_ae["encoding_dim"],
-                                     K=settings_ae["K"],
-                                     beta=settings_ae["beta"],
-                                     gain_out=settings_ae["gain_out"],
-                                     offset_out=settings_ae["offset_out"],
+    autoencoder = models.Autoencoder(dim_ei=settings_ae["dim_ei"],
+                                     dim_ca1=settings_ae["dim_ca1"],
+                                     K_ca1=settings_ae["K_ca1"],
+                                     K_eo=settings_ae["K_eo"],
+                                     beta_ei=settings_ae["beta_ei"],
+                                     beta_eo=settings_ae["beta_eo"],
                                      use_bias=settings_ae["use_bias"])
 
     info, autoencoder = aect.train_autoencoder(training_data=training_data,
@@ -79,25 +81,23 @@ def train_random_data(settings_sim: dict,
     return info["test"][-1]
 
 
-def make_cue_data(num: int, size: int):
+def make_cue_data(num: int, settings_sim: dict={}, settings_data: dict={}):
+    """Generate ``num`` complete laps using the shared cue-task settings."""
 
-    num_cue_patterns = 20
-    lec_size = size // 2
-    num_laps = num
-    cue_positions = [10, 30]
-    cue_sequence = []
-    for l in range(num_laps):
-       cue_sequence += [np.random.choice(list(range(num_cue_patterns)), replace=False, size=len(cue_positions)).tolist()] 
-
-    laps = {
-        "n": num_laps,
-        "length": 50,
-        "cues_positions": cue_positions,
-        "cues_patterns": dg.make_cues(n=num_cue_patterns, size=lec_size, fixed=True, p=0.2),
-        "cues_sequence": cue_sequence
-    }
-
-    return dg.sparse_stimulus_generator_sensory(laps=laps, mec_sigma=5, lec_sigma=5)[0].reshape(-1, size)
+    return dg.make_cue_track_data(
+        num_samples=num * dg.DEFAULT_CUE_LAP_LENGTH,
+        size=settings_data.get("size", 10),
+        num_cue_patterns=settings_sim.get("num_cue_patterns", dg.DEFAULT_CUE_NUM_PATTERNS),
+        lap_length=settings_data.get("lap_length", dg.DEFAULT_CUE_LAP_LENGTH),
+        cue_positions=settings_data.get("cue_positions", dg.DEFAULT_CUE_POSITIONS),
+        cue_sigma=settings_data.get("cue_sigma", dg.DEFAULT_CUE_SIGMA),
+        cue_beta=settings_data.get("cue_beta", dg.DEFAULT_CUE_BETA),
+        cue_alpha=settings_data.get("cue_alpha", dg.DEFAULT_CUE_ALPHA),
+        mec_binarized=settings_data.get("mec_binarized", dg.DEFAULT_MEC_BINARIZED),
+        mec_sigma=settings_data.get("mec_sigma", dg.DEFAULT_CUE_MEC_SIGMA),
+        lec_sigma=settings_data.get("lec_sigma", dg.DEFAULT_CUE_LEC_SIGMA),
+        cue_spacing=settings_data.get("cue_spacing", dg.DEFAULT_CUE_SPACING),
+    )
 
 
 def train_cue_data(settings_sim: dict,
@@ -107,29 +107,32 @@ def train_cue_data(settings_sim: dict,
                    name: str="ae_cue_",
                    plot: bool=False):
 
-    """ train the autoencoder with uniform random samples """ 
+    """Train the autoencoder with samples from the shared cue task."""
 
     training_data = make_cue_data(num=settings_sim["data_training_size"],
-                                     size=settings_data["size"])
+                                  settings_sim=settings_sim,
+                                  settings_data=settings_data)
 
     test_data = make_cue_data(num=settings_sim["data_test_size"],
-                                 size=settings_data["size"])
+                              settings_sim=settings_sim,
+                              settings_data=settings_data)
 
-    autoencoder = models.Autoencoder(input_dim=settings_ae["input_dim"],
-                                     encoding_dim=settings_ae["encoding_dim"],
-                                     K=settings_ae["K"],
-                                     beta=settings_ae["beta"],
-                                     gain_out=settings_ae["gain_out"],
-                                     offset_out=settings_ae["offset_out"],
+    autoencoder = models.Autoencoder(dim_ei=settings_ae["dim_ei"],
+                                     dim_ca1=settings_ae["dim_ca1"],
+                                     K_ca1=settings_ae["K_ca1"],
+                                     K_eo=settings_ae["K_eo"],
+                                     beta_ei=settings_ae["beta_ei"],
+                                     beta_eo=settings_ae["beta_eo"],
                                      use_bias=settings_ae["use_bias"])
 
     info, autoencoder = aect.train_autoencoder(training_data=training_data,
                                              test_data=test_data,
                                              autoencoder=autoencoder,
+                                             criterion=MSELoss(),
                                              epochs=settings_sim["epochs"],
                                              batch_size=settings_sim["batch_size"],
                                          learning_rate=settings_sim["learning_rate"],
-                                               disable=False)
+                                               disable=settings_sim.get("disable", True))
 
     if plot:
         ltrain, ltest = info["loss"], info["test"]
@@ -169,6 +172,14 @@ def search_a():
     settings_data = {
             "size": 50,
             "K": 5,
+            "num_cue_patterns": 2,
+            "lap_length": 50,
+            "cue_positions": [10., 30.],
+            "cue_sigma": 5.,
+            "cue_beta": 40.,
+            "cue_alpha": 0.2,
+            "mec_binarized": True,
+            "mec_sigma": 5,
     }
 
     settings_ae = {
@@ -241,9 +252,9 @@ def main(save: bool=False, plot: bool=False):
 
     # setup
     settings_sim = {
-            "data_training_size": 2048,
+            "data_training_size": 1448,
             "data_test_size": 256,
-            "epochs": 2048,
+            "epochs": 1048,
             "batch_size": 100,
             "learning_rate": 1e-3
     }
@@ -254,12 +265,12 @@ def main(save: bool=False, plot: bool=False):
     }
 
     settings_ae = {
-        "input_dim": settings_data["size"],
-        "encoding_dim": 50,
-        "K": 5,
-        "beta": 25.,
-        "gain_out": 20.,
-        "offset_out": 0.,
+        "dim_ei": settings_data["size"],
+        "dim_ca1": 50,
+        "K_ca1": 5,
+        "K_eo": 5,
+        "beta_ei": 25.,
+        "beta_eo": 25.,
         "use_bias": False,
     }
 
@@ -275,34 +286,44 @@ def main_cue(save: bool=False, plot: bool=False):
 
     # setup
     settings_sim = {
-            "data_training_size": 48,
+            "data_training_size": 50*10,
             "data_test_size": 8,
-            "epochs": 1024,
-            "batch_size": 50,
-            "learning_rate": 1e-3
+            "epochs": 196,
+            "batch_size": 32,
+            "learning_rate": 1e-3,
+            "disable": False
     }
 
     settings_data = {
             "size": 50,
             "K": 5,
+            "num_cue_patterns": 3,
+            "lap_length": 50,
+            "cue_positions": [10., 30.],
+            "cue_sigma": 3.,
+            "cue_beta": 40.,
+            "cue_alpha": 0.2,
+            "mec_binarized": True,
+            "mec_sigma": 4,
+            "cue_spacing": 5,
     }
 
     settings_ae = {
-        "input_dim": settings_data["size"],
-        "encoding_dim": 50,
-        "K": 5,
-        "beta": 25.,
-        "gain_out": 20.,
-        "offset_out": 0.,
-        "use_bias": False,
+            "dim_ei": settings_data["size"],
+            "dim_ca1": 50,
+            "K_ca1": 9,
+            "K_eo": 5,
+            "beta_ei": 3.,
+            "beta_eo": 25.,
+            "use_bias": False,
     }
 
     train_cue_data(settings_sim=settings_sim,
-                      settings_data=settings_data,
-                      settings_ae=settings_ae,
-                      save=save,
-                      name="ae_cue_nb_",
-                      plot=plot)
+                   settings_data=settings_data,
+                   settings_ae=settings_ae,
+                   save=save,
+                   name="ae_cue_nb_",
+                   plot=plot)
 
 
 

@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
+import torch
 from torch.nn import MSELoss
 
 from tqdm import tqdm
@@ -16,6 +17,80 @@ import core.ae_tools as aect
 import core.mtl_tools as mtlct
 from core.logger import logger
 from experiments.evolution._lib import id_eval
+
+
+def reconstruct_inputs(model: models.MTL,
+                       data: np.ndarray,
+                       num_inputs: int=64):
+    """Recall an age-spanning subset of inputs with learning disabled."""
+
+    data = np.asarray(data, dtype=np.float32)
+    if data.ndim != 2 or len(data) == 0:
+        raise ValueError("data must be a non-empty (samples, units) array")
+
+    num_inputs = min(max(int(num_inputs), 1), len(data))
+    indices = np.linspace(0, len(data) - 1, num_inputs, dtype=int)
+    original = data[indices]
+
+    model.pause_lr()
+    model.eval()
+    reconstructed = []
+    with torch.no_grad():
+        for sample in original:
+            x = torch.as_tensor(sample, dtype=torch.float32).reshape(-1, 1)
+            reconstructed.append(model(x).reshape(-1).cpu().numpy())
+
+    return indices, original, np.asarray(reconstructed)
+
+
+def plot_input_reconstructions(model: models.MTL,
+                               data: np.ndarray,
+                               num_inputs: int=64):
+    """Plot many stored inputs and their final MTL reconstructions."""
+
+    indices, original, reconstructed = reconstruct_inputs(
+        model=model,
+        data=data,
+        num_inputs=num_inputs,
+    )
+    figure, axes = plt.subplots(
+        2,
+        1,
+        figsize=(12, 7),
+        sharex=True,
+        sharey=True,
+        constrained_layout=True,
+    )
+    extent = (0, len(original), 0, original.shape[1])
+    for axis, values, title in zip(
+            axes,
+            (original, reconstructed),
+            ("Original random stimuli", "Final MTL reconstructions")):
+        image = axis.imshow(
+            values.T,
+            origin="lower",
+            aspect="auto",
+            interpolation="nearest",
+            extent=extent,
+            vmin=0.,
+            vmax=1.,
+            cmap="viridis",
+        )
+        axis.set_title(title)
+        axis.set_ylabel("EC unit")
+
+    tick_locations = np.linspace(0, len(original) - 1, min(6, len(original)))
+    tick_indices = np.rint(tick_locations).astype(int)
+    axes[-1].set_xticks(tick_indices + 0.5)
+    axes[-1].set_xticklabels(indices[tick_indices])
+    axes[-1].set_xlabel(
+        "Training-stream index (oldest to newest sampled memories)"
+    )
+    figure.colorbar(image, ax=axes, label="activity", shrink=0.9)
+    figure.suptitle(
+        f"MTL recall after ongoing learning ({len(original)} inputs)"
+    )
+    return figure, axes
 
 
 
@@ -35,14 +110,14 @@ def train_mtl_random_data(settings_sim: dict,
     params = autoencoder.get_weights(bias=use_bias)
 
     model = models.MTL(W_ei_ca1=params[0], W_ca1_eo=params[1],
-                       K_lat=settings_mtl["K_lat"],
+                       K_ca1=autoencoder._K_ca1,
+                       K_eo=autoencoder._K_eo,
                        K_ca3=settings_mtl["K_ca3"],
-                       K_out=settings_mtl["K_out"],
                        dim_ca3=settings_mtl["dim_ca3"],
-                       beta_is=settings_mtl["beta_is"],
+                       beta_is=autoencoder._beta_ei,
                        beta_ca3=settings_mtl["beta_ca3"],
                        beta_ca1=settings_mtl["beta_ca1"],
-                       beta_eo=settings_mtl["beta_eo"],
+                       beta_eo=autoencoder._beta_eo,
                        alpha=settings_mtl["alpha"],
                        nb_ei_ca3=int(settings_mtl.get("nb_ei_ca3", 10)),
                        num_swaps_ca3=settings_mtl["num_swaps_ca3"],
@@ -79,11 +154,17 @@ def train_mtl_random_data(settings_sim: dict,
         logger(f"accuracy={score:.3f}")
         logger(f"score 'id_eval'={scoreid:.3f}")
 
-        fig, axs = plt.subplots(1, 1, figsize=(10, 10))
-        im = plt.imshow(results, aspect="auto")
-        plt.colorbar(im)
-        plt.grid()
-        plt.title(f"mtl, best={score:.3f}")
+        figure, axis = plt.subplots(1, 1, figsize=(10, 10))
+        image = axis.imshow(results, aspect="auto")
+        figure.colorbar(image, ax=axis)
+        axis.grid()
+        axis.set_title(f"MTL recall accuracy, best={score:.3f}")
+
+        plot_input_reconstructions(
+            model=model,
+            data=training_data,
+            num_inputs=settings_sim.get("reconstruction_samples", 64),
+        )
         plt.show()
 
     return results
@@ -102,7 +183,8 @@ def main_random(plot: bool):
         "use_bias": False,
         "disable": False,
         "plot": True,
-        "ae_name": "ae_random_nb_0"
+        "reconstruction_samples": 64,
+        "ae_name": "ae_random_nb_1"
     }
 
     settings_data = {
@@ -112,13 +194,9 @@ def main_random(plot: bool):
 
     settings_mtl = {
         "K_ca3": 5,
-        "K_lat": 15,
-        "K_out": 5,
         "dim_ca3": 50,
-        "beta_is": 48,
         "beta_ca3": 196,
         "beta_ca1": 24,
-        "beta_eo": 20,
         "alpha": 0.018,
         "nb_ei_ca3": 2,
         "num_swaps_ca1": 1,
@@ -129,13 +207,9 @@ def main_random(plot: bool):
 
     settings_mtl_err2 = {
         "K_ca3": 2,
-        "K_lat": 19,
-        "K_out": 5,
         "dim_ca3": 50,
-        "beta_is": 59,
         "beta_ca3": 196,
         "beta_ca1": 42,
-        "beta_eo": 20,
         "alpha": 0.052,
         "nb_ei_ca3": 2,
         "num_swaps_ca1": 1,

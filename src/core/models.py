@@ -15,20 +15,59 @@ import core.utils as utils
 import core.functions as functions
 
 
+"""
+parameters:
+    [EI]
+    K
+    dim_ei
+    W_ei_ca1
+    W_ei_ca3
+    B_ei_ca1
+    B_ei_ca3
+    beta_ei
+    K_ca1
+
+    [CA3]
+    dim_ca3
+    K_ca3
+    W_ca3_ca1
+    beta_ca3
+    num_swaps_ca3
+
+    [CA1]
+    dim_ca1
+    K_ca1
+    W_ca1_eo
+    B_ca1_eo
+    beta_ca1
+    alpha
+    num_swaps_ca1
+
+    [EO]
+    dim_eo # = dim_ei
+    K_eo
+    gain_out # remove
+    offset_out # remove
+    beta_eo
+
+
+"""
+
 
 # =============================================================================
 # Autoencoder
 # =============================================================================
 
-SIGMOID_GAIN = 10
-SIGMOID_OFFSET = 0.1
-
 class Autoencoder(nn.Module):
 
-    def __init__(self, input_dim: int=10, encoding_dim=10,
-                 K: int=10, beta: float=20.,
-                 gain_out: float=10., offset_out: float=0.1,
-                 use_bias: bool=True):
+    # def __init__(self, input_dim: int=10, encoding_dim=10,
+    #              K: int=10, beta: float=20.,
+    #              gain_out: float=10., offset_out: float=0.1,
+    #              use_bias: bool=True):
+
+    def __init__(self, dim_ei: int=10, dim_ca1=10,
+                 K_ca1: int=10, K_eo: int=10, beta_ei: float=20.,
+                 beta_eo: float=10., use_bias: bool=True):
 
         """
         Simple autoencoder with a single linear layer as encoder and decoder.
@@ -52,22 +91,22 @@ class Autoencoder(nn.Module):
 
         super(Autoencoder, self).__init__()
 
-        self._input_dim = input_dim
-        self._encoding_dim = encoding_dim
-        self._K = K
-        self._beta = beta
+        self._dim_ei = dim_ei
+        self._dim_ca1 = dim_ca1
+        self._K_ca1 = K_ca1
+        self._K_eo = K_eo
+        self._beta_ei = beta_ei
+        self._beta_eo = beta_eo
         self._use_bias = use_bias
-        self._gain_out = gain_out
-        self._offset_out = offset_out
 
         # Encoder
-        self.encoder = nn.Sequential(nn.Linear(input_dim,
-                                               encoding_dim,
+        self.encoder = nn.Sequential(nn.Linear(dim_ei,
+                                               dim_ca1,
                                                bias=use_bias),)
 
         # Decoder
-        self.decoder = nn.Sequential(nn.Linear(encoding_dim,
-                                               input_dim,
+        self.decoder = nn.Sequential(nn.Linear(dim_ca1,
+                                               dim_ei,
                                                bias=use_bias),)
 
     def forward(self, x: torch.Tensor, ca1: bool=False):
@@ -79,8 +118,8 @@ class Autoencoder(nn.Module):
         ----------
         x: torch.Tensor
             input data
-        ca1: bool
-            return the data from CA1. Default is False
+        latent: bool
+            return the data from CA1 latent layer. Default is False
 
         Returns
         -------
@@ -88,16 +127,18 @@ class Autoencoder(nn.Module):
             reconstructed data
         """
 
-        z = self.encoder(x)
-        z = functions.sparsemoid(z=z, K=self._K,
-                                 beta=self._beta)
+        x_ca1 = self.encoder(x)
+        x_ca1 = functions.sparsemoid(z=x_ca1, K=self._K_ca1,
+                                     beta=self._beta_ei)
 
         # ---
-        x = self.decoder(z)
-        x = torch.sigmoid(self._gain_out*(x-self._offset_out))
+        x_eo = self.decoder(x_ca1)
+        # x_eo = functions.sparsemoid(z=x_eo, K=self._K_eo,
+        #                             beta=self._beta_eo)
+        x_eo = torch.sigmoid(self._beta_eo * x_eo)
 
-        if ca1: return x, z
-        return x
+        if ca1: return x_eo, x_ca1
+        return x_eo
 
     def get_weights(self, bias: bool=False):
 
@@ -110,17 +151,17 @@ class Autoencoder(nn.Module):
             the weights of the encoder and decoder
         """
 
-        ei_ca1 = self.encoder[0].weight.data.reshape(self._encoding_dim,
-                                                     self._input_dim)
-        ca1_eo = self.decoder[0].weight.data.reshape(self._input_dim,
-                                                     self._encoding_dim)
+        W_ei_ca1 = self.encoder[0].weight.data.reshape(self._dim_ca1,
+                                                       self._dim_ei)
+        W_ca1_eo = self.decoder[0].weight.data.reshape(self._dim_ei,
+                                                       self._dim_ca1)
 
         if bias and self._use_bias:
-            ei_ca1_b = self.encoder[0].bias.data.reshape(-1, 1)
-            ca1_eo_b = self.decoder[0].bias.data.reshape(-1, 1)
-            return ei_ca1, ca1_eo, ei_ca1_b, ca1_eo_b
+            B_ei_ca1 = self.encoder[0].bias.data.reshape(-1, 1)
+            B_ca1_eo = self.decoder[0].bias.data.reshape(-1, 1)
+            return W_ei_ca1, W_ca1_eo, B_ei_ca1, B_ca1_eo
 
-        return ei_ca1, ca1_eo, None, None
+        return W_ei_ca1, W_ca1_eo, None, None
 
 
 # =============================================================================
@@ -133,8 +174,8 @@ class MTL(nn.Module):
     def __init__(self,
                  W_ei_ca1: torch.Tensor,
                  W_ca1_eo: torch.Tensor,
-                 K_lat: int,
-                 K_out: int,
+                 K_ca1: int,
+                 K_eo: int,
                  K_ca3: int,
                  dim_ca3: int,
                  beta_eo: float,
@@ -167,9 +208,9 @@ class MTL(nn.Module):
         B_ca1_eo: torch.Tensor
             the bias for the CA1 to EC output layer.
             Default is None
-        K_lat: int
+        K_ca1: int
             the number of top values to select
-        K_out: int
+        K_eo: int
             the number of top values to select for the output
         K_ca3: int
             the number of top values to select for the CA3 layer
@@ -192,9 +233,9 @@ class MTL(nn.Module):
         self._dim_ca3 = dim_ca3
 
         # network parameters
-        self._K_lat = abs(int(K_lat))
+        self._K_ca1 = abs(int(K_ca1))
         self._K_ca3 = abs(int(K_ca3))
-        self._K_out = abs(int(K_out))
+        self._K_eo = abs(int(K_eo))
         self._beta_eo = abs(float(beta_eo))
         self._beta_is = abs(float(beta_is))
         self._beta_ca3 = abs(float(beta_ca3))
@@ -258,8 +299,8 @@ class MTL(nn.Module):
             f" bias={self.is_bias}, " + \
             f" beta_is={self._beta_is},  beta_ca3={self._beta_ca3}," + \
             f" beta_eo={self._beta_eo},  beta_ca1={self._beta_ca1}," + \
-            f" alpha={self._alpha}, K_lat={self._K_lat}," + \
-            f" K_out={self._K_out}, num_swaps_ca1={self._num_swaps_ca1}" + \
+            f" alpha={self._alpha}, K_ca1={self._K_ca1}," + \
+            f" K_eo={self._K_eo}, num_swaps_ca1={self._num_swaps_ca1}" + \
             f" num_swaps_ca3={self._num_swaps_ca3}"
 
     def forward(self, x_ei: torch.Tensor, ca1: bool=False, test: bool=False):
@@ -285,8 +326,8 @@ class MTL(nn.Module):
         # forward pass through the entorhinal cortex to CA3
         x_ca3 = self.W_ei_ca3 @ x_ei # 50, 1
         x_ca3 = functions.sparsemoid(x_ca3.reshape(1, -1),
-                                 K=self._K_ca3,
-                                 beta=self._beta_ca3).reshape(-1, 1)
+                                     K=self._K_ca3,
+                                     beta=self._beta_ca3).reshape(-1, 1)
 
         x_ca3 = utils.get_sample_from_num_swaps(x_0=x_ca3,
                                                 num_swaps=self._num_swaps_ca3)
@@ -294,9 +335,9 @@ class MTL(nn.Module):
         # forward pass through CA3 to CA1
         x_ca1 = self.W_ca3_ca1 @ x_ca3 + self.B_ca1_eo # 50, 1
         x_ca1 = functions.sparsemoid(x_ca1.reshape(1, -1),
-                                 K=self._K_lat,
-                                 beta=self._beta_ca1,
-                                 flag=False).reshape(-1, 1)
+                                     K=self._K_ca1,
+                                     beta=self._beta_ca1,
+                                     flag=False).reshape(-1, 1)
 
         x_ca1 = utils.get_sample_from_num_swaps(x_0=x_ca1,
                                                 num_swaps=self._num_swaps_ca1)
@@ -306,7 +347,7 @@ class MTL(nn.Module):
             IS = x_ei
         else:
             IS = self.W_ei_ca1 @ x_ei + self.B_ei_ca1
-            IS = functions.sparsemoid(IS.reshape(1, -1), K=self._K_lat,
+            IS = functions.sparsemoid(IS.reshape(1, -1), K=self._K_ca1,
                                       beta=self._beta_is).reshape(-1, 1)
             if self.random_IS:
                 # permute the IS
@@ -352,9 +393,11 @@ class MTL(nn.Module):
         x_eo = self.W_ca1_eo @ x_ca1 + self.B_ca1_eo
 
         # activation function
-        x_eo = functions.sparsemoid(x_eo.reshape(1, -1),
-                                    K=self._K_out,
-                                    beta=self._beta_eo).reshape(-1, 1)
+        # x_eo = functions.sparsemoid(x_eo.reshape(1, -1),
+        #                             K=self._K_eo,
+        #                             beta=self._beta_eo).reshape(-1, 1)
+        # activation function
+        x_eo = torch.sigmoid(x_eo * self._beta_eo).reshape(-1, 1)
 
         self._ca1 = x_ca1
         self._ca3 = x_ca3
