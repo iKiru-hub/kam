@@ -178,6 +178,12 @@ def train_mtl_cue_data(settings_sim: dict,
                        beta_ca1=settings_mtl["beta_ca1"],
                        beta_eo=autoencoder._beta_eo,
                        alpha=settings_mtl["alpha"],
+                       alpha_plus=settings_mtl.get("alpha_plus"),
+                       alpha_minus=settings_mtl.get("alpha_minus"),
+                       a_plus=settings_mtl.get("a_plus", 0.),
+                       b_plus=settings_mtl.get("b_plus", 1.),
+                       a_minus=settings_mtl.get("a_minus", 0.),
+                       b_minus=settings_mtl.get("b_minus", 1.),
                        nb_ei_ca3=int(settings_mtl.get("nb_ei_ca3", 10)),
                        num_swaps_ca3=settings_mtl["num_swaps_ca3"],
                        num_swaps_ca1=settings_mtl["num_swaps_ca1"],
@@ -189,7 +195,8 @@ def train_mtl_cue_data(settings_sim: dict,
     reps = settings_sim.get("reps", 32)
     criterion = settings_sim.get("criterion", mtlct.cosine_criterion)
 
-    results = np.zeros((reps, num_samples, num_samples))
+    # results = np.zeros((reps, num_samples, num_samples))
+    results = np.zeros((reps, num_samples))
     rdisable = not(reps > 2)
     # for r in tqdm(range(reps), disable=not(rdisable and (not disable))):
     for r in tqdm(range(reps), disable=not TQDM_REPS):
@@ -204,15 +211,24 @@ def train_mtl_cue_data(settings_sim: dict,
             settings_data=settings_data,
         )
 
-        logs, model = mtlct.train_for_accuracy(data=training_data,
-                                               model=model,
-                                               criterion=criterion,
-                                               disable=not((not rdisable) and (not disable)))
-        results[r] = logs["rec_loss"]
+        # logs, model = mtlct.train_for_accuracy(data=training_data,
+        #                                        model=model,
+        #                                        criterion=criterion,
+        #                                        disable=disable)
+        logs, model = mtlct.train_for_accuracy_single(data=training_data,
+                                                      model=model,
+                                                      criterion=criterion,
+                                                      test_last=True,
+                                                      disable=True)
+        results[r] = logs["rec_loss"][-1]
+        # results[r] = logs["rec_loss"]
 
-    results = results.mean(axis=0)
-    score = results.sum()/(len(results)**2/2)
-    scoreid = id_eval(results).mean()
+    # results = results.mean(axis=0)
+    # score = results.sum()/(len(results)**2/2)
+    score = 1-results.mean()
+    scoreid = 1.-results.mean()
+    # print(f"{score=}")
+    # scoreid = id_eval(results).mean()
 
     diagnostic_data = None
     if plot or return_diagnostics:
@@ -233,9 +249,10 @@ def train_mtl_cue_data(settings_sim: dict,
         logger(f"MTL results={np.around(results, 2)}")
         logger(f"accuracy={score:.3f}")
         logger(f"score 'id_eval'={scoreid:.3f}")
+        logger(f"num={len(training_data)}")
 
         figure, axis = plt.subplots(1, 1, figsize=(10, 10))
-        image = axis.imshow(results, aspect="auto")
+        image = axis.imshow(results.reshape(1, -1), aspect="auto")
         figure.colorbar(image, ax=axis)
         axis.grid()
         axis.set_title(f"MTL recall accuracy, best={score:.3f}")
@@ -247,6 +264,22 @@ def train_mtl_cue_data(settings_sim: dict,
                 "lap_length", dg.DEFAULT_CUE_LAP_LENGTH
             ),
         )
+
+        # fig, axs = plt.subplots(1, 750//50)
+        # print(f"{len(axs)=}")
+        _data = []
+        print(f"{len(logs["reconstructions"][0])=}")
+        for k in range(0, 750, 2):
+            _data += [logs["reconstructions"][0][k]]
+        fig, ax = plt.subplots()
+        ax.imshow(np.stack(_data).T)
+        # for i, ax in enumerate(axs.flatten()):
+        #     if i > (len(_data)-1):
+        #         ax.axis("off")
+        #         continue
+        #     ax.imshow(_data[i], aspect="auto")
+        #     ax.set_title(f"{i}")
+
         plt.show()
 
     if return_diagnostics:
@@ -276,19 +309,19 @@ def main_cue(plot: bool):
 
     # setup
     settings_sim = {
-        "data_training_size": 48,
+        "data_training_size": 50*15,
         "criterion": mtlct.cosine_criterion,
         "reps": 1,
         "use_bias": False,
         "disable": False,
         "plot": plot,
-        "ae_name": "ae_cue_nb_10"
+        "ae_name": "ae_5cues_0"
     }
 
     settings_data = {
         "size": 50,
         "K": 5,
-        "num_cue_patterns": 2,
+        "num_cue_patterns": 5,
         "lap_length": 50,
         "cue_positions": [10., 30.],
         "cue_sigma": 3.,
@@ -296,33 +329,71 @@ def main_cue(plot: bool):
         "cue_alpha": 0.2,
         "mec_binarized": True,
         "mec_sigma": 4,
-        "cue_spacing": 10,
+        "cue_spacing": 1,
     }
 
     settings_mtl = {
-        "K_ca3": 5,
+        "K_ca3": 3,
         "dim_ca3": 50,
-        "beta_ca3": 196,
-        "beta_ca1": 24,
-        "alpha": 0.018,
-        "nb_ei_ca3": 2,
-        "num_swaps_ca1": 1,
-        "num_swaps_ca3": 1,
+        "beta_ca3": 176,
+        "beta_ca1": 34,
+        "alpha": 0.108,
+        "nb_ei_ca3": 30,
+        "num_swaps_ca1": 0,
+        "num_swaps_ca3": 0,
         "random_IS": False,
         "plasticity": "base",
     }
 
     settings_mtl_err2 = {
+        "K_ca3": 8,
+        "dim_ca3": 50,
+        "beta_ca3": 98,
+        "beta_ca1": 117,
+        "alpha": 0.036,
+        "nb_ei_ca3": 8,
+        "num_swaps_ca1": 0,
+        "num_swaps_ca3": 0,
+        "random_IS": False,
+        "plasticity": "err2",
+    }
+
+    settings_mtl_xbtsp = {
         "K_ca3": 2,
         "dim_ca3": 50,
-        "beta_ca3": 118,
-        "beta_ca1": 52,
-        "alpha": 0.08,
-        "nb_ei_ca3": 20,
+        "beta_ca3": 58,
+        "beta_ca1": 12,
+        "alpha": 0.151,
+        "alpha_plus": 0.001,
+        "alpha_minus": 0.351,
+        "a_plus": 0.,
+        "b_plus": 1.,
+        "a_minus": 0.,
+        "b_minus": 1.,
+        "nb_ei_ca3": 8,
         "num_swaps_ca1": 1,
         "num_swaps_ca3": 1,
         "random_IS": False,
-        "plasticity": "err2",
+        "plasticity": "xbtsp",
+    }
+
+    settings_mtl_btsp = {
+        "K_ca3": 2,
+        "dim_ca3": 50,
+        "beta_ca3": 58,
+        "beta_ca1": 12,
+        "alpha": 0.151,
+        "alpha_plus": 0.001,
+        "alpha_minus": 0.351,
+        "a_plus": 0.,
+        "b_plus": 1.,
+        "a_minus": 0.,
+        "b_minus": 1.,
+        "nb_ei_ca3": 8,
+        "num_swaps_ca1": 1,
+        "num_swaps_ca3": 1,
+        "random_IS": False,
+        "plasticity": "btsp",
     }
 
     train_mtl_cue_data(settings_sim=settings_sim,

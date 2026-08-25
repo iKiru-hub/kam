@@ -46,6 +46,35 @@ def generalized_sigmoid(x: float|np.ndarray, beta: float, alpha: float, top: flo
     return np.clip(top / (1 + np.exp(-beta * (x - alpha))) - offset, 0., 1.)
 
 
+def normalized_sigmoid(x: torch.Tensor, beta: float,
+                       alpha: float) -> torch.Tensor:
+    """BTSP sigmoid normalized to map zero to 0 and one to 1.
+
+    The calculation is performed in float64 to retain the ratio between the
+    two small sigmoid values when the threshold is far above the [0, 1]
+    overlap range, then converted back to the input dtype.
+    """
+
+    if not torch.is_tensor(x):
+        raise TypeError("normalized_sigmoid expects a torch.Tensor")
+
+    work = x.to(dtype=torch.float64)
+    beta_tensor = work.new_tensor(abs(float(beta)))
+    alpha_tensor = work.new_tensor(float(alpha))
+    lower = torch.sigmoid(-beta_tensor * alpha_tensor)
+    upper = torch.sigmoid(beta_tensor * (1.0 - alpha_tensor))
+    denominator = upper - lower
+
+    if denominator.abs() <= torch.finfo(work.dtype).tiny:
+        # beta == 0 (or an extreme, numerically unresolved threshold) has no
+        # sigmoid contrast. The continuous useful fallback is a linear gate.
+        result = work.clamp(0.0, 1.0)
+    else:
+        raw = torch.sigmoid(beta_tensor * (work - alpha_tensor))
+        result = ((raw - lower) / denominator).clamp(0.0, 1.0)
+    return result.to(dtype=x.dtype)
+
+
 def cross_entropy(x: torch.Tensor, y: torch.Tensor, eps=1e-8):
     return F.binary_cross_entropy(x, y)
 

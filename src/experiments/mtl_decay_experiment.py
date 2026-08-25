@@ -13,6 +13,7 @@ import core.models as models
 import core.datagen as dg
 import core.training as ct
 import core.utils as utils
+import core.functions as functions
 import core.ae_tools as aect
 import core.mtl_tools as mtlct
 from core.logger import logger
@@ -54,9 +55,9 @@ def plot_input_reconstructions(model: models.MTL,
         num_inputs=num_inputs,
     )
     figure, axes = plt.subplots(
-        3,
+        2,
         1,
-        figsize=(13, 5),
+        figsize=(12, 7),
         sharex=True,
         sharey=True,
         constrained_layout=True,
@@ -64,8 +65,8 @@ def plot_input_reconstructions(model: models.MTL,
     extent = (0, len(original), 0, original.shape[1])
     for axis, values, title in zip(
             axes,
-            (original, reconstructed, original-reconstructed),
-            ("Original random stimuli", "Final MTL reconstructions", "diff")):
+            (original, reconstructed),
+            ("Original random stimuli", "Final MTL reconstructions")):
         image = axis.imshow(
             values.T,
             origin="lower",
@@ -105,6 +106,7 @@ def train_mtl_random_data(settings_sim: dict,
     use_bias = settings_sim.get("use_bias", False)
     disable = settings_sim.get("disable", False)
     plot = settings_sim.get("plot", False)
+    test_last = True
 
     autoencoder, info = aect.load_autoencoder(name=ae_name)
     params = autoencoder.get_weights(bias=use_bias)
@@ -145,33 +147,38 @@ def train_mtl_random_data(settings_sim: dict,
                                                      size=settings_data["size"],
                                                      plot=False)
 
-        logs, model = mtlct.train_for_accuracy(data=training_data,
-                                               model=model,
-                                               criterion=criterion,
-                                               disable=False,
-                                               test_last=True)
+        logs, model = mtlct.train_for_accuracy_single(data=training_data,
+                                                      model=model,
+                                                      criterion=criterion,
+                                                      test_last=test_last,
+                                                      disable=False)
         results[r] = logs["rec_loss"]
 
     results = results.mean(axis=0)
-    score = results.sum()/(len(results)**2/2)
-    scoreid = id_eval(results).mean()
+    # score = results.sum()/(len(results)**2/2)
+    # scoreid = id_eval(results).mean()
 
+    print(f"results shape: {results.shape}")
     if plot:
         logger(f"MTL results={np.around(results, 2)}")
-        logger(f"accuracy={score:.3f}")
-        logger(f"score 'id_eval'={scoreid:.3f}")
+        # logger(f"accuracy={score:.3f}")
+        # logger(f"score 'id_eval'={scoreid:.3f}")
 
         figure, axis = plt.subplots(1, 1, figsize=(10, 10))
-        image = axis.imshow(results, aspect="auto")
-        figure.colorbar(image, ax=axis)
+        if test_last:
+            image = axis.imshow(results[-1].reshape(1, -1), aspect="auto")
+            # image = axis.plot(range(len(results[-1])), results[-1].reshape(-1))
+        else:
+            image = axis.imshow(results, aspect="auto")
+            figure.colorbar(image, ax=axis)
         axis.grid()
-        axis.set_title(f"MTL recall accuracy, best={score:.3f}")
+        # axis.set_title(f"MTL recall accuracy, best={score:.3f}")
 
-        plot_input_reconstructions(
-            model=model,
-            data=training_data,
-            num_inputs=settings_sim.get("reconstruction_samples", 64),
-        )
+        # plot_input_reconstructions(
+        #     model=model,
+        #     data=training_data,
+        #     num_inputs=settings_sim.get("reconstruction_samples", 64),
+        # )
         plt.show()
 
     return results
@@ -184,13 +191,13 @@ def main_random(plot: bool):
 
     # setup
     settings_sim = {
-        "data_training_size": 1024,
-        "criterion": mtlct.cosine_criterion,
+        "data_training_size": 5024,
+        "criterion": functions.mse,#mtlct.cosine_criterion,
         "reps": 1,
         "use_bias": False,
         "disable": False,
         "plot": True,
-        "reconstruction_samples": 1024,
+        "reconstruction_samples": 5024,
         "ae_name": "ae_random_nb_1"
     }
 

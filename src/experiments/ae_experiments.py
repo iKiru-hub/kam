@@ -87,7 +87,7 @@ def make_cue_data(num: int, settings_sim: dict={}, settings_data: dict={}):
     return dg.make_cue_track_data(
         num_samples=num * dg.DEFAULT_CUE_LAP_LENGTH,
         size=settings_data.get("size", 10),
-        num_cue_patterns=settings_sim.get("num_cue_patterns", dg.DEFAULT_CUE_NUM_PATTERNS),
+        num_cue_patterns=settings_data.get("num_cue_patterns", dg.DEFAULT_CUE_NUM_PATTERNS),
         lap_length=settings_data.get("lap_length", dg.DEFAULT_CUE_LAP_LENGTH),
         cue_positions=settings_data.get("cue_positions", dg.DEFAULT_CUE_POSITIONS),
         cue_sigma=settings_data.get("cue_sigma", dg.DEFAULT_CUE_SIGMA),
@@ -286,10 +286,10 @@ def main_cue(save: bool=False, plot: bool=False):
 
     # setup
     settings_sim = {
-            "data_training_size": 50*10,
-            "data_test_size": 8,
-            "epochs": 196,
-            "batch_size": 32,
+            "data_training_size": 50*15,
+            "data_test_size": 50*5,
+            "epochs": 128,
+            "batch_size": 64,
             "learning_rate": 1e-3,
             "disable": False
     }
@@ -297,7 +297,7 @@ def main_cue(save: bool=False, plot: bool=False):
     settings_data = {
             "size": 50,
             "K": 5,
-            "num_cue_patterns": 2,
+            "num_cue_patterns": 15,
             "lap_length": 50,
             "cue_positions": [10., 30.],
             "cue_sigma": 3.,
@@ -322,7 +322,7 @@ def main_cue(save: bool=False, plot: bool=False):
                    settings_data=settings_data,
                    settings_ae=settings_ae,
                    save=save,
-                   name="ae_cue_nb_",
+                   name=f"ae_{settings_data['num_cue_patterns']}cues_",
                    plot=plot)
 
 

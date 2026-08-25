@@ -33,10 +33,10 @@ def cosine_criterion(x: torch.Tensor, y: torch.Tensor,
     return (z.item() - p1) / p2
 
 
-
 def train_for_accuracy(data: np.ndarray,
                        model: models.MTL | models.Autoencoder,
                        criterion: Callable=cosine_criterion,
+                       test_last: bool=False,
                        disable: bool=True) -> tuple:
 
     """
@@ -103,7 +103,6 @@ def train_for_accuracy(data: np.ndarray,
 
                 logs["train_loss"][i, j] = criterion(x, y)
 
-
         # --- test a dataset with pattern index 0.. i
         if isinstance(model, models.MTL):
             model.pause_lr()
@@ -117,11 +116,93 @@ def train_for_accuracy(data: np.ndarray,
                 # else:
                 #     x = batch[-1].reshape(-1, 1)
             # for j, test_x in enumerate(data):
+            if test_last and i < (num_samples-1):
+                continue
             for j, batch in enumerate(datasets[i]):
                 x = batch[-1].reshape(-1, 1)
 
                 y = model(x)
                 logs["rec_loss"][i, j] = criterion(x, y)
+
+    return logs, model
+
+
+
+def train_for_accuracy_single(data: np.ndarray,
+                              model: models.MTL | models.Autoencoder,
+                              criterion: Callable=cosine_criterion,
+                              test_last = False,
+                              disable: bool=True) -> tuple:
+
+    """
+    trainings for a given alpha (already set in the model)
+
+    Parameters
+    ----------
+    alpha : float
+        learning rate
+    num_rep : int
+        number of repetitions
+    num_samples : int
+        number of samples
+    disable : bool
+        disable tqdm bar
+
+    Returns
+    -------
+    np.ndarray
+        outputs
+    """
+
+    # data
+    num_samples = len(data)
+
+    dataset = torch.tensor(data, dtype=torch.float32)
+    # dataset = DataLoader(TensorDataset(tensor_data), batch_size=1, shuffle=False)
+
+    logs = {
+        "train_loss": np.zeros((num_samples, num_samples)),
+        "rec_loss": np.zeros((num_samples, num_samples)),
+        "reconstructions": []
+    }
+
+    if isinstance(model, models.Autoencoder):
+        device = aect._resolve_device("mps")
+        model.to(device)
+
+    # --- run new repetition
+    for i in tqdm(range(num_samples), disable=disable):
+
+        # reset the model
+        if isinstance(model, models.MTL):
+            model.reset()
+            model.resume_lr()
+
+        # train a dataset with pattern index 0.. i
+        model.eval()
+        with torch.no_grad():
+
+            x = dataset[i].reshape(-1, 1)
+            y = model(x)
+
+            logs["train_loss"][i] = criterion(x, y)
+
+        if test_last and i < (num_samples-1):
+            continue
+
+        # --- test a dataset with pattern index 0.. i
+        if isinstance(model, models.MTL):
+            model.pause_lr()
+        model.eval()
+        _rsamples = []
+        with torch.no_grad():
+            # forward one pattern at a time
+            for j, batch in enumerate(dataset[:i]):
+                x = batch.reshape(-1, 1)
+                y = model(x)
+                logs["rec_loss"][i, j] = criterion(x, y)
+                _rsamples += [y.detach().numpy()]
+            logs["reconstructions"] += [_rsamples]
 
     return logs, model
 

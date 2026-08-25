@@ -51,10 +51,10 @@ DEFAULT_DATA_SETTINGS = {
 DEFAULT_MTL_SETTINGS = {
     "K_ca3": 3,
     "dim_ca3": 50,
-    "beta_ca3": 100.61739206314087,
-    "beta_ca1": 51.801433563232422,
+    "beta_ca3": 170.61739206314087,
+    "beta_ca1": 41.801433563232422,
     "alpha": 0.09247108435630799,
-    "nb_ei_ca3": 19,
+    "nb_ei_ca3": 29,
     "num_swaps_ca1": 0,
     "num_swaps_ca3": 0,
     "random_IS": False,
@@ -74,7 +74,7 @@ def parse_args():
     parser.add_argument("--lap-length", type=int, default=50)
     parser.add_argument("--swap-every", type=int, default=10)
     parser.add_argument("--seed", type=int, default=384)
-    parser.add_argument("--ae-name", default="ae_cue_nb_9")
+    parser.add_argument("--ae-name", default="ae_cue_nb_10")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument(
         "--figure",
@@ -178,6 +178,12 @@ def build_mtl(ae_name: str, settings: dict) -> tuple[models.MTL, dict]:
         beta_ca1=float(settings["beta_ca1"]),
         beta_eo=autoencoder._beta_eo,
         alpha=float(settings["alpha"]),
+        alpha_plus=settings.get("alpha_plus"),
+        alpha_minus=settings.get("alpha_minus"),
+        a_plus=float(settings.get("a_plus", 0.)),
+        b_plus=float(settings.get("b_plus", 1.)),
+        a_minus=float(settings.get("a_minus", 0.)),
+        b_minus=float(settings.get("b_minus", 1.)),
         nb_ei_ca3=int(settings["nb_ei_ca3"]),
         num_swaps_ca3=int(settings["num_swaps_ca3"]),
         num_swaps_ca1=int(settings["num_swaps_ca1"]),

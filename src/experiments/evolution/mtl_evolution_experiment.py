@@ -28,19 +28,25 @@ MTL_PARAMETER_NAMES = (
     "beta_ca3",
     "beta_ca1",
     "alpha",
+    "alpha_plus",
+    "alpha_minus",
+    "a_plus",
+    "b_plus",
+    "a_minus",
+    "b_minus",
     "nb_ei_ca3",
 )
-MTL_PARAMETER_CENTERS = np.array([10., 30., 30., 0.166, 10.])
-MTL_PARAMETER_SCALES = np.array([5., 15., 15., 0.10, 5.])
-MTL_PARAMETER_LOWER = np.array([2., 2., 2., 1e-4, 2.])
-MTL_PARAMETER_UPPER = np.array([49., 196., 196., 1., 49])
+MTL_PARAMETER_CENTERS = np.array([10., 30., 30., 0.166, 0.166, 0.166, 10., 0.1, 10., 0.1, 10.])
+MTL_PARAMETER_SCALES = np.array([5., 15., 15., 0.10, 0.10, 0.10, 15, 0.1, 15., 0.1, 5.])
+MTL_PARAMETER_LOWER = np.array([2., 2., 2., 1e-3, 1e-3, 1e-3, 2., 1e-3, 2., 1e-3, 2.])
+MTL_PARAMETER_UPPER = np.array([49., 512., 512., 1., 1., 1., 512, 1, 512, 1., 49])
 MTL_LATENT_LOWER = (
     MTL_PARAMETER_LOWER - MTL_PARAMETER_CENTERS
 ) / MTL_PARAMETER_SCALES
 MTL_LATENT_UPPER = (
     MTL_PARAMETER_UPPER - MTL_PARAMETER_CENTERS
 ) / MTL_PARAMETER_SCALES
-MTL_EVALUATION_SEED = 3980
+MTL_EVALUATION_SEED = int(np.random.uniform()*10000)
 
 MTL_CRITERIA = {
     "cosine": mtl_experiments.mtlct.cosine_criterion,
@@ -50,17 +56,17 @@ MTL_CRITERIA = {
 }
 DEFAULT_CRITERION = "mse" # "modified-mse"
 
-HORIZON = 8
+HORIZON = 10
 EVAL_FUNC = _lib.exp_eval # "_lib.id_eval" "_lib.mean_eval"
 
 # Use one complete cue lap in both conditions so the cue task includes both
 # cue locations and the random baseline carries the same memory load.
-DATA_TRAINING_SIZE = 50*3
-CUE_SPACING = 10
+DATA_TRAINING_SIZE = 50*15
+CUE_SPACING = 1
 DATA_LABEL = "cue" # | "random"
 
-PLASTICITY_VARIANTS = ("base", "nois", "isout", "err1", "err2")
-_PLASTICITY = "err2"
+PLASTICITY_VARIANTS = ("base", "nois", "isout", "err1", "err2", "err3", "xbtsp", "btsp")
+_PLASTICITY = "xbtsp"
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -103,7 +109,7 @@ def sanitizer(genome):
         MTL_PARAMETER_UPPER,
     )
     # K_ca3 and the number of EI-to-CA3 connections are discrete.
-    parameters[[0, 4]] = np.rint(parameters[[0, 4]])
+    parameters[[0, 10]] = np.rint(parameters[[0, 10]])
     return parameters
 
 
@@ -118,7 +124,7 @@ def evaluate_mtl_individual(ind: list, plasticity: str="base",
     if DATA_LABEL == "random":
         ae_name = "ae_random_nb_0"
     elif DATA_LABEL == "cue":
-        ae_name = "ae_cue_nb_9" # 6: 4 cues
+        ae_name = "ae_15cues_0" # 6: 4 cues
     else:
         raise NameError("wrong data label")
 
@@ -143,7 +149,7 @@ def evaluate_mtl_individual(ind: list, plasticity: str="base",
     settings_data = {
         "size": 50,
         "K": 5,
-        "num_cue_patterns": 2,
+        "num_cue_patterns": 15,
         "lap_length": 50,
         "cue_positions": [10., 30.],
         "cue_sigma": 3.,
@@ -168,7 +174,13 @@ def evaluate_mtl_individual(ind: list, plasticity: str="base",
         "beta_ca3": ind[1],
         "beta_ca1": ind[2],
         "alpha": ind[3],
-        "nb_ei_ca3": int(ind[4]),
+        "alpha_plus": ind[4],
+        "alpha_minus": ind[5],
+        "a_plus": ind[6],
+        "b_plus": ind[7],
+        "a_minus": ind[8],
+        "b_minus": ind[9],
+        "nb_ei_ca3": int(ind[10]),
         "num_swaps_ca1": 0,
         "num_swaps_ca3": 0,
         "random_IS": False,
@@ -195,7 +207,8 @@ def evaluate_mtl_individual(ind: list, plasticity: str="base",
         raise NameError("wrong data label")
 
 
-    score = float(EVAL_FUNC(results, sigma=horizon).mean())
+    # score = float(EVAL_FUNC(results, sigma=horizon).mean())
+    score = np.mean(results)
     if not np.isfinite(score):
         score = 0.
     score = float(np.clip(score, 0., 1.))

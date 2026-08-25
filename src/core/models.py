@@ -189,6 +189,12 @@ class MTL(nn.Module):
                  identity_IS : bool=False,
                  random_IS : bool=False,
                  plasticity: str="base",
+                 alpha_plus: float|None=None,
+                 alpha_minus: float|None=None,
+                 a_plus: float=0.,
+                 b_plus: float=1.,
+                 a_minus: float=0.,
+                 b_minus: float=1.,
                  B_ei_ca1: torch.Tensor|None=None,
                  B_ca1_eo: torch.Tensor|None=None):
 
@@ -241,6 +247,16 @@ class MTL(nn.Module):
         self._beta_ca3 = abs(float(beta_ca3))
         self._beta_ca1 = abs(float(beta_ca1))
         self._alpha = abs(float(alpha))
+        # Default both BTSP rates to the established MTL learning rate so old
+        # constructors do not unexpectedly make unit-sized weight updates.
+        self._alpha_plus = self._alpha if alpha_plus is None \
+            else abs(float(alpha_plus))
+        self._alpha_minus = self._alpha if alpha_minus is None \
+            else abs(float(alpha_minus))
+        self._a_plus = abs(float(a_plus))
+        self._b_plus = abs(float(b_plus))
+        self._a_minus = abs(float(a_minus))
+        self._b_minus = abs(float(b_minus))
         self._num_swaps_ca1 = abs(int(num_swaps_ca1))
         self._num_swaps_ca3 = abs(int(num_swaps_ca3))
         self._nb_ei_ca3 = int(nb_ei_ca3)
@@ -333,7 +349,7 @@ class MTL(nn.Module):
                                                 num_swaps=self._num_swaps_ca3)
 
         # forward pass through CA3 to CA1
-        x_ca1 = self.W_ca3_ca1 @ x_ca3 + self.B_ca1_eo # 50, 1
+        x_ca1 = self.W_ca3_ca1 @ x_ca3 + self.B_ei_ca1 # 50, 1
         x_ca1 = functions.sparsemoid(x_ca1.reshape(1, -1),
                                      K=self._K_ca1,
                                      beta=self._beta_ca1,
@@ -383,6 +399,44 @@ class MTL(nn.Module):
                     (positive_error @ x_ca3.T) * (1.0 - self.W_ca3_ca1)
                 depression = self._alpha * \
                     (negative_error @ x_ca3.T) * self.W_ca3_ca1
+                self.W_ca3_ca1 = nn.Parameter(
+                    (self.W_ca3_ca1 + potentiation - depression).clamp(0.0, 1.0)
+                )
+            elif self._plasticity == "xbtsp":
+                # Error-gated BTSP. CA3 supplies the presynaptic eligibility;
+                # positive and negative CA1 errors independently gate LTP/LTD.
+                positive_error = torch.relu(IS - x_ca1)
+                negative_error = torch.relu(x_ca1 - IS)
+                positive_overlap = positive_error @ x_ca3.T
+                negative_overlap = negative_error @ x_ca3.T
+                potentiation = self._alpha_plus * functions.normalized_sigmoid(
+                    x=positive_overlap,
+                    beta=self._b_plus,
+                    alpha=self._a_plus,
+                ) * (1.0 - self.W_ca3_ca1)
+                depression = self._alpha_minus * functions.normalized_sigmoid(
+                    x=negative_overlap,
+                    beta=self._b_minus,
+                    alpha=self._a_minus,
+                ) * self.W_ca3_ca1
+                self.W_ca3_ca1 = nn.Parameter(
+                    (self.W_ca3_ca1 + potentiation - depression).clamp(0.0, 1.0)
+                )
+            elif self._plasticity == "btsp":
+                # Instantaneous BTSP approximation: the synaptic overlap is
+                # instructive signal (CA1) x eligibility signal (CA3). Both
+                # pathways read the same overlap through distinct nonlinearities.
+                overlap = torch.relu(IS @ x_ca3.T)
+                potentiation = self._alpha_plus * functions.normalized_sigmoid(
+                    x=overlap,
+                    beta=self._b_plus,
+                    alpha=self._a_plus,
+                ) * (1.0 - self.W_ca3_ca1)
+                depression = self._alpha_minus * functions.normalized_sigmoid(
+                    x=overlap,
+                    beta=self._b_minus,
+                    alpha=self._a_minus,
+                ) * self.W_ca3_ca1
                 self.W_ca3_ca1 = nn.Parameter(
                     (self.W_ca3_ca1 + potentiation - depression).clamp(0.0, 1.0)
                 )
