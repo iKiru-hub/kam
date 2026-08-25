@@ -315,9 +315,9 @@ def main_cue(plot: bool):
     # setup
     plasticity = "err2"
     cue_spacing = 1
-    num_cue_patterns = 5
+    num_cue_patterns = 15
     settings_sim = {
-        "data_training_size": 50*cue_spacing*35,
+        "data_training_size": 50*cue_spacing*15,
         "criterion": mtlct.cosine_criterion,
         "reps": 5,
         "use_bias": False,
