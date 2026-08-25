@@ -163,7 +163,8 @@ def train_for_accuracy_single(data: np.ndarray,
     logs = {
         "train_loss": np.zeros((num_samples, num_samples)),
         "rec_loss": np.zeros((num_samples, num_samples)),
-        "reconstructions": []
+        "target": [],
+        "reconstructions": [],
     }
 
     if isinstance(model, models.Autoencoder):
@@ -195,13 +196,16 @@ def train_for_accuracy_single(data: np.ndarray,
             model.pause_lr()
         model.eval()
         _rsamples = []
+        _tsamples = []
         with torch.no_grad():
             # forward one pattern at a time
             for j, batch in enumerate(dataset[:i]):
                 x = batch.reshape(-1, 1)
                 y = model(x)
                 logs["rec_loss"][i, j] = criterion(x, y)
+                _tsamples += [x.detach().numpy()]
                 _rsamples += [y.detach().numpy()]
+            logs["target"] += [_tsamples]
             logs["reconstructions"] += [_rsamples]
 
     return logs, model

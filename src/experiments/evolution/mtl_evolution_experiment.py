@@ -57,16 +57,17 @@ MTL_CRITERIA = {
 DEFAULT_CRITERION = "mse" # "modified-mse"
 
 HORIZON = 10
-EVAL_FUNC = _lib.exp_eval # "_lib.id_eval" "_lib.mean_eval"
+EVAL_FUNC = _lib.id_eval # _lib.exp_eval # "_lib.id_eval" "_lib.mean_eval"
 
 # Use one complete cue lap in both conditions so the cue task includes both
 # cue locations and the random baseline carries the same memory load.
 DATA_TRAINING_SIZE = 50*15
 CUE_SPACING = 1
+NUM_CUE_PATTERNS = 15
 DATA_LABEL = "cue" # | "random"
 
 PLASTICITY_VARIANTS = ("base", "nois", "isout", "err1", "err2", "err3", "xbtsp", "btsp")
-_PLASTICITY = "xbtsp"
+_PLASTICITY = "err2"
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -74,6 +75,7 @@ def parse_args():
     )
     parser.add_argument("--generations", type=int, default=196)
     parser.add_argument("--pause", type=float, default=0.01)
+    parser.add_argument("--plasticity", type=str, default=0.01)
     parser.add_argument(
         "--workers",
         type=int,
@@ -81,6 +83,7 @@ def parse_args():
         help="parallel workers; defaults to min(population size, CPU count)",
     )
     parser.add_argument("--no-plot", action="store_true")
+    parser.add_argument("--save", action="store_true")
     parser.add_argument(
         "--criterion",
         choices=tuple(MTL_CRITERIA),
@@ -124,7 +127,7 @@ def evaluate_mtl_individual(ind: list, plasticity: str="base",
     if DATA_LABEL == "random":
         ae_name = "ae_random_nb_0"
     elif DATA_LABEL == "cue":
-        ae_name = "ae_15cues_0" # 6: 4 cues
+        ae_name = f"ae_{NUM_CUE_PATTERNS}cues_0" # 6: 4 cues
     else:
         raise NameError("wrong data label")
 
@@ -149,7 +152,7 @@ def evaluate_mtl_individual(ind: list, plasticity: str="base",
     settings_data = {
         "size": 50,
         "K": 5,
-        "num_cue_patterns": 15,
+        "num_cue_patterns": NUM_CUE_PATTERNS,
         "lap_length": 50,
         "cue_positions": [10., 30.],
         "cue_sigma": 3.,
@@ -342,7 +345,7 @@ def mtlsearch(generations: int=96, pause: float=0.01, live_plot: bool=False,
     }
 
     if save_name is not None and save:
-        _lib.save_genome(info=logs, name=save_name)
+        _lib.save_genome(info=logs, name=f"{plasticity}_mtl_{NUM_CUE_PATTERNS}cue")
     return record
 
 
@@ -353,8 +356,8 @@ if __name__ == "__main__":
         pause=args.pause,
         live_plot=not args.no_plot,
         workers=args.workers,
-        plasticity=_PLASTICITY,
+        plasticity=args.plasticity,
         criterion_name=args.criterion,
-        save=True
+        save=args.save
     )
     print("[done]")

@@ -268,11 +268,16 @@ def train_mtl_cue_data(settings_sim: dict,
         # fig, axs = plt.subplots(1, 750//50)
         # print(f"{len(axs)=}")
         _data = []
-        print(f"{len(logs["reconstructions"][0])=}")
-        for k in range(0, 750, 2):
+        _tdata = []
+        print(f"{len(logs['reconstructions'][0])=}")
+        for k in range(0, len(logs["reconstructions"][0]), 2):
             _data += [logs["reconstructions"][0][k]]
-        fig, ax = plt.subplots()
-        ax.imshow(np.stack(_data).T)
+            _tdata += [logs["target"][0][k]]
+        fig, axs = plt.subplots(2, 1)
+        axs[0].imshow(np.stack(_tdata).T.reshape(50, -1), aspect="auto")
+        axs[0].set_title("target")
+        axs[1].imshow(np.stack(_data).T.reshape(50, -1), aspect="auto")
+        axs[1].set_title("recall")
         # for i, ax in enumerate(axs.flatten()):
         #     if i > (len(_data)-1):
         #         ax.axis("off")
@@ -308,20 +313,23 @@ def train_mtl_cue_data(settings_sim: dict,
 def main_cue(plot: bool):
 
     # setup
+    plasticity = "err2"
+    cue_spacing = 1
+    num_cue_patterns = 5
     settings_sim = {
-        "data_training_size": 50*15,
+        "data_training_size": 50*cue_spacing*35,
         "criterion": mtlct.cosine_criterion,
-        "reps": 1,
+        "reps": 5,
         "use_bias": False,
         "disable": False,
         "plot": plot,
-        "ae_name": "ae_5cues_0"
+        "ae_name": f"ae_{num_cue_patterns}cues_0"
     }
 
     settings_data = {
         "size": 50,
         "K": 5,
-        "num_cue_patterns": 5,
+        "num_cue_patterns": num_cue_patterns,
         "lap_length": 50,
         "cue_positions": [10., 30.],
         "cue_sigma": 3.,
@@ -329,16 +337,21 @@ def main_cue(plot: bool):
         "cue_alpha": 0.2,
         "mec_binarized": True,
         "mec_sigma": 4,
-        "cue_spacing": 1,
+        "cue_spacing": cue_spacing,
     }
+
+    _rpath = os.path.abspath(__file__).split("src")[0] + \
+            "src/experiments/evolution/data"
+    name = f"{_rpath}/{plasticity}_mtl_{num_cue_patterns}cue.json"
+    print(f"{name=}")
 
     settings_mtl = {
         "K_ca3": 3,
         "dim_ca3": 50,
-        "beta_ca3": 176,
-        "beta_ca1": 34,
-        "alpha": 0.108,
-        "nb_ei_ca3": 30,
+        "beta_ca3": 86,
+        "beta_ca1": 37,
+        "alpha": 0.024,
+        "nb_ei_ca3": 18,
         "num_swaps_ca1": 0,
         "num_swaps_ca3": 0,
         "random_IS": False,
@@ -346,12 +359,12 @@ def main_cue(plot: bool):
     }
 
     settings_mtl_err2 = {
-        "K_ca3": 8,
+        "K_ca3": 3,
         "dim_ca3": 50,
-        "beta_ca3": 98,
-        "beta_ca1": 117,
-        "alpha": 0.036,
-        "nb_ei_ca3": 8,
+        "beta_ca3": 114,
+        "beta_ca1": 53,
+        "alpha": 0.073,
+        "nb_ei_ca3": 11,
         "num_swaps_ca1": 0,
         "num_swaps_ca3": 0,
         "random_IS": False,
@@ -359,46 +372,65 @@ def main_cue(plot: bool):
     }
 
     settings_mtl_xbtsp = {
-        "K_ca3": 2,
+        "K_ca3": 5,
         "dim_ca3": 50,
-        "beta_ca3": 58,
-        "beta_ca1": 12,
-        "alpha": 0.151,
-        "alpha_plus": 0.001,
-        "alpha_minus": 0.351,
-        "a_plus": 0.,
-        "b_plus": 1.,
-        "a_minus": 0.,
-        "b_minus": 1.,
-        "nb_ei_ca3": 8,
-        "num_swaps_ca1": 1,
-        "num_swaps_ca3": 1,
+        "beta_ca3": 161,
+        "beta_ca1": 34,
+        "alpha": 0.55,
+        "alpha_plus": 0.084,
+        "alpha_minus": 0.088,
+        "a_plus": 43.,
+        "b_plus": 0.001,
+        "a_minus": 87.,
+        "b_minus": 0.36,
+        "nb_ei_ca3": 37,
+        "num_swaps_ca1": 0,
+        "num_swaps_ca3": 0,
         "random_IS": False,
         "plasticity": "xbtsp",
     }
 
     settings_mtl_btsp = {
-        "K_ca3": 2,
+        "K_ca3": 13,
         "dim_ca3": 50,
-        "beta_ca3": 58,
-        "beta_ca1": 12,
-        "alpha": 0.151,
-        "alpha_plus": 0.001,
-        "alpha_minus": 0.351,
-        "a_plus": 0.,
-        "b_plus": 1.,
-        "a_minus": 0.,
-        "b_minus": 1.,
-        "nb_ei_ca3": 8,
-        "num_swaps_ca1": 1,
-        "num_swaps_ca3": 1,
+        "beta_ca3": 101,
+        "beta_ca1": 91,
+        "alpha": 0.21,
+        "alpha_plus": 0.079,
+        "alpha_minus": 0.164,
+        "a_plus": 113.,
+        "b_plus": 0.74,
+        "a_minus": 85.,
+        "b_minus": 0.099,
+        "nb_ei_ca3": 25,
+        "num_swaps_ca1": 0,
+        "num_swaps_ca3": 0,
         "random_IS": False,
-        "plasticity": "btsp",
+        "plasticity": "err2",
     }
+
+    settings_by_plasticity = {
+        "base": settings_mtl,
+        "err2": settings_mtl_err2,
+        "xbtsp": settings_mtl_xbtsp,
+        "btsp": settings_mtl_btsp,
+    }
+    _settings_mtl = settings_by_plasticity[plasticity].copy()
+    try:
+        with open(name, "r") as file:
+            evolved_settings = json.load(file)["best_parameters"]
+    except (FileNotFoundError, json.JSONDecodeError, KeyError) as error:
+        warnings.warn(
+            f"Could not load evolved MTL parameters from {name}: {error}. "
+            "Using the built-in settings instead.",
+            RuntimeWarning,
+        )
+    else:
+        _settings_mtl.update(evolved_settings)
 
     train_mtl_cue_data(settings_sim=settings_sim,
                        settings_data=settings_data,
-                       settings_mtl=settings_mtl_err2)
+                       settings_mtl=_settings_mtl)
 
 if __name__ == "__main__":
 
