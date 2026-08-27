@@ -15,6 +15,11 @@ sys.path.append(os.path.abspath(__file__).split("src")[0] + "src/experiments")
 import ae_experiments
 import _lib
 
+""" settings """
+
+NUM_CUE_PATTERNS = 5
+NOISE_LEVEL = 0.02
+DIM_CA1 = 50
 
 
 AE_PARAMETER_NAMES = (
@@ -33,12 +38,10 @@ AE_PARAMETER_LOWER = np.array([1., 1., 1.])
 AE_PARAMETER_UPPER = np.array([49., 49., 256.])
 AE_EVALUATION_SEED = 1701
 
-
-
 AE_SETTINGS_DATA = {
     "size": 50,
     "K": 5,
-    "num_cue_patterns": 5,
+    "num_cue_patterns": NUM_CUE_PATTERNS,
     "size": 50,
     "lap_length": 50,
     "cue_positions": [10, 30],
@@ -48,6 +51,7 @@ AE_SETTINGS_DATA = {
     "mec_binarized": True,
     "mec_sigma": 5.,
     "lec_sigma": 5.,
+    "noise_level": NOISE_LEVEL,
 }
 DATA_LABEL = "cue"
 if DATA_LABEL == "cue":
@@ -68,24 +72,6 @@ else:
         "batch_size": 64,
         "learning_rate": 1e-3,
     }
-
-
-def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Evolve sparse-autoencoder hyperparameters with CMA-ES."
-    )
-    parser.add_argument("--generations", type=int, default=64)
-    parser.add_argument("--pause", type=float, default=0.01)
-    parser.add_argument(
-        "--workers",
-        type=int,
-        default=None,
-        help="parallel workers; defaults to min(population size, CPU count)",
-    )
-    parser.add_argument("--no-plot", action="store_true")
-    parser.add_argument("--save", action="store_true")
-    return parser.parse_args()
-
 
 
 def sanitizer(genome):
@@ -121,7 +107,7 @@ def evaluate_ae_individual(ind,
 
     settings_ae = {
         "dim_ei": settings_data["size"],
-        "dim_ca1": 50,
+        "dim_ca1": DIM_CA1,
         "K_ca1": int(ind[0]),
         "K_eo": int(ind[1]),
         "beta_ei": 96,
@@ -242,6 +228,24 @@ def aesearch(generations=64, pause=0.01, live_plot=True, workers=None, save: boo
 
     return record
 
+""" args """
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Evolve sparse-autoencoder hyperparameters with CMA-ES."
+    )
+    parser.add_argument("--generations", type=int, default=64)
+    parser.add_argument("--pause", type=float, default=0.01)
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=None,
+        help="parallel workers; defaults to min(population size, CPU count)",
+    )
+    parser.add_argument("--no-plot", action="store_true")
+    parser.add_argument("--save", action="store_true")
+    return parser.parse_args()
+
 
 if __name__ == "__main__":
     args = parse_args()
@@ -251,6 +255,6 @@ if __name__ == "__main__":
         live_plot=not args.no_plot,
         save=args.save,
         workers=args.workers,
-        save_name=f"ae_{DATA_LABEL}_x"
+        save_name=f"ae_{DATA_LABEL}_{DIM_CA1}x"
     )
     print("[done]")

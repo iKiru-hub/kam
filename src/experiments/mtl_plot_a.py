@@ -21,15 +21,16 @@ from experiments.evolution._lib import id_eval
 
 
 SIZE = 50
-REPS = 20
-TQDM_REPS = False
+REPS = 1
+TQDM_REPS = True
 CUE_SPACING = 1
-N = 5
+N = 2
+ITERATIONS = 10
 
 DIM_CA1 = 50
 NUM_CUE_PATTERNS = 5
 NOISE_LEVEL = 0.0
-BIT_KIND = 1
+BIT_KIND = 0
 
 PLASTICITY = "base"
 
@@ -107,6 +108,7 @@ def reconstruct_track(model: models.MTL,
         return (
             track_data,
             reconstructed,
+            np.asarray(noisy_samples),
             np.asarray(ca3_activity),
             np.asarray(ca1_activity),
         )
@@ -192,14 +194,47 @@ def train_mtl_cue_data(settings_sim: dict,
     dim_ca1 = settings_mtl.get("dim_ca1", DIM_CA1)
     num_cue_patterns = settings_data.get("num_cue_patterns", NUM_CUE_PATTERNS)
     noise_level = settings_data.get("noise_level", NOISE_LEVEL)
+    storage_noise_level = settings_data.get(
+        "storage_noise_level", noise_level
+    )
     bit_kind = settings_data.get("bit_kind", BIT_KIND)
+    ae_train_noise_level = settings_sim.get(
+        "ae_train_noise_level", noise_level
+    )
+    ae_bit_kind = settings_sim.get("ae_bit_kind", bit_kind)
 
     # logger(f"matching ae: {DIM_CA1=} {NOISE_LEVEL=} {NUM_CUE_PATTERNS=}")
     # autoencoder, info = aect.load_autoencoder(name=ae_name)
     out = aect.find_ae(dim_ca1=dim_ca1, num_cue_patterns=num_cue_patterns,
-                       noise_level=noise_level)
-    if len(out) <= 0: sys.exit(f"ERROR: no autoencoder found with {dim_ca1=} {num_cue_patterns=} {noise_level=}")
-    name, autoencoder, info = out[-1]
+                       noise_level=ae_train_noise_level,
+                       bit_kind=ae_bit_kind)
+    if len(out) <= 0 and ae_bit_kind == 0:
+        # Older sessions predate the bit_kind metadata field; bit-flip was
+        # the only implementation at that time, so missing means legacy 0.
+        legacy = aect.find_ae(
+            dim_ca1=dim_ca1,
+            num_cue_patterns=num_cue_patterns,
+            noise_level=ae_train_noise_level,
+        )
+        out = [item for item in legacy
+               if "bit_kind" not in item[2].get("settings_data", {})]
+        if out:
+            warnings.warn(
+                "using a legacy AE session without bit_kind metadata as "
+                "bit_kind=0",
+                stacklevel=2,
+            )
+    if len(out) <= 0:
+        sys.exit(
+            "ERROR: no autoencoder found with "
+            f"{dim_ca1=} {num_cue_patterns=} "
+            f"train_noise={ae_train_noise_level} {ae_bit_kind=}"
+        )
+    def validation_loss(item):
+        values = item[2].get("results", {}).get("test", [])
+        return float(np.mean(values[-10:])) if values else np.inf
+
+    name, autoencoder, info = min(out, key=validation_loss)
     # logger(f"loaded autoencoder {name}")
 
     params = autoencoder.get_weights(bias=use_bias)
@@ -236,7 +271,7 @@ def train_mtl_cue_data(settings_sim: dict,
     results = np.zeros((reps, num_samples))
     rdisable = not(reps > 2)
     # for r in tqdm(range(reps), disable=not(rdisable and (not disable))):
-    for r in tqdm(range(reps), disable=not TQDM_REPS):
+    for r in tqdm(range(reps), disable=True):
 
         # training_data = make_cue_data(
         #     num_samples=num_samples,
@@ -256,7 +291,7 @@ def train_mtl_cue_data(settings_sim: dict,
                                                       model=model,
                                                       criterion=criterion,
                                                       test_last=True,
-                                                      noise_level=noise_level,
+                                                      noise_level=storage_noise_level,
                                                       bit_kind=bit_kind,
                                                       disable=True)
         results[r] = logs["rec_loss"][-1]
@@ -266,89 +301,46 @@ def train_mtl_cue_data(settings_sim: dict,
     # score = results.sum()/(len(results)**2/2)
     score = 1-results.mean()
     scoreid = 1.-results.mean()
-    # print(f"{score=}")
-    # scoreid = id_eval(results).mean()
 
-    diagnostic_data = None
-    if plot or return_diagnostics:
-        lap_length = int(settings_data.get(
+    lap_length = int(settings_data.get(
+        "lap_length", dg.DEFAULT_CUE_LAP_LENGTH
+    ))
+    diagnostic_data = training_data
+    if len(diagnostic_data) < lap_length:
+        # Fitness experiments may deliberately use a short prefix.  The
+        # live display still evaluates the trained model around one full
+        # track lap so generations remain visually comparable.
+        diagnostic_data = make_cue_data(
+            num_samples=lap_length,
+            settings_data=settings_data,
+        )
+
+    original, reconstructed, noisy, ca3_activity, ca1_activity = reconstruct_track(
+        model=model,
+        data=diagnostic_data,
+        lap_length=settings_data.get(
             "lap_length", dg.DEFAULT_CUE_LAP_LENGTH
-        ))
-        diagnostic_data = training_data
-        if len(diagnostic_data) < lap_length:
-            # Fitness experiments may deliberately use a short prefix.  The
-            # live display still evaluates the trained model around one full
-            # track lap so generations remain visually comparable.
-            diagnostic_data = make_cue_data(
-                num_samples=lap_length,
-                settings_data=settings_data,
-            )
+        ),
+        return_internal_activity=True,
+        bit_kind=bit_kind,
+        noise_level=noise_level
+    )
+    autoencoder.eval()
+    with torch.no_grad():
+        ae_reconstruction = autoencoder(
+            torch.as_tensor(noisy, dtype=torch.float32)
+        ).cpu().numpy()
+    return {
+        "results": results,
+        "original_stimuli": original,
+        "reconstructed_stimuli": reconstructed,
+        "ca3_activity": ca3_activity,
+        "ca1_activity": ca1_activity,
+        "score": score,
+        "ae_score": float(np.mean((ae_reconstruction - original) ** 2)),
+        "mtl_score": float(np.mean((reconstructed - original) ** 2)),
+    }
 
-    if plot:
-        logger(f"MTL results={np.around(results, 2)}")
-        logger(f"accuracy={score:.3f}")
-        logger(f"score 'id_eval'={scoreid:.3f}")
-        logger(f"num={len(training_data)}")
-
-        figure, axis = plt.subplots(1, 1, figsize=(10, 10))
-        image = axis.imshow(results.reshape(1, -1), aspect="auto")
-        figure.colorbar(image, ax=axis)
-        axis.grid()
-        axis.set_title(f"MTL recall accuracy, best={score:.3f}")
-
-        plot_track_reconstruction(
-            model=model,
-            data=diagnostic_data,
-            lap_length=settings_data.get(
-                "lap_length", dg.DEFAULT_CUE_LAP_LENGTH
-            ),
-            noise_level=noise_level,
-            bit_kind=bit_kind
-        )
-
-        # fig, axs = plt.subplots(1, 750//50)
-        # print(f"{len(axs)=}")
-        _data = []
-        _tdata = []
-        print(f"{len(logs['reconstructions'][0])=}")
-        for k in range(0, len(logs["reconstructions"][0]), 2):
-            _data += [logs["reconstructions"][0][k]]
-            _tdata += [logs["target"][0][k]]
-        fig, axs = plt.subplots(2, 1)
-        axs[0].imshow(np.stack(_tdata).T.reshape(50, -1), aspect="auto")
-        axs[0].set_title("target")
-        axs[1].imshow(np.stack(_data).T.reshape(50, -1), aspect="auto")
-        axs[1].set_title("recall")
-        # for i, ax in enumerate(axs.flatten()):
-        #     if i > (len(_data)-1):
-        #         ax.axis("off")
-        #         continue
-        #     ax.imshow(_data[i], aspect="auto")
-        #     ax.set_title(f"{i}")
-
-        plt.show()
-
-    if return_diagnostics:
-        original, reconstructed, ca3_activity, ca1_activity = reconstruct_track(
-            model=model,
-            data=diagnostic_data,
-            lap_length=settings_data.get(
-                "lap_length", dg.DEFAULT_CUE_LAP_LENGTH
-            ),
-            return_internal_activity=True,
-            bit_kind=bit_kind,
-            noise_level=noise_level
-        )
-        return {
-            "results": results,
-            "original_stimuli": original,
-            "reconstructed_stimuli": reconstructed,
-            "ca3_activity": ca3_activity,
-            "ca1_activity": ca1_activity,
-            "ae_score": np.mean(info["test"])
-        }
-
-    return results
 
 
 """ main functions """
@@ -360,8 +352,6 @@ def main_cue(plot: bool):
     logger(f"{NUM_CUE_PATTERNS=}")
     logger(f"{DIM_CA1=}")
     logger(f"{CUE_SPACING=}")
-    logger(f"{NOISE_LEVEL=}")
-    logger(f"{PLASTICITY=}")
 
     # setup
     settings_sim = {
@@ -390,24 +380,78 @@ def main_cue(plot: bool):
         "bit_kind": BIT_KIND
     }
 
-    found = mtlct.find_mtl(dim_ca1=DIM_CA1, noise_level=NOISE_LEVEL,
-                           num_cue_patterns=NUM_CUE_PATTERNS,
-                           plasticity=PLASTICITY,
-                           bit_kind=BIT_KIND)
-    if len(found) <= 0: sys.exit("no evolved MTL matches the current settings")
-    logger(f"saved MTL found: {[f[0] for f in found]}")
+    noise_levels = np.around(np.linspace(0., 0.09, ITERATIONS), 2).astype(float)
 
-    _settings_mtl = found[-1][1]["best_parameters"]
-    _settings_mtl["dim_ca3"] = 50
-    _settings_mtl["num_swaps_ca1"] = 0
-    _settings_mtl["num_swaps_ca3"] = 0
-    _settings_mtl["random_IS"] = False
-    _settings_mtl["plasticity"] = PLASTICITY
+    # plot
+    fig, axs = plt.subplots(4, 2)
 
-    # --
-    train_mtl_cue_data(settings_sim=settings_sim,
-                       settings_data=settings_data,
-                       settings_mtl=_settings_mtl)
+    name = ("base", "err2", "btsp", "xbtsp")
+    for k, (ax, ax2) in enumerate(axs):
+        logs = np.zeros((ITERATIONS, ITERATIONS))
+        aelogs = np.zeros((ITERATIONS, ITERATIONS))
+        for i in tqdm(range(ITERATIONS)):
+            for j in range(ITERATIONS):
+                # print(f"{noise_levels[i]=}")
+                found = mtlct.find_mtl(dim_ca1=DIM_CA1, noise_level=noise_levels[i],
+                                       num_cue_patterns=NUM_CUE_PATTERNS,
+                                       plasticity=name[k],
+                                       bit_kind=BIT_KIND)
+                if len(found) <= 0 and BIT_KIND == 0:
+                    legacy = mtlct.find_mtl(
+                        dim_ca1=DIM_CA1,
+                        noise_level=noise_levels[i],
+                        num_cue_patterns=NUM_CUE_PATTERNS,
+                        plasticity=name[k],
+                    )
+                    found = [item for item in legacy
+                             if "bit_kind" not in item[1].get("settings", {})]
+                    if found:
+                        warnings.warn(
+                            "using a legacy MTL record without bit_kind "
+                            "metadata as bit_kind=0",
+                            stacklevel=2,
+                        )
+                if len(found) <= 0: sys.exit("no evolved MTL matches the current settings")
+                # logger(f"saved MTL found: {[f[0] for f in found]}")
+
+                selected = max(found, key=lambda item: float(item[1]["fitness"]))
+                _settings_mtl = dict(selected[1]["best_parameters"])
+                _settings_mtl["dim_ca3"] = 50
+                _settings_mtl["num_swaps_ca1"] = 0
+                _settings_mtl["num_swaps_ca3"] = 0
+                _settings_mtl["random_IS"] = False
+                _settings_mtl["plasticity"] = name[k]
+
+                settings_data["noise_level"] = noise_levels[j]
+                settings_data["storage_noise_level"] = noise_levels[i]
+                settings_sim["ae_train_noise_level"] = noise_levels[i]
+                settings_sim["ae_bit_kind"] = BIT_KIND
+
+                # --
+                info = train_mtl_cue_data(settings_sim=settings_sim,
+                                          settings_data=settings_data,
+                                          settings_mtl=_settings_mtl)
+                logs[i, j] = info["mtl_score"]
+                aelogs[i, j] = info["ae_score"]
+
+
+        ax.imshow(logs, aspect="auto", cmap="magma")
+        ax.set_xticklabels(noise_levels)
+        ax.set_xlabel("test noise")
+        ax.set_yticklabels(noise_levels)
+        ax.set_ylabel("train noise")
+        ax.set_title(f"MTL {name[k]}")
+
+        ax2.imshow(aelogs, aspect="auto", cmap="magma_r")
+        ax2.set_xticklabels(noise_levels)
+        ax2.set_xlabel("test noise")
+        ax2.set_yticklabels(noise_levels)
+        ax2.set_ylabel("train noise")
+        ax2.set_title("autoencoder")
+
+    plt.show()
+
+
 
 if __name__ == "__main__":
 

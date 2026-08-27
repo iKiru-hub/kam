@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "protocol_version": "KAM-paper-v1",
+  "experiment": "e1_development",
+  "root_seed": 31001,
+  "root_seeds": [31001, 31002, 31003, 31004, 31005, 31006, 31007, 31008],
+  "device": "cpu",
+  "dtype": "float32",
+  "data": {
+    "dimension": 50,
+    "active": 5,
+    "training_size": 2048,
+    "validation_size": 256,
+    "memory_count": 28
+  },
+  "autoencoder": {
+    "latent_dimension": 50,
+    "beta_latent": 25.0,
+    "beta_output": 25.0,
+    "use_bias": false,
+    "epochs": 1024,
+    "batch_size": 128,
+    "learning_rate": 0.001,
+    "quality_mse_max": 0.001,
+    "quality_cosine_min": 0.98
+  },
+  "memory": {
+    "ca3_dimension": 50,
+    "ca3_inputs_per_unit": 2,
+    "k_ca3": 5,
+    "k_ca1": 5,
+    "beta_ca3": 200.0,
+    "beta_ca1": 25.0,
+    "beta_output": 25.0,
+    "plasticity_rule": "base",
+    "alpha": 0.005
+  },
+  "development": {
+    "rules": ["base", "err2"],
+    "alphas": [0.005, 0.01, 0.02, 0.04, 0.08, 0.16],
+    "minimum_positive_seeds": 7,
+    "minimum_aligned_cosine": 0.70,
+    "minimum_alignment_effect": 0.20,
+    "rescue_equivalence_margin": 0.02,
+    "equivalence_t_critical_df7": 1.894578605061305
+  },
+  "conditions": [
+    "aligned",
+    "fixed_permutation",
+    "matched_decoder_rescue",
+    "random_content_matched",
+    "no_plasticity"
+  ],
+  "tolerances": {
+    "decoder_identity": 1e-6,
+    "weight_equality": 1e-7,
+    "coordinate_equivariance": 1e-6,
+    "signal_match": 1e-7
+  }
+}

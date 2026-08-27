@@ -2,9 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import warnings
 from torch.nn import MSELoss
+import argparse
 
 from tqdm import tqdm
-import os, sys
+import os, sys, time
 import json
 sys.path.append(os.path.abspath(__file__).split("src")[0] + "src")
 
@@ -16,7 +17,14 @@ import core.utils as utils
 import core.ae_tools as aect
 from core.logger import logger
 
+DIM_CA1 = 50
+CUE_SPACING = 1
+NUM_CUE_PATTERNS = 5
+NOISE_LEVEL = 0.0
+BIT_KIND = 0
 
+EPOCHS = 196
+BATCH_SIZE = 8
 
 """ train functions """
 
@@ -57,6 +65,8 @@ def train_random_data(settings_sim: dict,
                                                batch_size=settings_sim["batch_size"],
                                                learning_rate=settings_sim["learning_rate"],
                                                disable=disable,
+                                               noise_level=settings_data["noise_level"],
+                                               bit_kind=settings_data["bit_kind"],
                                                device=settings_sim.get("device"))
 
     if plot:
@@ -126,11 +136,13 @@ def train_cue_data(settings_sim: dict,
                                      use_bias=settings_ae["use_bias"])
 
     info, autoencoder = aect.train_autoencoder(training_data=training_data,
-                                             test_data=test_data,
-                                             autoencoder=autoencoder,
-                                             criterion=MSELoss(),
-                                             epochs=settings_sim["epochs"],
-                                             batch_size=settings_sim["batch_size"],
+                                               test_data=test_data,
+                                               autoencoder=autoencoder,
+                                               criterion=MSELoss(),
+                                               noise_level=settings_data["noise_level"],
+                                               bit_kind=settings_data["bit_kind"],
+                                               epochs=settings_sim["epochs"],
+                                               batch_size=settings_sim["batch_size"],
                                          learning_rate=settings_sim["learning_rate"],
                                                disable=settings_sim.get("disable", True))
 
@@ -141,8 +153,9 @@ def train_cue_data(settings_sim: dict,
         plt.legend()
         plt.grid()
 
-        results = aect.reconstruct_data(data=test_data, model=autoencoder,
-                                        num=64,
+        results = aect.reconstruct_data(data=test_data, model=autoencoder, num=64,
+                                        noise_level=settings_data["noise_level"],
+                                        bit_kind=settings_data["bit_kind"],
                                         column=False, show=True, plot=True)
 
     if save:
@@ -183,39 +196,39 @@ def search_a():
     }
 
     settings_ae = {
-        "input_dim": settings_data["size"],
-        "encoding_dim": 50,
-        "K": 5,
-        "beta": 70.,
-        "gain_out": 20.,
-        "offset_out": 0.,
+        "dim_ei": settings_data["size"],
+        "dim_ca1": 50,
+        "K_ca1": 5,
+        "K_eo": 5,
+        "beta_ei": 70.,
+        "beta_eo": 25.,
         "use_bias": True,
     }
 
     # parameters to iterate over
     beta_size = 5
-    gain_size = 5
+    beta_eo_size = 5
     encoding_dim_size = 5
     variables = {
-        "beta": np.linspace(1, 100, beta_size).tolist(),
-        "gain_out": np.linspace(1, 100, gain_size).tolist(),
-        "encoding_dim": np.linspace(5, 100, encoding_dim_size).astype(int).tolist(),
+        "beta_ei": np.linspace(1, 100, beta_size).tolist(),
+        "beta_eo": np.linspace(1, 100, beta_eo_size).tolist(),
+        "dim_ca1": np.linspace(5, 100, encoding_dim_size).astype(int).tolist(),
     }
 
     # init
-    results = np.zeros((beta_size, gain_size, encoding_dim_size))
+    results = np.zeros((beta_size, beta_eo_size, encoding_dim_size))
 
-    for i, v1 in utils.tqdm_enumerate(variables["beta"]):
-        logger(f"=== beta={v1:.2f} =====")
-        for j, v2 in utils.tqdm_enumerate(variables["gain_out"]):
-            logger(f"=== gain_out={v2:.2f} ===")
-            for k, v3 in utils.tqdm_enumerate(variables["encoding_dim"]):
-                logger(f"=== encoding_dim={v3:.2f} =")
+    for i, v1 in utils.tqdm_enumerate(variables["beta_ei"]):
+        logger(f"=== beta_ei={v1:.2f} =====")
+        for j, v2 in utils.tqdm_enumerate(variables["beta_eo"]):
+            logger(f"=== beta_eo={v2:.2f} ===")
+            for k, v3 in utils.tqdm_enumerate(variables["dim_ca1"]):
+                logger(f"=== dim_ca1={v3:.2f} =")
                 run_settings_ae = {
                     **settings_ae,
-                    "beta": v1,
-                    "gain_out": v2,
-                    "encoding_dim": v3,
+                    "beta_ei": v1,
+                    "beta_eo": v2,
+                    "dim_ca1": v3,
                 }
                 results[i, j, k] = train_random_data(settings_sim=settings_sim,
                                                      settings_data=settings_data,
@@ -234,11 +247,11 @@ def search_a():
     fig, axs = plt.subplots(1, beta_size)
     for i, ax in enumerate(axs):
         ax.imshow(results[i], aspect="auto")
-        ax.set_title(f"beta={variables['beta'][i]:.1f}")
+        ax.set_title(f"beta_ei={variables['beta_ei'][i]:.1f}")
         ax.set_xticks(range(encoding_dim_size))
-        ax.set_yticks(range(gain_size))
-        ax.set_xticklabels(np.around(variables["encoding_dim"], 1))
-        ax.set_yticklabels(np.around(variables["gain_out"], 1))
+        ax.set_yticks(range(beta_eo_size))
+        ax.set_xticklabels(np.around(variables["dim_ca1"], 1))
+        ax.set_yticklabels(np.around(variables["beta_eo"], 1))
     plt.show()
 
     return results, results_path
@@ -284,12 +297,27 @@ def main(save: bool=False, plot: bool=False):
 
 def main_cue(save: bool=False, plot: bool=False):
 
+    logger("-- training autoencoder --")
+    logger(f"{NUM_CUE_PATTERNS=}")
+    logger(f"{DIM_CA1=}")
+    logger(f"{CUE_SPACING=}")
+    logger(f"{NOISE_LEVEL=}")
+    logger(f"{BIT_KIND=}")
+    logger(f"{EPOCHS=}")
+    logger(f"{BATCH_SIZE=}")
+    # save_name = f"ae_{NUM_CUE_PATTERNS}cues_{DIM_CA1}ca1"
+    save_name = "ae_"
+    save_name += f"{time.localtime().tm_mday}:{time.localtime().tm_mon}:" + \
+            f"{time.localtime().tm_hour}:{time.localtime().tm_min}:" + \
+            f"{time.localtime().tm_sec}"
+    logger(f"{save_name=}")
+
     # setup
     settings_sim = {
-            "data_training_size": 50*15,
-            "data_test_size": 50*5,
-            "epochs": 128,
-            "batch_size": 64,
+            "data_training_size": 50*CUE_SPACING*NUM_CUE_PATTERNS,
+            "data_test_size": int(0.2*50*CUE_SPACING*NUM_CUE_PATTERNS),
+            "epochs": EPOCHS,
+            "batch_size": BATCH_SIZE,
             "learning_rate": 1e-3,
             "disable": False
     }
@@ -297,7 +325,7 @@ def main_cue(save: bool=False, plot: bool=False):
     settings_data = {
             "size": 50,
             "K": 5,
-            "num_cue_patterns": 15,
+            "num_cue_patterns": NUM_CUE_PATTERNS,
             "lap_length": 50,
             "cue_positions": [10., 30.],
             "cue_sigma": 3.,
@@ -305,16 +333,18 @@ def main_cue(save: bool=False, plot: bool=False):
             "cue_alpha": 0.2,
             "mec_binarized": True,
             "mec_sigma": 4,
-            "cue_spacing": 5,
+            "cue_spacing": CUE_SPACING,
+            "noise_level": NOISE_LEVEL,
+            "bit_kind": BIT_KIND
     }
 
     settings_ae = {
             "dim_ei": settings_data["size"],
-            "dim_ca1": 50,
-            "K_ca1": 17,
+            "dim_ca1": DIM_CA1,
+            "K_ca1": 30,
             "K_eo": 5,
             "beta_ei": 96.,
-            "beta_eo": 25.,
+            "beta_eo": 5.,
             "use_bias": False,
     }
 
@@ -322,14 +352,35 @@ def main_cue(save: bool=False, plot: bool=False):
                    settings_data=settings_data,
                    settings_ae=settings_ae,
                    save=save,
-                   name=f"ae_{settings_data['num_cue_patterns']}cues_",
+                   name=save_name,
                    plot=plot)
 
 
+""" args """
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Evolve MTL hyperparameters with CMA-ES."
+    )
+    parser.add_argument("--plot", action="store_true")
+    parser.add_argument("--save", action="store_true")
+    parser.add_argument("--noise", type=float, default=NOISE_LEVEL)
+    parser.add_argument("--dim_ca1", type=float, default=DIM_CA1)
+    parser.add_argument("--num", type=float, default=NUM_CUE_PATTERNS)
+    parser.add_argument("--bit_kind", type=float, default=BIT_KIND)
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
 
+    args = parse_args()
+
+    NOISE_LEVEL = args.noise
+    DIM_CA1 = int(args.dim_ca1)
+    NUM_CUE_PATTERNS = int(args.num)
+    BIT_KIND = int(args.bit_kind)
+
     # main(save=True, plot=True)
-    main_cue(save=True, plot=True)
+    main_cue(save=args.save, plot=args.plot)
     # search_a()

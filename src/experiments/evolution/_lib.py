@@ -757,12 +757,13 @@ def exp_eval(data: np.ndarray, sigma: float):
     return out
 
 
-def save_genome(info: dict, name: str):
+def save_genome(info: dict, name: str, path: str|None=None):
 
     """ save an evolved genome """
 
-    path = os.path.abspath(__file__).split("src")[0] + \
-        "src/experiments/evolution/data"
+    if path is None:
+        path = os.path.abspath(__file__).split("src")[0] + \
+            "src/experiments/evolution/data"
     with open(f"{path}/{name}.json", "w") as f:
         json.dump(info, f)
 

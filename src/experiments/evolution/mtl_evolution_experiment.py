@@ -12,13 +12,30 @@ import torch
 from tqdm import tqdm
 import time
 
-sys.path.append(os.path.abspath(__file__).split("src")[0] + "src/experiments")
-sys.path.append(os.path.abspath(__file__).split("src")[0] + "src/core")
+# sys.path.append(os.path.abspath(__file__).split("src")[0] + "src/experiments")
+sys.path.append(os.path.abspath(__file__).split("src")[0] + "src")
 
-import mtl_experiments
-import mtl_cue_experiments
-import functions
+# from core.main import K_ca3
+import experiments.mtl_experiments as mtl_experiments
+import experiments.mtl_cue_experiments as mtl_cue_experiments
+import core.functions as functions
+from core.logger import logger
+from core.constants import MTL_PATH
 import _lib
+
+
+CUE_SPACING = 1
+NUM_CUE_PATTERNS = 5
+NOISE_LEVEL = 0.1
+DIM_CA1 = 50
+BIT_KIND = 0
+N = 3
+
+DATA_TRAINING_SIZE = 50*CUE_SPACING*NUM_CUE_PATTERNS*N
+DATA_LABEL = "cue" # | "random"
+
+PLASTICITY_VARIANTS = ("base", "nois", "isout", "err1", "err2", "err3", "xbtsp", "btsp")
+_PLASTICITY = "err2"
 
 
 """ settings """
@@ -59,39 +76,6 @@ DEFAULT_CRITERION = "mse" # "modified-mse"
 HORIZON = 10
 EVAL_FUNC = _lib.id_eval # _lib.exp_eval # "_lib.id_eval" "_lib.mean_eval"
 
-# Use one complete cue lap in both conditions so the cue task includes both
-# cue locations and the random baseline carries the same memory load.
-DATA_TRAINING_SIZE = 50*15
-CUE_SPACING = 1
-NUM_CUE_PATTERNS = 15
-DATA_LABEL = "cue" # | "random"
-
-PLASTICITY_VARIANTS = ("base", "nois", "isout", "err1", "err2", "err3", "xbtsp", "btsp")
-_PLASTICITY = "err2"
-
-def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Evolve MTL hyperparameters with CMA-ES."
-    )
-    parser.add_argument("--generations", type=int, default=196)
-    parser.add_argument("--pause", type=float, default=0.01)
-    parser.add_argument("--plasticity", type=str, default=0.01)
-    parser.add_argument(
-        "--workers",
-        type=int,
-        default=None,
-        help="parallel workers; defaults to min(population size, CPU count)",
-    )
-    parser.add_argument("--no-plot", action="store_true")
-    parser.add_argument("--save", action="store_true")
-    parser.add_argument(
-        "--criterion",
-        choices=tuple(MTL_CRITERIA),
-        default=DEFAULT_CRITERION,
-        help="higher-is-better reconstruction criterion used for fitness",
-    )
-    return parser.parse_args()
-
 
 """ mtl """
 
@@ -121,13 +105,14 @@ def sanitizer(genome):
 def evaluate_mtl_individual(ind: list, plasticity: str="base",
                             horizon: float=HORIZON,
                             criterion_name: str=DEFAULT_CRITERION,
+                            noise_level: float=NOISE_LEVEL,
                             return_diagnostics: bool=False):
     """Train and score one decoded MTL candidate."""
 
     if DATA_LABEL == "random":
         ae_name = "ae_random_nb_0"
     elif DATA_LABEL == "cue":
-        ae_name = f"ae_{NUM_CUE_PATTERNS}cues_0" # 6: 4 cues
+        ae_name = f"ae_{NUM_CUE_PATTERNS}cues_100ca10" # 6: 4 cues
     else:
         raise NameError("wrong data label")
 
@@ -161,6 +146,8 @@ def evaluate_mtl_individual(ind: list, plasticity: str="base",
         "mec_binarized": True,
         "mec_sigma": 4,
         "cue_spacing": CUE_SPACING,
+        "noise_level": float(noise_level),
+        "bit_kind": BIT_KIND
     }
 
     np.random.seed(MTL_EVALUATION_SEED)
@@ -174,6 +161,7 @@ def evaluate_mtl_individual(ind: list, plasticity: str="base",
     settings_mtl = {
         "K_ca3": ind[0],
         "dim_ca3": 50, # evolve?
+        "dim_ca1": DIM_CA1,
         "beta_ca3": ind[1],
         "beta_ca1": ind[2],
         "alpha": ind[3],
@@ -227,18 +215,36 @@ def evaluate_mtl_individual(ind: list, plasticity: str="base",
 
 def evaluate_mtl_random(population: list, plasticity: str="base",
                         horizon: float=HORIZON,
-                        criterion_name: str=DEFAULT_CRITERION):
+                        criterion_name: str=DEFAULT_CRITERION,
+                        noise_level: float=NOISE_LEVEL):
     return [evaluate_mtl_individual(ind=ind, plasticity=plasticity,
                                     horizon=horizon,
-                                    criterion_name=criterion_name)
+                                    criterion_name=criterion_name,
+                                    noise_level=noise_level)
             for ind in tqdm(population)]
 
 
 def mtlsearch(generations: int=96, pause: float=0.01, live_plot: bool=False,
-              workers=None, plasticity: str="base", save_name: str="mtl_evolution_1",
+              workers=None, plasticity: str="base",
               verbose: bool=True, disable: bool=False, horizon: int=HORIZON,
               save: bool=False,
-              criterion_name: str=DEFAULT_CRITERION):
+              criterion_name: str=DEFAULT_CRITERION,
+              noise_level: float=NOISE_LEVEL,
+              bit_kind: int=BIT_KIND):
+
+    logger("-- MTL evolution --")
+    logger(f"{NUM_CUE_PATTERNS=}")
+    logger(f"{DIM_CA1=}")
+    logger(f"{CUE_SPACING=}")
+    noise_level = float(noise_level)
+    logger(f"{noise_level=}")
+    logger(f"{bit_kind=}")
+    logger(f"{plasticity=}")
+    save_name = "mtl_"
+    save_name += f"{time.localtime().tm_mday}:{time.localtime().tm_mon}:" + \
+            f"{time.localtime().tm_hour}:{time.localtime().tm_min}:" + \
+            f"{time.localtime().tm_sec}"
+    logger(f"{save_name=}")
 
     parameter_spec_lengths = {
         "names": len(MTL_PARAMETER_NAMES),
@@ -288,6 +294,10 @@ def mtlsearch(generations: int=96, pause: float=0.01, live_plot: bool=False,
         "latent_lower": MTL_LATENT_LOWER.tolist(),
         "latent_upper": MTL_LATENT_UPPER.tolist(),
         "boundary_penalty": 0.05,
+        "dim_ca1": DIM_CA1,
+        "num_cue_patterns": NUM_CUE_PATTERNS,
+        "noise_level": noise_level,
+        "bit_kind": bit_kind,
     }
 
     batch_evaluator = functools.partial(
@@ -295,12 +305,14 @@ def mtlsearch(generations: int=96, pause: float=0.01, live_plot: bool=False,
         plasticity=plasticity,
         horizon=horizon,
         criterion_name=criterion_name,
+        noise_level=noise_level,
     )
     individual_evaluator = functools.partial(
         evaluate_mtl_individual,
         plasticity=plasticity,
         horizon=horizon,
         criterion_name=criterion_name,
+        noise_level=noise_level,
     )
     diagnostic_evaluator = None
     if live_plot and DATA_LABEL == "cue":
@@ -309,6 +321,7 @@ def mtlsearch(generations: int=96, pause: float=0.01, live_plot: bool=False,
             plasticity=plasticity,
             horizon=horizon,
             criterion_name=criterion_name,
+            noise_level=noise_level,
             return_diagnostics=True,
         )
         cached_candidate = None
@@ -324,6 +337,7 @@ def mtlsearch(generations: int=96, pause: float=0.01, live_plot: bool=False,
                     candidate.copy()
                 )
             return cached_diagnostic
+
     record = _lib.evolution_run(settings=settings,
                                 evaluate=batch_evaluator,
                                 evaluate_individual=individual_evaluator,
@@ -343,10 +357,42 @@ def mtlsearch(generations: int=96, pause: float=0.01, live_plot: bool=False,
         "workers": record["workers"],
         "plasticity": plasticity
     }
+    logger(f"best score: {record["best_fitness"][-1]:.5f}")
 
     if save_name is not None and save:
-        _lib.save_genome(info=logs, name=f"{plasticity}_mtl_{NUM_CUE_PATTERNS}cue")
+        _lib.save_genome(info=logs, name=f"{save_name}",
+                         path=MTL_PATH)
     return record
+
+
+""" args """
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Evolve MTL hyperparameters with CMA-ES."
+    )
+    parser.add_argument("--generations", type=int, default=196)
+    parser.add_argument("--pause", type=float, default=0.01)
+    parser.add_argument("--noise", type=float, default=NOISE_LEVEL)
+    parser.add_argument("--plasticity", type=str, default="base")
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=None,
+        help="parallel workers; defaults to min(population size, CPU count)",
+    )
+    parser.add_argument("--no-plot", action="store_true")
+    parser.add_argument("--save", action="store_true")
+    parser.add_argument(
+        "--criterion",
+        choices=tuple(MTL_CRITERIA),
+        default=DEFAULT_CRITERION,
+        help="higher-is-better reconstruction criterion used for fitness",
+    )
+    return parser.parse_args()
+
+
 
 
 if __name__ == "__main__":
@@ -358,6 +404,8 @@ if __name__ == "__main__":
         workers=args.workers,
         plasticity=args.plasticity,
         criterion_name=args.criterion,
+        noise_level=args.noise,
+        verbose=False,
         save=args.save
     )
     print("[done]")

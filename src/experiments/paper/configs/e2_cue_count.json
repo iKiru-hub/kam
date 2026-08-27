@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "protocol_version": "KAM-paper-v1",
+  "experiment": "e2_cue_count",
+  "development_seeds": [31001, 31002, 31003, 31004, 31005, 31006, 31007, 31008],
+  "final_seeds": [
+    41001, 41002, 41003, 41004, 41005,
+    41006, 41007, 41008, 41009, 41010,
+    41011, 41012, 41013, 41014, 41015,
+    41016, 41017, 41018, 41019, 41020
+  ],
+  "cue_counts": [2, 3, 5, 7, 10, 15],
+  "factor_code": {
+    "position_dimension": 25,
+    "cue_dimension": 25,
+    "position_active": 2,
+    "cue_active": 3,
+    "positions": 2,
+    "maximum_cues": 15
+  },
+  "autoencoder": {
+    "latent_dimension": 50,
+    "k": 5,
+    "beta_latent": 25.0,
+    "beta_output": 25.0,
+    "use_bias": false,
+    "epochs": 1024,
+    "batch_size": 30,
+    "learning_rate": 0.001,
+    "deterministic_restarts": 4,
+    "quality_mse_max": 0.005,
+    "quality_cosine_min": 0.98
+  },
+  "memory": {
+    "ca3_dimension": 50,
+    "ca3_inputs_per_unit": 2,
+    "k_ca3": 5,
+    "k_ca1": 5,
+    "beta_ca3": 200.0,
+    "beta_ca1": 25.0,
+    "beta_output": 25.0,
+    "plasticity_rule": "base",
+    "alpha": 0.08
+  },
+  "conditions": [
+    "aligned",
+    "fixed_permutation",
+    "matched_decoder_rescue",
+    "random_content_matched",
+    "no_plasticity"
+  ],
+  "tolerances": {
+    "decoder_identity": 1e-6,
+    "weight_equality": 1e-7,
+    "coordinate_equivariance": 1e-6,
+    "signal_match": 1e-7
+  }
+}

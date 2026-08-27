@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "protocol_version": "KAM-paper-v1",
+  "experiment": "e0_smoke",
+  "root_seed": 900001,
+  "device": "cpu",
+  "dtype": "float32",
+  "data": {
+    "dimension": 12,
+    "active": 3,
+    "training_size": 64,
+    "validation_size": 24,
+    "memory_count": 6
+  },
+  "autoencoder": {
+    "latent_dimension": 12,
+    "beta_latent": 25.0,
+    "beta_output": 25.0,
+    "use_bias": false,
+    "epochs": 40,
+    "batch_size": 16,
+    "learning_rate": 0.001,
+    "quality_mse_max": 0.30,
+    "quality_cosine_min": 0.0
+  },
+  "memory": {
+    "ca3_dimension": 12,
+    "ca3_inputs_per_unit": 2,
+    "k_ca3": 3,
+    "k_ca1": 3,
+    "beta_ca3": 200.0,
+    "beta_ca1": 25.0,
+    "beta_output": 25.0,
+    "plasticity_rule": "base",
+    "alpha": 0.04
+  },
+  "conditions": [
+    "aligned",
+    "fixed_permutation",
+    "matched_decoder_rescue",
+    "random_content_matched",
+    "no_plasticity"
+  ],
+  "tolerances": {
+    "decoder_identity": 1e-6,
+    "weight_equality": 1e-7,
+    "coordinate_equivariance": 1e-6,
+    "signal_match": 1e-7
+  }
+}
