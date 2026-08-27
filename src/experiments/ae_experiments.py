@@ -20,10 +20,11 @@ from core.logger import logger
 DIM_CA1 = 50
 CUE_SPACING = 1
 NUM_CUE_PATTERNS = 5
-NOISE_LEVEL = 0.0
-BIT_KIND = 0
+NOISE_LEVEL = 0.5
+BIT_KIND = 2
+CRITERION = functions.denoising_autoencoder_loss # MSELoss()
 
-EPOCHS = 196
+EPOCHS = 128
 BATCH_SIZE = 8
 
 """ train functions """
@@ -138,7 +139,7 @@ def train_cue_data(settings_sim: dict,
     info, autoencoder = aect.train_autoencoder(training_data=training_data,
                                                test_data=test_data,
                                                autoencoder=autoencoder,
-                                               criterion=MSELoss(),
+                                               criterion=CRITERION,
                                                noise_level=settings_data["noise_level"],
                                                bit_kind=settings_data["bit_kind"],
                                                epochs=settings_sim["epochs"],
@@ -305,6 +306,7 @@ def main_cue(save: bool=False, plot: bool=False):
     logger(f"{BIT_KIND=}")
     logger(f"{EPOCHS=}")
     logger(f"{BATCH_SIZE=}")
+    logger(f"{CRITERION=}")
     # save_name = f"ae_{NUM_CUE_PATTERNS}cues_{DIM_CA1}ca1"
     save_name = "ae_"
     save_name += f"{time.localtime().tm_mday}:{time.localtime().tm_mon}:" + \
@@ -368,7 +370,7 @@ def parse_args():
     parser.add_argument("--noise", type=float, default=NOISE_LEVEL)
     parser.add_argument("--dim_ca1", type=float, default=DIM_CA1)
     parser.add_argument("--num", type=float, default=NUM_CUE_PATTERNS)
-    parser.add_argument("--bit_kind", type=float, default=BIT_KIND)
+    parser.add_argument("--bit_kind", type=int, default=BIT_KIND)
     return parser.parse_args()
 
 

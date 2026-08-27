@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import warnings
 
 from tqdm import tqdm
+import torch
 import os, sys
 import json
 sys.path.append(os.path.abspath(__file__).split("src")[0] + "src")
@@ -465,6 +466,158 @@ def test_equal_tuning(n: int=5, nj: int=2):
     plt.show()
 
 
+def _bitkill(x, fraction: float, regions=None):
+    """Generate a perturbed binary array by randomly swapping 1s and 0s.
+
+    Parameters
+    ----------
+        x_0: Input binary NumPy array.
+        num_swaps: Number of swaps to perform (each swap moves one
+            1 to 0 and one 0 to 1).
+        regions: Optional list of index arrays. If provided, swaps are distributed
+                 proportionally across each region based on its size.
+
+    Returns
+    -------
+        A new binary array with num_swaps positions flipped from 1 to 0 and
+        num_swaps positions flipped from 0 to 1.
+    """
+    z = np.copy(x)
+    num_swaps = int(fraction * np.asarray(x).size)
+
+    if regions is None:
+        if num_swaps <= 0:
+            return z
+
+        # Get indices of 1s and 0s (handling multi-dimensional or 1D arrays cleanly)
+        on_index = np.argwhere(x == 1).squeeze(axis=-1)
+
+        # Randomly select indices without replacement
+        k = min(int(num_swaps), len(on_index))
+        if k <= 0:
+            return z
+        flip_off = np.random.choice(on_index, size=k, replace=False)
+
+        # Apply flips
+        z[flip_off] = 0
+        return z
+
+    else:
+        total_size = sum(len(region) for region in regions)
+
+        for region in regions:
+            region_size = len(region)
+            num_swaps_region = int(round(num_swaps * region_size / total_size))
+            if num_swaps_region <= 0:
+                continue
+
+            # Extract indices of 1s and 0s within the region
+            region_values = x[region]
+            on_index = region[region_values == 1]
+
+            # Randomly select indices without replacement
+            num_swaps_region = min(num_swaps_region, len(on_index))
+            if num_swaps_region <= 0:
+                continue
+            flip_off = np.random.choice(
+                on_index, size=num_swaps_region, replace=False
+            )
+
+            # Apply flips within the region
+            z[flip_off] = 0
+
+        return z
+
+def bitkill(x, fraction: float, regions=None):
+    x = np.asarray(x)
+    if x.ndim == 1:
+        return _bitkill(x=x, fraction=fraction, regions=regions)
+    return np.stack([
+        _bitkill(x=xi, fraction=fraction, regions=regions)
+        for xi in x
+    ], axis=0)
+
+
+
+def _bitflip(x, fraction: float, regions=None):
+    """Generate a perturbed binary array by randomly swapping 1s and 0s.
+
+    Parameters
+    ----------
+        x_0: Input binary NumPy array.
+        num_swaps: Number of swaps to perform (each swap moves one
+            1 to 0 and one 0 to 1).
+        regions: Optional list of index arrays. If provided, swaps are distributed
+                 proportionally across each region based on its size.
+
+    Returns
+    -------
+        A new binary array with num_swaps positions flipped from 1 to 0 and
+        num_swaps positions flipped from 0 to 1.
+    """
+    z = np.copy(x)
+    num_swaps = int(fraction * np.asarray(x).size)
+
+    if regions is None:
+        if num_swaps <= 0:
+            return z
+
+        # Get indices of 1s and 0s (handling multi-dimensional or 1D arrays cleanly)
+        on_index = np.argwhere(x == 1).squeeze(axis=-1)
+        off_index = np.argwhere(x == 0).squeeze(axis=-1)
+
+        # Randomly select indices without replacement
+        k = min(int(num_swaps), len(on_index), len(off_index))
+        if k <= 0:
+            return z
+        flip_off = np.random.choice(on_index, size=k, replace=False)
+        flip_on = np.random.choice(off_index, size=k, replace=False)
+
+        # Apply flips
+        z[flip_off] = 0
+        z[flip_on] = 1
+        return z
+
+    else:
+        total_size = sum(len(region) for region in regions)
+
+        for region in regions:
+            region_size = len(region)
+            num_swaps_region = int(round(num_swaps * region_size / total_size))
+            if num_swaps_region <= 0:
+                continue
+
+            # Extract indices of 1s and 0s within the region
+            region_values = x[region]
+            on_index = region[region_values == 1]
+            off_index = region[region_values == 0]
+
+            # Randomly select indices without replacement
+            num_swaps_region = min(num_swaps_region, len(on_index), len(off_index))
+            if num_swaps_region <= 0:
+                continue
+            flip_off = np.random.choice(
+                on_index, size=num_swaps_region, replace=False
+            )
+            flip_on = np.random.choice(
+                off_index, size=num_swaps_region, replace=False
+            )
+
+            # Apply flips within the region
+            z[flip_off] = 0
+            z[flip_on] = 1
+
+        return z
+
+def bitflip(x, fraction: float, regions=None):
+    x = np.asarray(x)
+    if x.ndim == 1:
+        return _bitflip(x=x, fraction=fraction, regions=regions)
+    return np.stack([
+        _bitflip(x=xi, fraction=fraction, regions=regions)
+        for xi in x
+    ], axis=0)
+
 def get_sample_from_num_swaps(x_0, num_swaps: int, regions=None):
     """Generate a perturbed binary array by randomly swapping 1s and 0s.
 
@@ -523,6 +676,111 @@ def get_sample_from_num_swaps(x_0, num_swaps: int, regions=None):
             x[flip_on] = 1
 
         return x
+
+
+def _numpy_stochastic_count(expected: float, maximum: int,
+                            rng: np.random.Generator | None) -> int:
+    base = int(np.floor(expected))
+    fractional = expected - base
+    draw = rng.random() if rng is not None else np.random.random()
+    return min(maximum, base + int(draw < fractional))
+
+
+def _torch_stochastic_count(expected: float, maximum: int, device: torch.device,
+                            generator: torch.Generator | None) -> int:
+    base = int(np.floor(expected))
+    fractional = expected - base
+    draw = float(torch.rand((), device=device, generator=generator).item())
+    return min(maximum, base + int(draw < fractional))
+
+
+
+def _validate_bitnoise_rate(name: str, value: float) -> float:
+    value = float(value)
+    if not 0.0 <= value <= 1.0:
+        raise ValueError(f"{name} must lie between zero and one")
+    return value
+
+def bitnoise(
+    x: np.ndarray | torch.Tensor,
+    fraction: float,
+    false_positive_rate: float = 0.0,
+    *,
+    rng: np.random.Generator | None = None,
+    generator: torch.Generator | None = None,
+) -> np.ndarray | torch.Tensor:
+    """Corrupt binary vectors or row-wise binary matrices for denoising.
+
+    ``noise_level`` is the expected fraction of *active* bits to delete in
+    each row.  It is therefore independent of the ambient dimensionality: for
+    a five-active-bit stimulus, ``noise_level=0.25`` removes one active bit on
+    average, rather than trying to alter 25% of all 50 coordinates.
+
+    ``false_positive_rate`` optionally adds inactive bits, expressed relative
+    to the original number of active bits.  It defaults to zero, so the usual
+    corruption is dropout/occlusion rather than an identity-changing swap.
+    Inputs must be binary and have shape ``(features,)`` or
+    ``(samples, features)``.  The returned array/tensor has the same type,
+    shape, dtype, and device as the input.  Pass ``rng`` or ``generator`` to
+    make NumPy or PyTorch calls reproducible, respectively.
+    """
+    dropout_rate = _validate_bitnoise_rate("noise_level", fraction)
+    add_rate = _validate_bitnoise_rate("false_positive_rate", false_positive_rate)
+    if isinstance(x, torch.Tensor):
+        if rng is not None:
+            raise TypeError("rng is only valid for NumPy inputs; use generator for tensors")
+        if x.ndim not in (1, 2):
+            raise ValueError("bitnoise expects a binary vector or a row-wise binary matrix")
+        if not bool(torch.all((x == 0) | (x == 1)).item()):
+            raise ValueError("bitnoise expects binary values containing only zero and one")
+        rows = x.unsqueeze(0) if x.ndim == 1 else x
+        noisy = rows.clone()
+        for row in noisy:
+            active = torch.nonzero(row == 1, as_tuple=False).flatten()
+            delete_count = _torch_stochastic_count(
+                dropout_rate * len(active), len(active), row.device, generator
+            )
+            if delete_count:
+                deleted = active[torch.randperm(len(active), device=row.device, generator=generator)[:delete_count]]
+                row[deleted] = 0
+            inactive = torch.nonzero(row == 0, as_tuple=False).flatten()
+            add_count = _torch_stochastic_count(
+                add_rate * len(active), len(inactive), row.device, generator
+            )
+            if add_count:
+                added = inactive[torch.randperm(len(inactive), device=row.device, generator=generator)[:add_count]]
+                row[added] = 1
+        return noisy.squeeze(0) if x.ndim == 1 else noisy
+
+    if not isinstance(x, np.ndarray):
+        raise TypeError("bitnoise expects a NumPy array or torch.Tensor")
+    if generator is not None:
+        raise TypeError("generator is only valid for torch inputs; use rng for NumPy arrays")
+    if x.ndim not in (1, 2):
+        raise ValueError("bitnoise expects a binary vector or a row-wise binary matrix")
+    if not np.all((x == 0) | (x == 1)):
+        raise ValueError("bitnoise expects binary values containing only zero and one")
+    rows = x[None, :] if x.ndim == 1 else x
+    noisy = rows.copy()
+    for row in noisy:
+        active = np.flatnonzero(row == 1)
+        delete_count = _numpy_stochastic_count(dropout_rate * len(active), len(active), rng)
+        if delete_count:
+            chooser = rng if rng is not None else np.random
+            row[chooser.choice(active, size=delete_count, replace=False)] = 0
+        inactive = np.flatnonzero(row == 0)
+        add_count = _numpy_stochastic_count(add_rate * len(active), len(inactive), rng)
+        if add_count:
+            chooser = rng if rng is not None else np.random
+            row[chooser.choice(inactive, size=add_count, replace=False)] = 1
+    return noisy[0] if x.ndim == 1 else noisy
+
+def makebitfunction(kind: int):
+    if kind == 0: return bitflip
+    elif kind == 1: return bitkill
+    elif kind == 2: return bitnoise
+    else: raise NameError(f"wrong {kind=}")
+
 
 if __name__ == "__main__":
 

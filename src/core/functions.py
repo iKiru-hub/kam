@@ -42,6 +42,73 @@ def sparsemoid(z: torch.Tensor, K: int,
     z = beta * (z - alpha)
     return torch.sigmoid(z)
 
+
+def denoising_autoencoder_loss(
+    reconstruction: torch.Tensor,
+    clean_target: torch.Tensor,
+    noisy_code: torch.Tensor | None = None,
+    clean_code: torch.Tensor | None = None,
+    consistency_weight: float = 0.0,
+    positive_weight: float = 1.0,
+) -> torch.Tensor:
+    """Return a clean-target reconstruction loss for a denoising autoencoder.
+
+    ``reconstruction`` is produced from a corrupted input, whereas
+    ``clean_target`` is always the original uncorrupted binary stimulus.  The
+    optional consistency term makes the latent code of the corrupted input
+    approach the corresponding clean code without propagating gradients through
+    the clean-code branch.
+
+    ``positive_weight`` upweights errors on active target bits.  This is useful
+    for sparse stimuli, where an unweighted pixel loss can be dominated by the
+    many zero coordinates.  The weighted error is normalized by the total
+    weight, so changing this value does not simply rescale the loss.
+
+    Example
+    -------
+    >>> noisy_x = bitnoise(clean_x, noise_level=0.3)
+    >>> reconstruction, noisy_code = autoencoder(noisy_x, ca1=True)
+    >>> with torch.no_grad():
+    ...     _, clean_code = autoencoder(clean_x, ca1=True)
+    >>> loss = denoising_autoencoder_loss(
+    ...     reconstruction, clean_x, noisy_code, clean_code,
+    ...     consistency_weight=0.1, positive_weight=5.0,
+    ... )
+    """
+    if reconstruction.shape != clean_target.shape:
+        raise ValueError(
+            "reconstruction and clean_target must have identical shapes, got "
+            f"{reconstruction.shape} and {clean_target.shape}"
+        )
+    if consistency_weight < 0.0:
+        raise ValueError("consistency_weight must be non-negative")
+    if positive_weight < 1.0:
+        raise ValueError("positive_weight must be at least one")
+
+    target = clean_target.to(
+        device=reconstruction.device, dtype=reconstruction.dtype
+    )
+    squared_error = (reconstruction - target).square()
+    weights = torch.where(
+        target > 0.5,
+        torch.as_tensor(positive_weight, dtype=reconstruction.dtype, device=reconstruction.device),
+        torch.ones((), dtype=reconstruction.dtype, device=reconstruction.device),
+    )
+    reconstruction_loss = (weights * squared_error).sum() / weights.sum().clamp_min(1.0)
+
+    if noisy_code is None and clean_code is None:
+        return reconstruction_loss
+    if noisy_code is None or clean_code is None:
+        raise ValueError("noisy_code and clean_code must be provided together")
+    if noisy_code.shape != clean_code.shape:
+        raise ValueError(
+            "noisy_code and clean_code must have identical shapes, got "
+            f"{noisy_code.shape} and {clean_code.shape}"
+        )
+    consistency_loss = F.mse_loss(noisy_code, clean_code.detach())
+    return reconstruction_loss + float(consistency_weight) * consistency_loss
+
+
 def generalized_sigmoid(x: float|np.ndarray, beta: float, alpha: float, top: float=1., offset: float=0.):
     return np.clip(top / (1 + np.exp(-beta * (x - alpha))) - offset, 0., 1.)
 

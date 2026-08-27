@@ -28,10 +28,10 @@ N = 5
 
 DIM_CA1 = 50
 NUM_CUE_PATTERNS = 5
-NOISE_LEVEL = 0.0
-BIT_KIND = 1
+NOISE_LEVEL = 0.9
+BIT_KIND = 2
 
-PLASTICITY = "base"
+PLASTICITY = "xbtsp"
 
 
 
@@ -94,8 +94,10 @@ def reconstruct_track(model: models.MTL,
         for sample in track_data:
             if bit_kind == 0:
                 z = dg.bitflip(x=sample, fraction=noise_level)
-            else:
+            elif bit_kind == 1:
                 z = dg.bitkill(x=sample, fraction=noise_level)
+            else:
+                z = dg.bitnoise(x=sample, fraction=noise_level)
             x = torch.as_tensor(z, dtype=torch.float32).reshape(-1, 1)
             reconstructed.append(model(x).reshape(-1).cpu().numpy())
             noisy_samples.append(z)

@@ -20,8 +20,8 @@ sys.path.append(os.path.abspath(__file__).split("src")[0] + "src")
 import core.models as models
 from core.utils import tqdm_enumerate
 from core.logger import logger
-
-AE_PATH = os.path.abspath(__file__).split("src")[0] + "src/data"
+import core.datagen as dg
+from core.constants import AE_PATH
 
 
 def _resolve_device(device=None) -> torch.device:
@@ -51,6 +51,8 @@ def testing(data: np.ndarray, autoencoder: models.Autoencoder,
             criterion: Callable=MSELoss(),
             column: bool=False,
             use_tensor: bool=False,
+            noise_level: float=0.,
+            bit_kind: int=0,
             progressive_test: bool=False,
             device=None):
 
@@ -97,7 +99,13 @@ def testing(data: np.ndarray, autoencoder: models.Autoencoder,
 
         for i, batch in enumerate(dataloader):
             x = batch[0] if not column else batch[0].reshape(-1, 1)
-            x = x.to(device, non_blocking=device.type == "cuda")
+            if bit_kind == 0:
+                x = dg.bitflip(x=x, fraction=noise_level)
+            elif bit_kind == 1:
+                x = dg.bitkill(x=x, fraction=noise_level)
+            elif bit_kind == 2:
+                x = dg.bitnoise(x=x, fraction=noise_level)
+            x = torch.tensor(x).to(device, non_blocking=device.type == "cuda")
 
             # Forward pass
             outputs = autoencoder(x)  # MTL training BTSP
@@ -112,6 +120,8 @@ def train_autoencoder(training_data: np.ndarray,
                       autoencoder: models.Autoencoder,
                       epochs: int=20, batch_size: int=64,
                       learning_rate: float=1e-3,
+                      noise_level: float=0.,
+                      bit_kind: int=0,
                       criterion: Callable=MSELoss(),
                       disable: bool=True,
                       device=None) -> tuple:
@@ -171,13 +181,31 @@ def train_autoencoder(training_data: np.ndarray,
     # for epoch in range(epochs):
         total_loss = 0
         for batch in dataloader:
-            zs = batch[0].to(device, non_blocking=device.type == "cuda")
+            clean_x = batch[0].detach().to(device, non_blocking=device.type == "cuda")
+            # zs = dg.bitflip(x=batch[0], fraction=noise_level)
 
-            # Forward pass
-            outputs = autoencoder(zs)
-            loss = criterion(outputs, zs)
+            if bit_kind == 0:
+                noisy_x = dg.bitflip(x=batch[0], fraction=noise_level)
+            elif bit_kind == 1:
+                noisy_x = dg.bitkill(x=batch[0], fraction=noise_level)
+            else:
+                noisy_x = dg.bitnoise(x=batch[0], fraction=noise_level)
+            noisy_x = noisy_x.detach().to(device, non_blocking=device.type == "cuda")
 
-            # Backward and optimize
+            # forward pass with noisy data
+            outputs, noisy_ca1 = autoencoder(noisy_x, ca1=True)
+
+            if bit_kind == 2:
+                # forward pass with clean data
+                with torch.no_grad():
+                    _, clean_ca1 = autoencoder(clean_x, ca1=True)
+
+                loss = criterion(reconstruction=outputs, clean_target=clean_x,
+                                 noisy_code=noisy_ca1, clean_code=clean_ca1)
+            else:
+                loss = criterion(outputs, noisy_x)
+
+            # backward and optimize
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -188,6 +216,7 @@ def train_autoencoder(training_data: np.ndarray,
         test_loss, _ = testing(data=test_dataloader,
                                autoencoder=autoencoder,
                                criterion=criterion,
+                               noise_level=noise_level,
                                device=device)
         # test_loss = test_loss.item()
 
@@ -204,7 +233,8 @@ def train_autoencoder(training_data: np.ndarray,
 
 def reconstruct_data(data: np.ndarray, model: models.Autoencoder | models.MTL,
                      criterion: Callable=MSELoss, num: int=5, column: bool=False,
-                     show: bool=True, plot: bool=True):
+                     noise_level: float=0., bit_kind: int=0, show: bool=True,
+                     plot: bool=True):
 
     """
     Reconstruct data using the autoencoder model
@@ -245,6 +275,7 @@ def reconstruct_data(data: np.ndarray, model: models.Autoencoder | models.MTL,
     criterion = MSELoss()
 
     # Reconstruct data
+    original_data = []
     reconstructed_data = []
     latent_data = []
     loss = 0.
@@ -253,10 +284,18 @@ def reconstruct_data(data: np.ndarray, model: models.Autoencoder | models.MTL,
         for batch in tqdm(dataloader):
 
             zs = batch[0] if not column else batch[0].reshape(-1, 1)
-            zs = zs.to(device, non_blocking=device.type == "cuda")
+            if bit_kind == 0:
+                zs = dg.bitflip(x=zs, fraction=noise_level)
+            elif bit_kind == 1:
+                zs = dg.bitkill(x=zs, fraction=noise_level)
+            else:
+                zs = dg.bitnoise(x=zs, fraction=noise_level)
+            zs = torch.tensor(zs).to(device, non_blocking=device.type == "cuda")
 
             # Forward pass
             outputs, latent = model(zs, ca1=True)
+
+            original_data.append(zs.detach().cpu().numpy().flatten())
             reconstructed_data.append(outputs.detach().cpu().numpy().flatten())
             latent_data.append(latent.detach().cpu().numpy().flatten())
 
@@ -267,7 +306,7 @@ def reconstruct_data(data: np.ndarray, model: models.Autoencoder | models.MTL,
     reconstructed_data = np.array(reconstructed_data)
 
     # difference between original and reconstructed data
-    original_data = data_tensor.numpy()
+    # original_data = data_tensor.numpy()
     diff_data = original_data - reconstructed_data
 
     loss = loss / len(dataloader)
@@ -440,3 +479,64 @@ def save_search_results(results: np.ndarray,
 
     logger(f"Search results saved in {search_path}")
     return search_path
+
+
+def _match_ae(name: str, dim_ca1: int|None=None, noise_level: float|None=None,
+              num_cue_patterns: int|None=None, bit_kind: int|None=None) -> float:
+
+    _path = _autoencoder_session_path(name) / "session.json"
+    try:
+        with _path.open("r", encoding="utf-8") as file:
+            session = json.load(file)
+    except FileNotFoundError:
+        # logger.debug(f"{name} is wrong")
+        return 0.
+
+    score = 0
+    tot = 0
+    # print(session.keys())
+    if dim_ca1 is not None:
+        if "dim_ca1" not in session["settings_ae"].keys():
+            # logger.debug(f"no dim_ca1 {name}")
+            return 0.
+        score += int(dim_ca1 == session["settings_ae"]["dim_ca1"])
+        tot += 1
+    if noise_level is not None:
+        if "noise_level" not in session["settings_data"].keys():
+            # logger.debug(f"no noise_level {name} {session["settings_data"].keys()=}")
+            return 0.
+        score += int((noise_level-session["settings_data"]["noise_level"])**2 < 0.0001)
+        tot += 1
+    if num_cue_patterns is not None:
+        if "num_cue_patterns" not in session["settings_data"].keys():
+            # logger.debug(f"no num_cue_patterns {name}")
+            return 0.
+        score += int(num_cue_patterns == session["settings_data"]["num_cue_patterns"])
+        tot += 1
+    if bit_kind is not None:
+        if "bit_kind" not in session["settings_data"].keys():
+            # logger.debug(f"no num_cue_patterns {name}")
+            return 0.
+        score += int(bit_kind == session["settings_data"]["bit_kind"])
+        tot += 1
+
+    return score / tot
+
+
+def find_ae(dim_ca1: int|None=None, noise_level: float|None=None,
+            num_cue_patterns: int|None=None, bit_kind: int|None=None):
+
+    """
+    attempt to retrieve the saved autoencoders that satisfy all provided
+    conditions in their training setup.
+    It returns a list of all matches in finding order.
+    """
+
+    out = []
+    for _ae in sorted(os.listdir(AE_PATH)):
+        score = _match_ae(name=_ae, dim_ca1=dim_ca1, noise_level=noise_level,
+                          num_cue_patterns=num_cue_patterns, bit_kind=bit_kind)
+        if score == 1:
+            out += [[_ae] + list(load_autoencoder(_ae))]
+
+    return out

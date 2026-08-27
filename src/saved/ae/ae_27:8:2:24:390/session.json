@@ -1,0 +1,47 @@
+{
+  "results": {
+    "loss": [
+      0.07778587032233358,
+      0.06276920047181342
+    ],
+    "test": [
+      0.09509354829788208,
+      0.09226939082145691
+    ]
+  },
+  "settings_ae": {
+    "K_ca1": 30,
+    "K_eo": 5,
+    "beta_ei": 96.0,
+    "beta_eo": 5.0,
+    "dim_ca1": 100,
+    "dim_ei": 50,
+    "use_bias": false
+  },
+  "settings_data": {
+    "K": 5,
+    "bit_kind": 1,
+    "cue_alpha": 0.2,
+    "cue_beta": 40.0,
+    "cue_positions": [
+      10.0,
+      30.0
+    ],
+    "cue_sigma": 3.0,
+    "cue_spacing": 1,
+    "lap_length": 50,
+    "mec_binarized": true,
+    "mec_sigma": 4,
+    "noise_level": 0.1,
+    "num_cue_patterns": 10,
+    "size": 50
+  },
+  "settings_sim": {
+    "batch_size": 64,
+    "data_test_size": 100,
+    "data_training_size": 500,
+    "disable": false,
+    "epochs": 2,
+    "learning_rate": 0.001
+  }
+}

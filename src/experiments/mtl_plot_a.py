@@ -21,10 +21,10 @@ from experiments.evolution._lib import id_eval
 
 
 SIZE = 50
-REPS = 1
+REPS = 10
 TQDM_REPS = True
 CUE_SPACING = 1
-N = 2
+N = 3
 ITERATIONS = 10
 
 DIM_CA1 = 50
@@ -352,6 +352,7 @@ def main_cue(plot: bool):
     logger(f"{NUM_CUE_PATTERNS=}")
     logger(f"{DIM_CA1=}")
     logger(f"{CUE_SPACING=}")
+    logger(f"{BIT_KIND=}")
 
     # setup
     settings_sim = {
@@ -380,10 +381,12 @@ def main_cue(plot: bool):
         "bit_kind": BIT_KIND
     }
 
-    noise_levels = np.around(np.linspace(0., 0.09, ITERATIONS), 2).astype(float)
+    noise_levels = np.around(np.linspace(0., 0.1, ITERATIONS), 2).astype(float)
+    logger(f"{noise_levels=}")
 
     # plot
-    fig, axs = plt.subplots(4, 2)
+    fig, axs = plt.subplots(4, 2, sharex=True)
+    fig.suptitle(f"{BIT_KIND=}")
 
     name = ("base", "err2", "btsp", "xbtsp")
     for k, (ax, ax2) in enumerate(axs):
@@ -435,19 +438,25 @@ def main_cue(plot: bool):
                 aelogs[i, j] = info["ae_score"]
 
 
-        ax.imshow(logs, aspect="auto", cmap="magma")
-        ax.set_xticklabels(noise_levels)
-        ax.set_xlabel("test noise")
+        ax.imshow(logs, aspect="auto", cmap="Greens", vmin=0, vmax=0.1)
+        ax.set_xticks(range(len(noise_levels)))
         ax.set_yticklabels(noise_levels)
         ax.set_ylabel("train noise")
         ax.set_title(f"MTL {name[k]}")
 
-        ax2.imshow(aelogs, aspect="auto", cmap="magma_r")
-        ax2.set_xticklabels(noise_levels)
-        ax2.set_xlabel("test noise")
+        im = ax2.imshow(aelogs, aspect="auto", cmap="Greens", vmin=0., vmax=0.1)
+        ax2.set_xticks(range(len(noise_levels)))
         ax2.set_yticklabels(noise_levels)
-        ax2.set_ylabel("train noise")
         ax2.set_title("autoencoder")
+
+        if k == 3:
+            ax.set_xlabel("test noise")
+            ax.set_xticks(range(len(noise_levels)))
+            ax.set_xticklabels(noise_levels)
+            ax2.set_xlabel("test noise")
+            ax2.set_xticks(range(len(noise_levels)))
+            ax2.set_xticklabels(noise_levels)
+            plt.colorbar(im)
 
     plt.show()
 

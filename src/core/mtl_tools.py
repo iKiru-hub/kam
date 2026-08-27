@@ -19,11 +19,11 @@ from collections.abc import Callable
 sys.path.append(os.path.abspath(__file__).split("src")[0] + "src")
 import core.functions as functions
 import core.models as models
+import core.datagen as dg
 import core.ae_tools as aect
+from core.constants import AE_PATH, MTL_PATH
 from core.utils import tqdm_enumerate
 from core.logger import logger
-
-AE_PATH = os.path.abspath(__file__).split("src")[0] + "src/data"
 
 
 
@@ -132,6 +132,8 @@ def train_for_accuracy_single(data: np.ndarray,
                               model: models.MTL | models.Autoencoder,
                               criterion: Callable=cosine_criterion,
                               test_last = False,
+                              noise_level: float=0.0,
+                              bit_kind: int=0,
                               disable: bool=True) -> tuple:
 
     """
@@ -183,10 +185,19 @@ def train_for_accuracy_single(data: np.ndarray,
         model.eval()
         with torch.no_grad():
 
-            x = dataset[i].reshape(-1, 1)
+            # x = dataset[i].reshape(-1, 1)
+            z = dataset[i].reshape(-1, 1)
+            x = torch.tensor(dg.bitflip(x=z, fraction=noise_level))
+
+            if bit_kind == 0:
+                x = torch.tensor(dg.bitflip(x=z, fraction=noise_level))
+            elif bit_kind == 1:
+                x = torch.tensor(dg.bitkill(x=z, fraction=noise_level))
+            else:
+                x = torch.tensor(dg.bitkill(x=z, fraction=noise_level))
             y = model(x)
 
-            logs["train_loss"][i] = criterion(x, y)
+            logs["train_loss"][i] = criterion(y, z)
 
         if test_last and i < (num_samples-1):
             continue
@@ -196,19 +207,111 @@ def train_for_accuracy_single(data: np.ndarray,
             model.pause_lr()
         model.eval()
         _rsamples = []
-        _tsamples = []
+        # _tsamples = []
         with torch.no_grad():
             # forward one pattern at a time
+            _tsamples = []
+            _rsamples = []
             for j, batch in enumerate(dataset[:i]):
-                x = batch.reshape(-1, 1)
+
+
+                # x = torch.tensor(dg.bitflip(x=batch.reshape(-1, 1),
+                #                             fraction=0.9))
+                # y = model(x)
+
+                # x = dataset[i].reshape(-1, 1)
+                # x = torch.tensor(dg.bitflip(x=batch, fraction=noise_level).reshape(-1, 1))
+
+                if bit_kind == 0:
+                    x = torch.tensor(dg.bitflip(x=batch, fraction=noise_level).reshape(-1, 1))
+                elif bit_kind == 1:
+                    x = torch.tensor(dg.bitkill(x=batch, fraction=noise_level).reshape(-1, 1))
+                else:
+                    x = dg.bitnoise(x=batch, fraction=noise_level).reshape(-1, 1)
                 y = model(x)
-                logs["rec_loss"][i, j] = criterion(x, y)
+
                 _tsamples += [x.detach().numpy()]
                 _rsamples += [y.detach().numpy()]
+                logs["rec_loss"][i, j] = criterion(x, y)
+
             logs["target"] += [_tsamples]
             logs["reconstructions"] += [_rsamples]
 
     return logs, model
 
+
+
+def _load_mtl(name: str):
+
+    try:
+        with open(f"{MTL_PATH}/{name}", "r") as f:
+            file = json.load(f)
+        return file
+    except (FileNotFoundError, json.JSONDecodeError, KeyError) as error:
+        return None
+
+
+
+def _match_mtl(name: str, dim_ca1: int|None=None, noise_level: float|None=None,
+               num_cue_patterns: int|None=None, plasticity: str|None=None,
+               bit_kind: int|None=None) -> float:
+
+    session = _load_mtl(name)
+    if session is None: return 0
+
+    score = 0
+    tot = 0
+    # print(session.keys())
+    if dim_ca1 is not None:
+        if "dim_ca1" not in session["settings"].keys():
+            return 0.
+        score += int(dim_ca1 == session["settings"]["dim_ca1"])
+        tot += 1
+    if noise_level is not None:
+        if "noise_level" not in session["settings"].keys():
+            return 0.
+        score += int((noise_level-session["settings"]["noise_level"])**2 < 0.0001)
+        tot += 1
+    if num_cue_patterns is not None:
+        if "num_cue_patterns" not in session["settings"].keys():
+            return 0.
+        score += int(num_cue_patterns == session["settings"]["num_cue_patterns"])
+        tot += 1
+    if plasticity is not None:
+        if "plasticity" not in session["settings"].keys():
+            return 0.
+        score += int(plasticity == session["settings"]["plasticity"])
+        tot += 1
+    if bit_kind is not None:
+        if "bit_kind" not in session["settings"].keys():
+            return 0.
+        score += int(bit_kind == session["settings"]["bit_kind"])
+        tot += 1
+
+    return score / tot
+
+
+def find_mtl(dim_ca1: int|None=None, noise_level: float|None=None,
+             num_cue_patterns: int|None=None, plasticity: str|None=None,
+             bit_kind: int|None=None):
+
+    """
+    attempt to retrieve the saved MTL evolution records that satisfy all provided
+    conditions in their training setup.
+    It returns a list of all matches in finding order.
+    """
+
+    out = []
+    for _mtl in sorted(os.listdir(MTL_PATH)):
+        score = _match_mtl(name=_mtl, dim_ca1=dim_ca1, noise_level=noise_level,
+                           num_cue_patterns=num_cue_patterns,
+                           plasticity=plasticity, bit_kind=bit_kind)
+        if score == 1:
+            _loaded = _load_mtl(_mtl)
+            if _loaded is not None:
+                out += [[_mtl, _loaded]]
+                # print(f"retrieved: {_mtl} with {dim_ca1=}, {noise_level=}, {num_cue_patterns=}, {score=}")
+
+    return out
 
 
