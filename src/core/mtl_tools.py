@@ -186,18 +186,18 @@ def train_for_accuracy_single(data: np.ndarray,
         with torch.no_grad():
 
             # x = dataset[i].reshape(-1, 1)
-            z = dataset[i].reshape(-1, 1)
-            x = torch.tensor(dg.bitflip(x=z, fraction=noise_level))
+            clean_x = dataset[i].reshape(-1, 1)
+            noisy_x = torch.tensor(dg.bitflip(x=clean_x, fraction=noise_level))
 
             if bit_kind == 0:
-                x = torch.tensor(dg.bitflip(x=z, fraction=noise_level))
+                noisy_x = torch.tensor(dg.bitflip(x=clean_x, fraction=noise_level))
             elif bit_kind == 1:
-                x = torch.tensor(dg.bitkill(x=z, fraction=noise_level))
+                noisy_x = torch.tensor(dg.bitkill(x=clean_x, fraction=noise_level))
             else:
-                x = torch.tensor(dg.bitkill(x=z, fraction=noise_level))
-            y = model(x)
+                noisy_x = torch.tensor(dg.bitkill(x=clean_x, fraction=noise_level))
+            y = model(noisy_x)
 
-            logs["train_loss"][i] = criterion(y, z)
+            logs["train_loss"][i] = criterion(y, clean_x)
 
         if test_last and i < (num_samples-1):
             continue
@@ -212,8 +212,7 @@ def train_for_accuracy_single(data: np.ndarray,
             # forward one pattern at a time
             _tsamples = []
             _rsamples = []
-            for j, batch in enumerate(dataset[:i]):
-
+            for j, clean_x in enumerate(dataset[:i]):
 
                 # x = torch.tensor(dg.bitflip(x=batch.reshape(-1, 1),
                 #                             fraction=0.9))
@@ -223,16 +222,19 @@ def train_for_accuracy_single(data: np.ndarray,
                 # x = torch.tensor(dg.bitflip(x=batch, fraction=noise_level).reshape(-1, 1))
 
                 if bit_kind == 0:
-                    x = torch.tensor(dg.bitflip(x=batch, fraction=noise_level).reshape(-1, 1))
+                    noisy_x = torch.tensor(dg.bitflip(x=clean_x,
+                                                fraction=noise_level).reshape(-1, 1))
                 elif bit_kind == 1:
-                    x = torch.tensor(dg.bitkill(x=batch, fraction=noise_level).reshape(-1, 1))
+                    noisy_x = torch.tensor(dg.bitkill(x=clean_x,
+                                                      fraction=noise_level).reshape(-1, 1))
                 else:
-                    x = dg.bitnoise(x=batch, fraction=noise_level).reshape(-1, 1)
-                y = model(x)
+                    noisy_x = dg.bitnoise(x=clean_x,
+                                          fraction=noise_level).reshape(-1, 1)
+                y = model(noisy_x)
 
-                _tsamples += [x.detach().numpy()]
+                _tsamples += [noisy_x.detach().numpy()]
                 _rsamples += [y.detach().numpy()]
-                logs["rec_loss"][i, j] = criterion(x, y)
+                logs["rec_loss"][i, j] = criterion(clean_x, y)
 
             logs["target"] += [_tsamples]
             logs["reconstructions"] += [_rsamples]
@@ -270,10 +272,11 @@ def _match_mtl(name: str, dim_ca1: int|None=None, noise_level: float|None=None,
     if noise_level is not None:
         if "noise_level" not in session["settings"].keys():
             return 0.
-        score += int((noise_level-session["settings"]["noise_level"])**2 < 0.0001)
+        score += int(abs(noise_level-session["settings"]["noise_level"]) < 0.01)
         tot += 1
     if num_cue_patterns is not None:
         if "num_cue_patterns" not in session["settings"].keys():
+            print("no noise_level")
             return 0.
         score += int(num_cue_patterns == session["settings"]["num_cue_patterns"])
         tot += 1
@@ -284,9 +287,12 @@ def _match_mtl(name: str, dim_ca1: int|None=None, noise_level: float|None=None,
         tot += 1
     if bit_kind is not None:
         if "bit_kind" not in session["settings"].keys():
-            return 0.
-        score += int(bit_kind == session["settings"]["bit_kind"])
-        tot += 1
+            # print("no plasticity ", session["settings"].keys())
+            # return 0.
+            pass
+        else:
+            score += int(bit_kind == session["settings"]["bit_kind"])
+            tot += 1
 
     return score / tot
 

@@ -30,8 +30,8 @@ def _resolve_device(device=None) -> torch.device:
         return torch.device(device)
     if torch.cuda.is_available():
         return torch.device("cuda")
-    if torch.backends.mps.is_available():
-        return torch.device("mps")
+    # if torch.backends.mps.is_available():
+    #     return torch.device("mps")
     return torch.device("cpu")
 
 
@@ -98,18 +98,28 @@ def testing(data: np.ndarray, autoencoder: models.Autoencoder,
     with torch.no_grad():
 
         for i, batch in enumerate(dataloader):
-            x = batch[0] if not column else batch[0].reshape(-1, 1)
+            clean_x = batch[0].detach()
+            # x = batch[0] if not column else batch[0].reshape(-1, 1)
             if bit_kind == 0:
-                x = dg.bitflip(x=x, fraction=noise_level)
+                noisy_x = torch.tensor(dg.bitflip(x=clean_x.cpu(), fraction=noise_level))
             elif bit_kind == 1:
-                x = dg.bitkill(x=x, fraction=noise_level)
+                noisy_x = torch.tensor(dg.bitkill(x=clean_x.cpu(), fraction=noise_level))
             elif bit_kind == 2:
-                x = dg.bitnoise(x=x, fraction=noise_level)
-            x = torch.tensor(x).to(device, non_blocking=device.type == "cuda")
+                noisy_x = dg.bitnoise(x=clean_x, fraction=noise_level)
+            noisy_x = noisy_x.to(device, non_blocking=device.type == "cuda")
 
             # Forward pass
-            outputs = autoencoder(x)  # MTL training BTSP
-            loss += criterion(outputs, x)
+            outputs, noisy_ca1 = autoencoder(x=noisy_x, ca1=True)  # MTL training BTSP
+            # loss += criterion(outputs, clean_x)
+
+            if bit_kind == 2:
+                # forward pass with clean data
+                with torch.no_grad():
+                    _, clean_ca1 = autoencoder(clean_x, ca1=True)
+                loss = criterion(reconstruction=outputs, clean_target=clean_x,
+                                 noisy_code=noisy_ca1, clean_code=clean_ca1)
+            else:
+                loss = criterion(outputs, clean_x)
 
     autoencoder.train()
 
@@ -181,16 +191,16 @@ def train_autoencoder(training_data: np.ndarray,
     # for epoch in range(epochs):
         total_loss = 0
         for batch in dataloader:
-            clean_x = batch[0].detach().to(device, non_blocking=device.type == "cuda")
+            clean_x = batch[0].detach()
             # zs = dg.bitflip(x=batch[0], fraction=noise_level)
 
             if bit_kind == 0:
-                noisy_x = dg.bitflip(x=batch[0], fraction=noise_level)
+                noisy_x = torch.tensor(dg.bitflip(x=clean_x, fraction=noise_level))
             elif bit_kind == 1:
-                noisy_x = dg.bitkill(x=batch[0], fraction=noise_level)
+                noisy_x = torch.tensor(dg.bitkill(x=clean_x, fraction=noise_level))
             else:
-                noisy_x = dg.bitnoise(x=batch[0], fraction=noise_level)
-            noisy_x = noisy_x.detach().to(device, non_blocking=device.type == "cuda")
+                noisy_x = dg.bitnoise(x=clean_x, fraction=noise_level)
+            noisy_x = noisy_x.to(device, non_blocking=device.type == "cuda")
 
             # forward pass with noisy data
             outputs, noisy_ca1 = autoencoder(noisy_x, ca1=True)
@@ -199,11 +209,10 @@ def train_autoencoder(training_data: np.ndarray,
                 # forward pass with clean data
                 with torch.no_grad():
                     _, clean_ca1 = autoencoder(clean_x, ca1=True)
-
                 loss = criterion(reconstruction=outputs, clean_target=clean_x,
                                  noisy_code=noisy_ca1, clean_code=clean_ca1)
             else:
-                loss = criterion(outputs, noisy_x)
+                loss = criterion(outputs, clean_x)
 
             # backward and optimize
             optimizer.zero_grad()
@@ -217,6 +226,7 @@ def train_autoencoder(training_data: np.ndarray,
                                autoencoder=autoencoder,
                                criterion=criterion,
                                noise_level=noise_level,
+                               bit_kind=bit_kind,
                                device=device)
         # test_loss = test_loss.item()
 
@@ -272,42 +282,53 @@ def reconstruct_data(data: np.ndarray, model: models.Autoencoder | models.MTL,
 
     # Set the model to evaluation mode
     model.eval()
-    criterion = MSELoss()
 
     # Reconstruct data
     original_data = []
+    original_clean_data = []
     reconstructed_data = []
     latent_data = []
     loss = 0.
     with torch.no_grad():
 
         for batch in tqdm(dataloader):
-
-            zs = batch[0] if not column else batch[0].reshape(-1, 1)
+            clean_x = batch[0].detach()
+            # x = batch[0] if not column else batch[0].reshape(-1, 1)
             if bit_kind == 0:
-                zs = dg.bitflip(x=zs, fraction=noise_level)
+                noisy_x = torch.tensor(dg.bitflip(x=clean_x.cpu(), fraction=noise_level))
             elif bit_kind == 1:
-                zs = dg.bitkill(x=zs, fraction=noise_level)
-            else:
-                zs = dg.bitnoise(x=zs, fraction=noise_level)
-            zs = torch.tensor(zs).to(device, non_blocking=device.type == "cuda")
+                noisy_x = torch.tensor(dg.bitkill(x=clean_x.cpu(), fraction=noise_level))
+            elif bit_kind == 2:
+                noisy_x = dg.bitnoise(x=clean_x, fraction=noise_level)
+            noisy_x = noisy_x.to(device, non_blocking=device.type == "cuda")
 
             # Forward pass
-            outputs, latent = model(zs, ca1=True)
+            outputs, noisy_ca1 = model(noisy_x, ca1=True)
 
-            original_data.append(zs.detach().cpu().numpy().flatten())
+            original_data.append(noisy_x.detach().cpu().numpy().flatten())
+            original_clean_data.append(clean_x.detach().cpu().numpy().flatten())
             reconstructed_data.append(outputs.detach().cpu().numpy().flatten())
-            latent_data.append(latent.detach().cpu().numpy().flatten())
+            latent_data.append(noisy_ca1.detach().cpu().numpy().flatten())
 
             # evaluate the output
-            loss += criterion(outputs, zs)
+            # loss += criterion(outputs.detach().numpy(), clean_x)
+            # loss += criterion(outputs, clean_x)
+
+            if bit_kind == 2:
+                # forward pass with clean data
+                with torch.no_grad():
+                    _, clean_ca1 = model(clean_x, ca1=True)
+                loss = criterion(reconstruction=outputs, clean_target=clean_x,
+                                 noisy_code=noisy_ca1, clean_code=clean_ca1)
+            else:
+                loss = criterion(outputs, clean_x)
 
     # Convert list to numpy array
     reconstructed_data = np.array(reconstructed_data)
 
     # difference between original and reconstructed data
     # original_data = data_tensor.numpy()
-    diff_data = original_data - reconstructed_data
+    diff_data = original_clean_data - reconstructed_data
 
     loss = loss / len(dataloader)
 
@@ -505,7 +526,7 @@ def _match_ae(name: str, dim_ca1: int|None=None, noise_level: float|None=None,
         if "noise_level" not in session["settings_data"].keys():
             # logger.debug(f"no noise_level {name} {session["settings_data"].keys()=}")
             return 0.
-        score += int((noise_level-session["settings_data"]["noise_level"])**2 < 0.0001)
+        score += int(abs(noise_level-session["settings_data"]["noise_level"]) < 0.01)
         tot += 1
     if num_cue_patterns is not None:
         if "num_cue_patterns" not in session["settings_data"].keys():

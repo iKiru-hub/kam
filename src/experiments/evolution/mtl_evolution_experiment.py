@@ -71,7 +71,7 @@ MTL_CRITERIA = {
     "modified-mse": functions.modified_mse_score,
     "gaussian": functions.gaussian,
 }
-DEFAULT_CRITERION = "mse" # "modified-mse"
+DEFAULT_CRITERION = "cosine" # "modified-mse"
 
 HORIZON = 10
 EVAL_FUNC = _lib.id_eval # _lib.exp_eval # "_lib.id_eval" "_lib.mean_eval"

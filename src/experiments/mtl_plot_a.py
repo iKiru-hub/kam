@@ -21,7 +21,7 @@ from experiments.evolution._lib import id_eval
 
 
 SIZE = 50
-REPS = 10
+REPS = 20
 TQDM_REPS = True
 CUE_SPACING = 1
 N = 3
@@ -30,7 +30,7 @@ ITERATIONS = 10
 DIM_CA1 = 50
 NUM_CUE_PATTERNS = 5
 NOISE_LEVEL = 0.0
-BIT_KIND = 0
+BIT_KIND = 2
 
 PLASTICITY = "base"
 
@@ -207,7 +207,7 @@ def train_mtl_cue_data(settings_sim: dict,
     # autoencoder, info = aect.load_autoencoder(name=ae_name)
     out = aect.find_ae(dim_ca1=dim_ca1, num_cue_patterns=num_cue_patterns,
                        noise_level=ae_train_noise_level,
-                       bit_kind=ae_bit_kind)
+                       bit_kind=bit_kind)
     if len(out) <= 0 and ae_bit_kind == 0:
         # Older sessions predate the bit_kind metadata field; bit-flip was
         # the only implementation at that time, so missing means legacy 0.
@@ -228,7 +228,7 @@ def train_mtl_cue_data(settings_sim: dict,
         sys.exit(
             "ERROR: no autoencoder found with "
             f"{dim_ca1=} {num_cue_patterns=} "
-            f"train_noise={ae_train_noise_level} {ae_bit_kind=}"
+            f"train_noise={ae_train_noise_level} {bit_kind=}"
         )
     def validation_loss(item):
         values = item[2].get("results", {}).get("test", [])
@@ -357,7 +357,7 @@ def main_cue(plot: bool):
     # setup
     settings_sim = {
         "data_training_size": 50*CUE_SPACING*NUM_CUE_PATTERNS*N,
-        "criterion": functions.mse,
+        "criterion": functions.cosine_similarity_vec,
         "reps": 1,
         "use_bias": False,
         "disable": False,
@@ -381,7 +381,11 @@ def main_cue(plot: bool):
         "bit_kind": BIT_KIND
     }
 
-    noise_levels = np.around(np.linspace(0., 0.1, ITERATIONS), 2).astype(float)
+    if BIT_KIND < 2:
+        noise_levels = np.around(np.linspace(0., 0.1, ITERATIONS), 2).astype(float)
+    else:
+        noise_levels = np.around(np.linspace(0., 0.1, ITERATIONS), 2).astype(float)
+        # noise_levels = np.around(np.linspace(0., 0.9, ITERATIONS), 2).astype(float)
     logger(f"{noise_levels=}")
 
     # plot

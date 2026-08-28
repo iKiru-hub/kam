@@ -24,7 +24,7 @@ NOISE_LEVEL = 0.5
 BIT_KIND = 2
 CRITERION = functions.denoising_autoencoder_loss # MSELoss()
 
-EPOCHS = 128
+EPOCHS = 256
 BATCH_SIZE = 8
 
 """ train functions """
@@ -78,6 +78,7 @@ def train_random_data(settings_sim: dict,
         plt.grid()
 
         results = aect.reconstruct_data(data=test_data, model=autoencoder,
+                                        criterion=CRITERION,
                                         num=5, column=False, show=True, plot=True)
 
     if save:
@@ -157,6 +158,7 @@ def train_cue_data(settings_sim: dict,
         results = aect.reconstruct_data(data=test_data, model=autoencoder, num=64,
                                         noise_level=settings_data["noise_level"],
                                         bit_kind=settings_data["bit_kind"],
+                                        criterion=CRITERION,
                                         column=False, show=True, plot=True)
 
     if save:
