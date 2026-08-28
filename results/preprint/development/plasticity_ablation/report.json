@@ -1,0 +1,40 @@
+{
+  "autoencoder_quality": [
+    {
+      "cosine": 0.9975262769777692,
+      "mse": 0.0011925195576623082
+    },
+    {
+      "cosine": 0.9985542928616122,
+      "mse": 0.000606307468842715
+    },
+    {
+      "cosine": 0.9977184749743659,
+      "mse": 0.000923871761187911
+    },
+    {
+      "cosine": 0.9985725821792633,
+      "mse": 0.0007878121687099338
+    },
+    {
+      "cosine": 0.9980966464138981,
+      "mse": 0.0009901043958961964
+    },
+    {
+      "cosine": 0.997476613449503,
+      "mse": 0.0011044054990634322
+    },
+    {
+      "cosine": 0.998641500320928,
+      "mse": 0.0007712337537668645
+    },
+    {
+      "cosine": 0.9982659296962245,
+      "mse": 0.0008214894332922995
+    }
+  ],
+  "comparison": "all parameters fixed except plasticity_rule",
+  "experiment": "plasticity_ablation",
+  "protocol_version": "kam-preprint-v1",
+  "scientific_digest": "fb33e5711a33db95b3504cfc87b3b1cb731715827c66499d97add8c049a2d144"
+}

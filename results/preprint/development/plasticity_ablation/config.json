@@ -1,0 +1,70 @@
+{
+  "autoencoder": {
+    "batch_size": 64,
+    "beta_latent": 25.0,
+    "beta_output": 25.0,
+    "epochs": 256,
+    "latent_dimension": 50,
+    "learning_rate": 0.001
+  },
+  "data": {
+    "active": 5,
+    "dimension": 50,
+    "memory_count": 28,
+    "training_size": 1000,
+    "validation_size": 250
+  },
+  "memory": {
+    "alpha": 0.092,
+    "beta_ca1": 41.8,
+    "beta_ca3": 170.6,
+    "beta_output": 25.0,
+    "ca3_dimension": 50,
+    "ca3_inputs_per_unit": 29,
+    "k_ca1": 5,
+    "k_ca3": 3,
+    "plasticity_rule": "err2"
+  },
+  "plasticity_ablation": {
+    "fractions": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      0.9
+    ],
+    "lec_only": false,
+    "masks_per_fraction": 8,
+    "rules": [
+      "base",
+      "err2"
+    ]
+  },
+  "root_seeds": [
+    31001,
+    31002,
+    31003,
+    31004,
+    31005,
+    31006,
+    31007,
+    31008
+  ],
+  "track": {
+    "cue_alpha": 0.1,
+    "cue_beta": 40.0,
+    "cue_positions": [
+      10,
+      30
+    ],
+    "cue_sigma": 4.0,
+    "lap_length": 50,
+    "lec_sigma": 5.0,
+    "mec_binarized": true,
+    "mec_sigma": 5.0,
+    "size": 50,
+    "swap_every": 10,
+    "training_laps": 20,
+    "validation_laps": 5
+  }
+}
