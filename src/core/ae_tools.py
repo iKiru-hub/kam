@@ -503,7 +503,8 @@ def save_search_results(results: np.ndarray,
 
 
 def _match_ae(name: str, dim_ca1: int|None=None, noise_level: float|None=None,
-              num_cue_patterns: int|None=None, bit_kind: int|None=None) -> float:
+              num_cue_patterns: int|None=None, bit_kind: int|None=None,
+              max_num_patterns: int|None=None) -> float:
 
     _path = _autoencoder_session_path(name) / "session.json"
     try:
@@ -540,12 +541,19 @@ def _match_ae(name: str, dim_ca1: int|None=None, noise_level: float|None=None,
             return 0.
         score += int(bit_kind == session["settings_data"]["bit_kind"])
         tot += 1
+    if max_num_patterns is not None:
+        if "max_num_patterns" not in session["settings_data"].keys():
+            # logger.debug(f"no num_cue_patterns {name}")
+            return 0.
+        score += int(max_num_patterns == session["settings_data"]["max_num_patterns"])
+        tot += 1
 
     return score / tot
 
 
 def find_ae(dim_ca1: int|None=None, noise_level: float|None=None,
-            num_cue_patterns: int|None=None, bit_kind: int|None=None):
+            num_cue_patterns: int|None=None, bit_kind: int|None=None,
+            max_num_patterns: int|None=None):
 
     """
     attempt to retrieve the saved autoencoders that satisfy all provided
@@ -556,7 +564,8 @@ def find_ae(dim_ca1: int|None=None, noise_level: float|None=None,
     out = []
     for _ae in sorted(os.listdir(AE_PATH)):
         score = _match_ae(name=_ae, dim_ca1=dim_ca1, noise_level=noise_level,
-                          num_cue_patterns=num_cue_patterns, bit_kind=bit_kind)
+                          num_cue_patterns=num_cue_patterns, bit_kind=bit_kind,
+                          max_num_patterns=max_num_patterns)
         if score == 1:
             out += [[_ae] + list(load_autoencoder(_ae))]
 

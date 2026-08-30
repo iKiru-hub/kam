@@ -26,6 +26,7 @@ import _lib
 
 CUE_SPACING = 1
 NUM_CUE_PATTERNS = 5
+MAX_NUM_PATTERNS = 20
 NOISE_LEVEL = 0.1
 DIM_CA1 = 50
 BIT_KIND = 2
@@ -146,6 +147,7 @@ def evaluate_mtl_individual(ind: list, plasticity: str="base",
         "mec_binarized": True,
         "mec_sigma": 4,
         "cue_spacing": CUE_SPACING,
+        "max_num_patterns": MAX_NUM_PATTERNS,
         "noise_level": float(noise_level),
         "bit_kind": BIT_KIND
     }
@@ -376,6 +378,7 @@ def parse_args():
     parser.add_argument("--pause", type=float, default=0.01)
     parser.add_argument("--noise", type=float, default=NOISE_LEVEL)
     parser.add_argument("--plasticity", type=str, default="base")
+    parser.add_argument("--num", type=float, default=NUM_CUE_PATTERNS)
     parser.add_argument(
         "--workers",
         type=int,
@@ -397,6 +400,7 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
+    NUM_CUE_PATTERNS = int(args.num)
     mtlsearch(
         generations=args.generations,
         pause=args.pause,

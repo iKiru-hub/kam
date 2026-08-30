@@ -28,6 +28,7 @@ N = 5
 
 DIM_CA1 = 50
 NUM_CUE_PATTERNS = 5
+MAX_NUM_PATTERNS = None
 NOISE_LEVEL = 0.9
 BIT_KIND = 2
 
@@ -57,6 +58,7 @@ def make_cue_data(num_samples: int, settings_data: dict|None=None):
         mec_binarized=settings_data.get("mec_binarized", dg.DEFAULT_MEC_BINARIZED),
         mec_sigma=settings_data.get("mec_sigma", dg.DEFAULT_CUE_MEC_SIGMA),
         lec_sigma=settings_data.get("lec_sigma", dg.DEFAULT_CUE_LEC_SIGMA),
+        max_num_patterns=settings_data.get("max_num_patterns", None),
         cue_spacing=settings_data.get("cue_spacing", dg.DEFAULT_CUE_SPACING),
     )
 
@@ -194,13 +196,14 @@ def train_mtl_cue_data(settings_sim: dict,
     dim_ca1 = settings_mtl.get("dim_ca1", DIM_CA1)
     num_cue_patterns = settings_data.get("num_cue_patterns", NUM_CUE_PATTERNS)
     noise_level = settings_data.get("noise_level", NOISE_LEVEL)
+    max_num_patterns = settings_data.get("max_num_patterns", MAX_NUM_PATTERNS)
     bit_kind = settings_data.get("bit_kind", BIT_KIND)
 
     # logger(f"matching ae: {DIM_CA1=} {NOISE_LEVEL=} {NUM_CUE_PATTERNS=}")
     # autoencoder, info = aect.load_autoencoder(name=ae_name)
     out = aect.find_ae(dim_ca1=dim_ca1, num_cue_patterns=num_cue_patterns,
-                       noise_level=noise_level)
-    if len(out) <= 0: sys.exit(f"ERROR: no autoencoder found with {dim_ca1=} {num_cue_patterns=} {noise_level=}")
+                       noise_level=noise_level, max_num_patterns=max_num_patterns)
+    if len(out) <= 0: sys.exit(f"ERROR: no autoencoder found with {dim_ca1=} {num_cue_patterns=} {noise_level=} {max_num_patterns=}")
     name, autoencoder, info = out[-1]
     # logger(f"loaded autoencoder {name}")
 

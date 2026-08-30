@@ -19,8 +19,9 @@ from core.logger import logger
 
 DIM_CA1 = 50
 CUE_SPACING = 1
-NUM_CUE_PATTERNS = 5
-NOISE_LEVEL = 0.5
+NUM_CUE_PATTERNS = 2
+MAX_NUM_PATTERNS = 20
+NOISE_LEVEL = 0.
 BIT_KIND = 2
 CRITERION = functions.denoising_autoencoder_loss # MSELoss()
 
@@ -108,6 +109,7 @@ def make_cue_data(num: int, settings_sim: dict={}, settings_data: dict={}):
         mec_binarized=settings_data.get("mec_binarized", dg.DEFAULT_MEC_BINARIZED),
         mec_sigma=settings_data.get("mec_sigma", dg.DEFAULT_CUE_MEC_SIGMA),
         lec_sigma=settings_data.get("lec_sigma", dg.DEFAULT_CUE_LEC_SIGMA),
+        max_num_patterns=settings_data.get("max_num_patterns", None),
         cue_spacing=settings_data.get("cue_spacing", dg.DEFAULT_CUE_SPACING),
     )
 
@@ -302,6 +304,7 @@ def main_cue(save: bool=False, plot: bool=False):
 
     logger("-- training autoencoder --")
     logger(f"{NUM_CUE_PATTERNS=}")
+    logger(f"{MAX_NUM_PATTERNS=}")
     logger(f"{DIM_CA1=}")
     logger(f"{CUE_SPACING=}")
     logger(f"{NOISE_LEVEL=}")
@@ -338,6 +341,7 @@ def main_cue(save: bool=False, plot: bool=False):
             "mec_binarized": True,
             "mec_sigma": 4,
             "cue_spacing": CUE_SPACING,
+            "max_num_patterns": MAX_NUM_PATTERNS,
             "noise_level": NOISE_LEVEL,
             "bit_kind": BIT_KIND
     }

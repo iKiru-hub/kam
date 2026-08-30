@@ -245,6 +245,7 @@ def make_cue_track_data(
         mec_binarized=DEFAULT_MEC_BINARIZED,
         mec_sigma: float = DEFAULT_CUE_MEC_SIGMA,
         lec_sigma: float = DEFAULT_CUE_LEC_SIGMA,
+        max_num_patterns: int|None=None,
         cue_spacing: int = DEFAULT_CUE_SPACING) -> np.ndarray:
     """Generate exactly ``num_samples`` from the shared MEC+LEC cue task.
 
@@ -260,6 +261,7 @@ def make_cue_track_data(
     if lap_length < 1:
         raise ValueError("lap_length must be at least 1")
 
+
     cue_positions = tuple(int(position) for position in cue_positions)
     if not cue_positions:
         raise ValueError("cue_positions must not be empty")
@@ -271,13 +273,15 @@ def make_cue_track_data(
         )
 
     lec_size = size // 2
+    # max_num = pattern_size if pattern_size is not None else lec_size // num_cue_patterns
+    max_num_patterns = max_num_patterns if max_num_patterns is not None else num_cue_patterns
     num_laps = int(np.ceil(num_samples / lap_length))
     cue_patterns = make_cues(
-        n=num_cue_patterns,
+        n=max_num_patterns,
         size=lec_size,
         fixed=True,
         p=0.2,
-    )
+        )[:num_cue_patterns]
     # make cue sequence
     # cue_sequence = [
     #     np.random.choice(
