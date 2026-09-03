@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import warnings
 import torch
+import argparse
 from torch.nn import MSELoss
 
 from tqdm import tqdm
@@ -21,7 +22,7 @@ from experiments.evolution._lib import id_eval
 
 
 SIZE = 50
-REPS = 20
+REPS = 1
 TQDM_REPS = False
 CUE_SPACING = 1
 N = 5
@@ -32,7 +33,7 @@ MAX_NUM_PATTERNS = None
 NOISE_LEVEL = 0.9
 BIT_KIND = 2
 
-PLASTICITY = "xbtsp"
+PLASTICITY = "err2"
 
 
 
@@ -205,7 +206,7 @@ def train_mtl_cue_data(settings_sim: dict,
                        noise_level=noise_level, max_num_patterns=max_num_patterns)
     if len(out) <= 0: sys.exit(f"ERROR: no autoencoder found with {dim_ca1=} {num_cue_patterns=} {noise_level=} {max_num_patterns=}")
     name, autoencoder, info = out[-1]
-    # logger(f"loaded autoencoder {name}")
+    # logger(f"loaded autoencoder {name=}")
 
     params = autoencoder.get_weights(bias=use_bias)
 
@@ -350,7 +351,7 @@ def train_mtl_cue_data(settings_sim: dict,
             "reconstructed_stimuli": reconstructed,
             "ca3_activity": ca3_activity,
             "ca1_activity": ca1_activity,
-            "ae_score": np.mean(info["test"])
+            "ae_score": np.mean(info["results"]["test"])
         }
 
     return results
@@ -383,6 +384,7 @@ def main_cue(plot: bool):
         "size": 50,
         "K": 5,
         "num_cue_patterns": NUM_CUE_PATTERNS,
+        "max_num_patterns": MAX_NUM_PATTERNS,
         "lap_length": 50,
         "cue_positions": [10., 30.],
         "cue_sigma": 3.,
@@ -414,7 +416,18 @@ def main_cue(plot: bool):
                        settings_data=settings_data,
                        settings_mtl=_settings_mtl)
 
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Evolve MTL hyperparameters with CMA-ES."
+    )
+    parser.add_argument("--num", type=int, default=NUM_CUE_PATTERNS)
+    args = parser.parse_args()
+    return args
+
 if __name__ == "__main__":
+
+    args = parse_args()
+    NUM_CUE_PATTERNS = int(args.num)
 
     TQDM_REPS = True
     main_cue(plot=True)

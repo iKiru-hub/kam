@@ -35,6 +35,17 @@ PYTHONPATH=src python3 -m experiments.preprint.figures.figure_2_compatibility \
   --output article/figures/figure_2_compatibility.png
 ```
 
+Build the compact main-text Figures 2 and 3:
+
+```sh
+PYTHONPATH=src python3 -m experiments.preprint_figure_2_experiment
+PYTHONPATH=src python3 -m experiments.preprint_figure_3_experiment
+```
+
+These commands write `article/figures/preprint/figure_2_main.png` and
+`article/figures/preprint/figure_3_main.png`.  They combine existing immutable
+artifacts and do not rerun the simulations.
+
 `compatibility.py` is the primary result.  It compares aligned instructions,
 fixed coordinate mismatch, matched decoder coordinates, random content, and
 no plasticity under paired seed-specific inputs.

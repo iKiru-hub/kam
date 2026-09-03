@@ -14,6 +14,7 @@ from core.logger import logger
 
 
 DEFAULT_CUE_NUM_PATTERNS = 2
+DEFAULT_CUE_MAX_NUM = 2
 DEFAULT_CUE_LAP_LENGTH = 50
 DEFAULT_CUE_POSITIONS = [10, 30]
 DEFAULT_CUE_MEC_SIGMA = 5.0
@@ -281,7 +282,9 @@ def make_cue_track_data(
         size=lec_size,
         fixed=True,
         p=0.2,
-        )[:num_cue_patterns]
+        )
+    if max_num_patterns > num_cue_patterns:
+        cue_patterns = cue_patterns[:num_cue_patterns]
     # make cue sequence
     # cue_sequence = [
     #     np.random.choice(

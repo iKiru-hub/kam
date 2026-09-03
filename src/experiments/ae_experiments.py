@@ -20,7 +20,7 @@ from core.logger import logger
 DIM_CA1 = 50
 CUE_SPACING = 1
 NUM_CUE_PATTERNS = 2
-MAX_NUM_PATTERNS = 20
+MAX_NUM_PATTERNS = 10
 NOISE_LEVEL = 0.
 BIT_KIND = 2
 CRITERION = functions.denoising_autoencoder_loss # MSELoss()
@@ -322,7 +322,7 @@ def main_cue(save: bool=False, plot: bool=False):
     # setup
     settings_sim = {
             "data_training_size": 50*CUE_SPACING*NUM_CUE_PATTERNS,
-            "data_test_size": int(0.2*50*CUE_SPACING*NUM_CUE_PATTERNS),
+            "data_test_size": int(50*CUE_SPACING*NUM_CUE_PATTERNS),
             "epochs": EPOCHS,
             "batch_size": BATCH_SIZE,
             "learning_rate": 1e-3,

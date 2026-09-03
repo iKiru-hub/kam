@@ -13,7 +13,7 @@ from experiments.preprint.artifacts import load_arrays
 from experiments.preprint.figures.common import mean_sem
 
 
-LABELS = {"base": "base instruction-gated", "err2": "error-driven (err2)"}
+LABELS = {"base": "Direct instructed-write", "err2": "Bounded error-driven"}
 
 
 def build(artifact: Path, output: Path) -> Path:
@@ -29,7 +29,7 @@ def build(artifact: Path, output: Path) -> Path:
     axes[-1].legend(frameon=False, fontsize=8)
     for axis in axes:
         axis.spines[["top", "right"]].set_visible(False)
-    figure.suptitle("Plasticity-rule ablation under matched parameters")
+    figure.suptitle("Plasticity-rule comparison under matched parameters")
     output.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output, dpi=300)
     plt.close(figure)

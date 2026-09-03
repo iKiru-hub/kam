@@ -26,8 +26,8 @@ import _lib
 
 CUE_SPACING = 1
 NUM_CUE_PATTERNS = 5
-MAX_NUM_PATTERNS = 20
-NOISE_LEVEL = 0.1
+MAX_NUM_PATTERNS = 10
+NOISE_LEVEL = 0.
 DIM_CA1 = 50
 BIT_KIND = 2
 N = 2
@@ -374,7 +374,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Evolve MTL hyperparameters with CMA-ES."
     )
-    parser.add_argument("--generations", type=int, default=196)
+    parser.add_argument("--generations", type=int, default=256)
     parser.add_argument("--pause", type=float, default=0.01)
     parser.add_argument("--noise", type=float, default=NOISE_LEVEL)
     parser.add_argument("--plasticity", type=str, default="base")
