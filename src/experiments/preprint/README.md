@@ -18,6 +18,10 @@ PYTHONPATH=src python3 -m experiments.preprint.cue_remapping \
   --config src/experiments/preprint/configs/final_cue_remapping.json \
   --output results/preprint/v1/cue_remapping
 
+PYTHONPATH=src python3 -m experiments.preprint.cue_swap_control \
+  --config src/experiments/preprint/configs/final_cue_remapping.json \
+  --output results/preprint/v1/cue_swap_control
+
 PYTHONPATH=src python3 -m experiments.preprint.completion \
   --config src/experiments/preprint/configs/final_completion.json \
   --output results/preprint/v1/completion
@@ -33,6 +37,14 @@ Build figures only from saved artifacts:
 PYTHONPATH=src python3 -m experiments.preprint.figures.figure_2_compatibility \
   --artifact results/preprint/v1/compatibility \
   --output article/figures/figure_2_compatibility.png
+
+PYTHONPATH=src python3 -m experiments.preprint.figures.figure_3_cue_remapping \
+  --artifact results/preprint/v1/cue_remapping \
+  --output article/figures/preprint/ca1_tuning_distribution.svg
+
+PYTHONPATH=src python3 -m experiments.preprint.figures.figure_cue_swap_control \
+  --artifact results/preprint/v1/cue_swap_control \
+  --output article/figures/preprint/cue_swap_control.svg
 ```
 
 Build the compact main-text Figures 2 and 3:
@@ -52,6 +64,14 @@ no plasticity under paired seed-specific inputs.
 
 `cue_remapping.py` trains on a fixed cue-swap schedule, freezes learning, and
 measures CA1 spatial stability and cue modulation under two probe contexts.
+Its figure builder now exports only the population stability--modulation
+distribution, without duplicating the main-text heat maps or selecting example
+units.
+
+`cue_swap_control.py` compares the same alternating schedule with a fixed-cue
+schedule.  The pair shares seeds, autoencoder, CA3 wiring, MEC trajectories,
+lap count, and plasticity parameters.  It probes the scheduled context after
+each lap and reports consecutive-lap CA1 tuning similarity.
 
 `completion.py` stores clean laps, freezes learning, corrupts probes with
 independent masks, and compares normal, shuffled, dense, and identity CA3 key

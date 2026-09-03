@@ -375,7 +375,7 @@ def parse_args():
     parser.add_argument("--save", action="store_true")
     parser.add_argument("--noise", type=float, default=NOISE_LEVEL)
     parser.add_argument("--dim_ca1", type=float, default=DIM_CA1)
-    parser.add_argument("--num", type=float, default=NUM_CUE_PATTERNS)
+    parser.add_argument("--num", type=int, default=NUM_CUE_PATTERNS)
     parser.add_argument("--bit_kind", type=int, default=BIT_KIND)
     return parser.parse_args()
 

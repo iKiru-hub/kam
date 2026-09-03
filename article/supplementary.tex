@@ -1,0 +1,13 @@
+\clearpage
+\section*{Supplementary material}
+
+\setcounter{figure}{0}
+\renewcommand{\thefigure}{S\arabic{figure}}
+\renewcommand{\theHfigure}{S\arabic{figure}}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figure_5_plasticity_ablation.png}
+    \caption{\textbf{Matched-parameter comparison of the two plasticity rules.} Output--target cosine (left) and nearest-target identity accuracy (right) after 20 clean training laps, followed by frozen recall with increasing fractions of the full EC input removed. Curves show mean $\pm$ SEM across 20 root seeds after averaging 12 masks within each seed. All parameters, inputs, pretrained autoencoders, and CA3-like retrieval maps were shared across the paired rule conditions; only the update equation differed. The error-driven rule improved clean-state target discrimination, whereas the direct instructed-write rule retained higher output similarity under severe corruption. Parameters were not optimized separately for each rule.}
+    \label{fig:rule-ablation}
+\end{figure}

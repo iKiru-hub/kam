@@ -1,0 +1,166 @@
+\begin{thebibliography}{24}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Bittner et~al.(2017)Bittner, Milstein, Grienberger, Romani, and Magee]{bittner2017}
+Katie~C. Bittner, Aaron~D. Milstein, Christine Grienberger, Sandro Romani, and Jeffrey~C. Magee.
+\newblock Behavioral time scale synaptic plasticity underlies {{CA1}} place fields.
+\newblock \emph{Science}, 357\penalty0 (6355):\penalty0 1033--1036, September 2017.
+\newblock ISSN 0036-8075, 1095-9203.
+\newblock \doi{10.1126/science.aan3846}.
+
+\bibitem[Chandra et~al.(2025)Chandra, Sharma, Chaudhuri, and Fiete]{chandra2025}
+Sarthak Chandra, Sugandha Sharma, Rishidev Chaudhuri, and Ila Fiete.
+\newblock Episodic and associative memory from spatial scaffolds in the hippocampus.
+\newblock \emph{Nature}, pages 1--13, January 2025.
+\newblock ISSN 1476-4687.
+\newblock \doi{10.1038/s41586-024-08392-y}.
+
+\bibitem[Deshmukh and Knierim(2011)]{deshmukh2011}
+Sachin~S. Deshmukh and James~J. Knierim.
+\newblock Representation of non-spatial and spatial information in the lateral entorhinal cortex.
+\newblock \emph{Frontiers in Behavioral Neuroscience}, 5:\penalty0 69, 2011.
+\newblock \doi{10.3389/fnbeh.2011.00069}.
+
+\bibitem[Gallego et~al.(2020)Gallego, Perich, Chowdhury, Solla, and Miller]{gallego2020}
+Juan~A. Gallego, Matthew~G. Perich, Raeed~H. Chowdhury, Sara~A. Solla, and Lee~E. Miller.
+\newblock Long-term stability of cortical population dynamics underlying consistent behavior.
+\newblock \emph{Nature Neuroscience}, 23\penalty0 (2):\penalty0 260--270, February 2020.
+\newblock ISSN 1546-1726.
+\newblock \doi{10.1038/s41593-019-0555-4}.
+
+\bibitem[Golub et~al.(2018)Golub, Sadtler, Oby, Quick, Ryu, Tyler-Kabara, Batista, Chase, and Yu]{golub2018}
+Matthew~D. Golub, Patrick~T. Sadtler, Emily~R. Oby, Kristin~M. Quick, Stephen~I. Ryu, Elizabeth~C. Tyler-Kabara, Aaron~P. Batista, Steven~M. Chase, and Byron~M. Yu.
+\newblock Learning by neural reassociation.
+\newblock \emph{Nature Neuroscience}, 21\penalty0 (4):\penalty0 607--616, 2018.
+\newblock \doi{10.1038/s41593-018-0095-3}.
+
+\bibitem[Grienberger and Magee(2022)]{grienberger2022}
+Christine Grienberger and Jeffrey~C. Magee.
+\newblock Entorhinal cortex directs learning-related changes in {{CA1}} representations.
+\newblock \emph{Nature}, 611\penalty0 (7936):\penalty0 554--562, November 2022.
+\newblock ISSN 1476-4687.
+\newblock \doi{10.1038/s41586-022-05378-6}.
+
+\bibitem[Hargreaves et~al.(2005)Hargreaves, Rao, Lee, and Knierim]{hargreaves2005}
+Eric~L. Hargreaves, Geeta Rao, Inah Lee, and James~J. Knierim.
+\newblock Major dissociation between medial and lateral entorhinal input to dorsal hippocampus.
+\newblock \emph{Science}, 308\penalty0 (5729):\penalty0 1792--1794, 2005.
+\newblock \doi{10.1126/science.1110449}.
+
+\bibitem[Henriksen et~al.(2010)Henriksen, Colgin, Barnes, Witter, Moser, and Moser]{henriksen2010}
+Espen~J. Henriksen, Laura~L. Colgin, Carol~A. Barnes, Menno~P. Witter, May-Britt Moser, and Edvard~I. Moser.
+\newblock Spatial {{Representation}} along the {{Proximodistal Axis}} of {{CA1}}.
+\newblock \emph{Neuron}, 68\penalty0 (1):\penalty0 127--137, October 2010.
+\newblock ISSN 0896-6273.
+\newblock \doi{10.1016/j.neuron.2010.08.042}.
+
+\bibitem[Leutgeb et~al.(2004)Leutgeb, Leutgeb, Treves, Moser, and Moser]{leutgeb2004}
+Stefan Leutgeb, Jill~K. Leutgeb, Alessandro Treves, May-Britt Moser, and Edvard~I. Moser.
+\newblock Distinct ensemble codes in hippocampal areas {{CA3}} and {{CA1}}.
+\newblock \emph{Science}, 305\penalty0 (5688):\penalty0 1295--1298, 2004.
+\newblock \doi{10.1126/science.1100265}.
+
+\bibitem[Leutgeb et~al.(2005)Leutgeb, Leutgeb, Barnes, Moser, McNaughton, and Moser]{leutgeb2005}
+Stefan Leutgeb, Jill~K. Leutgeb, Carol~A. Barnes, Edvard~I. Moser, Bruce~L. McNaughton, and May-Britt Moser.
+\newblock Independent codes for spatial and episodic memory in hippocampal neuronal ensembles.
+\newblock \emph{Science}, 309\penalty0 (5734):\penalty0 619--623, 2005.
+\newblock \doi{10.1126/science.1114037}.
+
+\bibitem[Li et~al.(2024)Li, Briguglio, Romani, and Magee]{li2024}
+Yiding Li, John~J. Briguglio, Sandro Romani, and Jeffrey~C. Magee.
+\newblock Mechanisms of memory-supporting neuronal dynamics in hippocampal area {{CA3}}.
+\newblock \emph{Cell}, 187\penalty0 (24):\penalty0 6804--6819.e21, November 2024.
+\newblock ISSN 0092-8674.
+\newblock \doi{10.1016/j.cell.2024.09.041}.
+
+\bibitem[Madar et~al.(2025)Madar, Jiang, Dong, and Sheffield]{madar2025}
+Antoine~D. Madar, Anqi Jiang, Can Dong, and Mark E.~J. Sheffield.
+\newblock Synaptic plasticity rules driving representational shifting in the hippocampus.
+\newblock \emph{Nature Neuroscience}, 28\penalty0 (4):\penalty0 848--860, April 2025.
+\newblock ISSN 1546-1726.
+\newblock \doi{10.1038/s41593-025-01894-6}.
+
+\bibitem[Marr(1971)]{marr1971}
+D.~Marr.
+\newblock Simple memory: A theory for archicortex.
+\newblock \emph{Philosophical Transactions of the Royal Society of London. B, Biological Sciences}, 262\penalty0 (841):\penalty0 23--81, July 1971.
+\newblock ISSN 0080-4622.
+\newblock \doi{10.1098/rstb.1971.0078}.
+
+\bibitem[McClelland et~al.(1995)McClelland, McNaughton, and O'Reilly]{mcclelland1995}
+James~L. McClelland, Bruce~L. McNaughton, and Randall~C. O'Reilly.
+\newblock Why there are complementary learning systems in the hippocampus and neocortex: {{Insights}} from the successes and failures of connectionist models of learning and memory.
+\newblock \emph{Psychological Review}, 102\penalty0 (3):\penalty0 419--457, 1995.
+\newblock ISSN 1939-1471.
+\newblock \doi{10.1037/0033-295X.102.3.419}.
+
+\bibitem[Milstein et~al.(2021)Milstein, Li, Bittner, Grienberger, Soltesz, Magee, and Romani]{milstein2021}
+Aaron~D Milstein, Yiding Li, Katie~C Bittner, Christine Grienberger, Ivan Soltesz, Jeffrey~C Magee, and Sandro Romani.
+\newblock Bidirectional synaptic plasticity rapidly modifies hippocampal representations.
+\newblock \emph{eLife}, 10:\penalty0 e73046, December 2021.
+\newblock ISSN 2050-084X.
+\newblock \doi{10.7554/eLife.73046}.
+
+\bibitem[Muller and Kubie(1987)]{muller1987}
+Robert~U. Muller and John~L. Kubie.
+\newblock The effects of changes in the environment on the spatial firing of hippocampal complex-spike cells.
+\newblock \emph{Journal of Neuroscience}, 7\penalty0 (7):\penalty0 1951--1968, 1987.
+\newblock \doi{10.1523/JNEUROSCI.07-07-01951.1987}.
+
+\bibitem[Nakazawa et~al.(2002)Nakazawa, Quirk, Chitwood, Watanabe, Yeckel, Sun, Kato, Carr, Johnston, Wilson, and Tonegawa]{nakazawa2002}
+Kazu Nakazawa, Michael~C. Quirk, Raymond~A. Chitwood, Masahiko Watanabe, Mark~F. Yeckel, Linus~D. Sun, Akira Kato, C.~A. Carr, Daniel Johnston, Matthew~A. Wilson, and Susumu Tonegawa.
+\newblock Requirement for hippocampal {{CA3 NMDA}} receptors in associative memory recall.
+\newblock \emph{Science}, 297\penalty0 (5579):\penalty0 211--218, 2002.
+\newblock \doi{10.1126/science.1071795}.
+
+\bibitem[Sadtler et~al.(2014)Sadtler, Quick, Golub, Chase, Ryu, Tyler-Kabara, Yu, and Batista]{sadtler2014}
+Patrick~T. Sadtler, Kristin~M. Quick, Matthew~D. Golub, Steven~M. Chase, Stephen~I. Ryu, Elizabeth~C. Tyler-Kabara, Byron~M. Yu, and Aaron~P. Batista.
+\newblock Neural constraints on learning.
+\newblock \emph{Nature}, 512\penalty0 (7515):\penalty0 423--426, 2014.
+\newblock \doi{10.1038/nature13665}.
+
+\bibitem[Schapiro et~al.(2017)Schapiro, {Turk-Browne}, Botvinick, and Norman]{schapiro2017}
+Anna~C. Schapiro, Nicholas~B. {Turk-Browne}, Matthew~M. Botvinick, and Kenneth~A. Norman.
+\newblock Complementary learning systems within the hippocampus: A neural network modelling approach to reconciling episodic memory with statistical learning.
+\newblock \emph{Philosophical Transactions of the Royal Society B: Biological Sciences}, 372\penalty0 (1711):\penalty0 20160049, January 2017.
+\newblock ISSN 0962-8436.
+\newblock \doi{10.1098/rstb.2016.0049}.
+
+\bibitem[Teyler and DiScenna(1986)]{teyler1986}
+Timothy~J. Teyler and Pascal DiScenna.
+\newblock The hippocampal memory indexing theory.
+\newblock \emph{Behavioral Neuroscience}, 100\penalty0 (2):\penalty0 147--154, 1986.
+\newblock ISSN 1939-0084.
+\newblock \doi{10.1037/0735-7044.100.2.147}.
+
+\bibitem[Vaidya et~al.(2025)Vaidya, Li, Chitwood, Li, and Magee]{vaidya2025}
+Sachin~P. Vaidya, Guanchun Li, Raymond~A. Chitwood, Yiding Li, and Jeffrey~C. Magee.
+\newblock Formation of an expanding memory representation in the hippocampus.
+\newblock \emph{Nature Neuroscience}, 28\penalty0 (7):\penalty0 1510--1518, July 2025.
+\newblock ISSN 1546-1726.
+\newblock \doi{10.1038/s41593-025-01986-3}.
+
+\bibitem[Wen et~al.(2024)Wen, Sorscher, Aery~Jones, Ganguli, and Giocomo]{wen2024}
+John~H. Wen, Ben Sorscher, Emily~A. Aery~Jones, Surya Ganguli, and Lisa~M. Giocomo.
+\newblock One-shot entorhinal maps enable flexible navigation in novel environments.
+\newblock \emph{Nature}, 635\penalty0 (8040):\penalty0 943--950, November 2024.
+\newblock ISSN 1476-4687.
+\newblock \doi{10.1038/s41586-024-08034-3}.
+
+\bibitem[Wu and Maass(2025)]{wu2025}
+Yujie Wu and Wolfgang Maass.
+\newblock A simple model for {{Behavioral Time Scale Synaptic Plasticity}} ({{BTSP}}) provides content addressable memory with binary synapses and one-shot learning.
+\newblock \emph{Nature Communications}, 16\penalty0 (1):\penalty0 342, January 2025.
+\newblock ISSN 2041-1723.
+\newblock \doi{10.1038/s41467-024-55563-6}.
+
+\bibitem[Yosinski et~al.(2014)Yosinski, Clune, Bengio, and Lipson]{yosinski2014}
+Jason Yosinski, Jeff Clune, Yoshua Bengio, and Hod Lipson.
+\newblock How transferable are features in deep neural networks?
+\newblock In \emph{Advances in Neural Information Processing Systems}, volume~27, pages 3320--3328. Curran Associates, Inc., 2014.
+
+\end{thebibliography}

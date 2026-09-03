@@ -1,8 +1,8 @@
-"""Assemble preprint Figure 2 from compatibility and remapping artifacts.
+"""Assemble preprint Figure 2 from compatibility and cue-track artifacts.
 
-The figure combines the primary decoder-coordinate result with CA1 fields
-from a representative cue-remapping realization.  Simulations are not rerun;
-all panels are reconstructed from immutable result artifacts.
+The figure combines the primary decoder-coordinate result, a matched temporal
+cue-swap control, and CA1 fields from a representative realization.
+Simulations are not rerun; all panels are reconstructed from result artifacts.
 """
 
 from __future__ import annotations
@@ -24,10 +24,12 @@ import numpy as np
 
 from experiments.preprint.artifacts import load_arrays
 from experiments.preprint.figures.common import mean_sem
+from experiments.preprint.figures.figure_cue_swap_control import plot as plot_temporal_control
 
 
 DEFAULT_COMPATIBILITY = ROOT_DIR / "results/preprint/v1/compatibility"
 DEFAULT_REMAPPING = ROOT_DIR / "results/preprint/v1/cue_remapping"
+DEFAULT_TEMPORAL_CONTROL = ROOT_DIR / "results/preprint/v1/cue_swap_control"
 DEFAULT_OUTPUT = ROOT_DIR / "article/figures/preprint/figure_2_main.png"
 
 CONDITION_LABELS = {
@@ -58,15 +60,21 @@ def add_panel_label(axis, label: str) -> None:
     axis.text(-0.13, 1.08, label, transform=axis.transAxes, fontsize=12, fontweight="bold", va="top")
 
 
-def build(compatibility_artifact: Path, remapping_artifact: Path, output: Path) -> Path:
+def build(
+    compatibility_artifact: Path,
+    remapping_artifact: Path,
+    temporal_control_artifact: Path,
+    output: Path,
+) -> Path:
     compatibility = load_arrays(compatibility_artifact)
     remapping = load_arrays(remapping_artifact)
+    temporal_control = load_arrays(temporal_control_artifact)
     names = compatibility["condition_names"].tolist()
     cosine = compatibility["cosine"].mean(axis=-1)
     means, sems = mean_sem(cosine)
 
     figure, axes = plt.subplots(2, 2, figsize=(10.5, 7.2), constrained_layout=True)
-    condition_axis, paired_axis = axes[0]
+    condition_axis, temporal_axis = axes[0]
     context_a_axis, context_b_axis = axes[1]
 
     positions = np.arange(len(names))
@@ -78,15 +86,8 @@ def build(compatibility_artifact: Path, remapping_artifact: Path, output: Path) 
     condition_axis.set(ylabel="Output-target cosine", ylim=(-0.04, 1.04), title="Decoder-coordinate compatibility")
     add_panel_label(condition_axis, "A")
 
-    fixed_index = names.index("fixed_permutation")
-    aligned_index = names.index("aligned")
-    for values in cosine:
-        paired_axis.plot([0, 1], values[[fixed_index, aligned_index]], color="0.75", linewidth=0.8, zorder=1)
-    paired_axis.scatter(np.zeros(len(cosine)), cosine[:, fixed_index], color="#d95f02", s=24, label="fixed", zorder=2)
-    paired_axis.scatter(np.ones(len(cosine)), cosine[:, aligned_index], color="#2678b2", s=24, label="aligned", zorder=2)
-    paired_axis.set_xticks([0, 1], ["Fixed permutation", "Aligned"])
-    paired_axis.set(xlim=(-0.35, 1.35), ylabel="Output-target cosine", ylim=(-0.04, 1.04), title="Paired seeds")
-    add_panel_label(paired_axis, "B")
+    plot_temporal_control(temporal_axis, temporal_control)
+    add_panel_label(temporal_axis, "B")
 
     seed_index, fields, order, vmax = representative_fields(remapping)
     image = context_a_axis.imshow(fields[0, :, order].T, aspect="auto", origin="lower", vmin=0, vmax=vmax, cmap="magma")
@@ -99,7 +100,7 @@ def build(compatibility_artifact: Path, remapping_artifact: Path, output: Path) 
 
     for axis in axes.flat:
         axis.spines[["top", "right"]].set_visible(False)
-    figure.suptitle("Decoder-compatible CA1 learning supports recall and cue-dependent remapping", fontsize=14)
+    figure.suptitle("Decoder-compatible CA1 learning supports recall and cue-dependent reconfiguration", fontsize=14)
     output.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output, dpi=300)
     plt.close(figure)
@@ -110,9 +111,19 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--compatibility", type=Path, default=DEFAULT_COMPATIBILITY)
     parser.add_argument("--remapping", type=Path, default=DEFAULT_REMAPPING)
+    parser.add_argument(
+        "--temporal-control",
+        type=Path,
+        default=DEFAULT_TEMPORAL_CONTROL,
+    )
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args()
-    print(build(args.compatibility, args.remapping, args.output))
+    print(build(
+        args.compatibility,
+        args.remapping,
+        args.temporal_control,
+        args.output,
+    ))
 
 
 if __name__ == "__main__":

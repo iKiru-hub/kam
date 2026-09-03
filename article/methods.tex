@@ -1,0 +1,54 @@
+\section{Methods}
+
+\subsection{Implementation, reproducibility, and statistical treatment}
+
+Simulations were implemented in Python using NumPy and PyTorch and run on CPU. All reported conditions used the same fixed set of 20 root seeds (51001--51020); conditions within an experiment were paired by root seed. Each experiment writes an immutable artifact containing the resolved configuration, compressed arrays, tidy source data, a report, the Git revision, and a scientific digest. Figure scripts read these artifacts without rerunning simulations.
+
+During preliminary model development, bounded hyperparameter configurations were explored with the covariance matrix adaptation evolution strategy (CMA-ES). This outer-loop search evaluated candidate settings using reconstruction- or recall-based objectives and was used to identify workable regimes for parameters such as population sparsity, activation gain, CA3-like input convergence, and plasticity rate. The configurations used in the experiments reported here were subsequently fixed before the 20-seed comparisons were run; CMA-ES was not applied separately to individual seeds or experimental conditions. Evolutionary search is therefore a parameter-selection procedure, distinct from both Adam-based autoencoder pretraining and the local CA3--CA1 plasticity rules studied in the model. The supplementary comparison of plasticity rules is deliberately stricter still: both rules use the same inherited parameter configuration rather than separately optimized settings.
+
+The unit of computational replication was the root seed, not an individual memory, track position, unit, or corruption mask. Values were first averaged over these nested observations within each seed and then summarized across seeds. Curves and error bars show mean $\pm$ SEM. Confidence intervals reported in the text are two-sided 95\% Student-$t$ intervals over the 20 seed-level values; for contrasts they were calculated from paired seed-level differences. These intervals quantify sensitivity to the sampled initializations and random inputs, not uncertainty over a biological population. No null-hypothesis significance tests or multiple-comparison procedures were used, and all analyses should be interpreted as descriptive simulation results.
+
+\subsection{EC patterns and the pretrained CA1 representational basis}
+
+All populations had dimension 50. A one-hidden-layer autoencoder mapped EC input to a 50-unit CA1 representation and back to EC output. CA1 activity used a differentiable top-$K$ sparse activation with $K_{\mathrm{CA1}}=5$; output activity used a sigmoid decoder. The encoder and decoder were trained by Adam to minimize mean-squared reconstruction error. Biases were disabled. This pretraining occurred before CA3--CA1 episodic storage; the resulting encoder supplied all instructed targets and both the encoder and decoder were then held fixed. Pretraining should therefore be understood as a way to define a shared representational basis and its readout, not as a simulated biological learning phase. For the readout-compatibility experiment, the autoencoder was trained for 1024 epochs on 2048 unique binary patterns with five active units and validated on 256 held-out patterns. For track experiments, it was trained for 256 epochs on 1000 track samples and validated on 250 independently generated samples. Mean validation reconstruction cosine across seeds was 0.99998 for the compatibility experiment, 0.99946 for cue remapping, and 0.99736 for the degradation experiments.
+
+Track inputs contained 25 MEC-like and 25 LEC-like units. MEC activity varied with position on a circular track. Two fixed LEC cue patterns were presented at positions 10 and 30 on a 50-position lap. Cue and spatial widths, gains, and binarization settings are recorded in the resolved configuration files distributed with the result artifacts.
+
+\subsection{CA3-like retrieval keys and CA3--CA1 plasticity}
+
+EC input was projected to 50 CA3-like units through a fixed sparse matrix followed by a differentiable top-$K$ activation. The compatibility experiment used two EC inputs per CA3-like unit, $K_{\mathrm{CA3}}=5$, inverse-temperature parameter $\beta_{\mathrm{CA3}}=200$, and learning rate $\alpha=0.08$. Track experiments used 29 EC inputs per CA3-like unit, $K_{\mathrm{CA3}}=3$, $\beta_{\mathrm{CA3}}=170.6$, and $\alpha=0.092$.
+
+For the direct instructed-write rule (called entorhinal-driven in the implementation), CA3--CA1 weights were updated sequentially as
+\begin{equation}
+W_{t+1} = (1-\alpha x_{\mathrm{IS}})\odot W_t
+          + \alpha x_{\mathrm{IS}}x_{\mathrm{CA3}}^{\mathsf T},
+\end{equation}
+where broadcasting applies the instructed CA1 target to each row of $W$. For the bounded error-driven rule,
+\begin{align}
+e^+ &= [x_{\mathrm{IS}}-x_{\mathrm{CA1}}]_+, &
+e^- &= [x_{\mathrm{CA1}}-x_{\mathrm{IS}}]_+,\\
+\delta^+ &= \alpha(e^+x_{\mathrm{CA3}}^{\mathsf T})(1-W_t), &
+\delta^- &= \alpha(e^-x_{\mathrm{CA3}}^{\mathsf T})W_t,\\
+W_{t+1} &= \mathrm{clip}_{[0,1]}(W_t+\delta^+-\delta^-).
+\end{align}
+The instructed target $x_{\mathrm{IS}}$ was the sparse output of the pretrained EC--CA1 encoder. Recalled CA1 activity was computed from $W x_{\mathrm{CA3}}$ using the same target sparsity, then passed through the fixed pretrained decoder. The direct instructed-write update depends on the target and presynaptic key but not on the current recall error. The bounded error-driven update separates the residual into positive and negative components, so correctly expressed CA1 components receive no direct update while under- and overexpressed components drive potentiation and depression, respectively.
+
+\subsection{Plasticity-rule control}
+
+The supplementary plasticity control used the same autoencoder, CA3 wiring, track inputs, 20 root seeds, 20 clean training laps, learning rate, and all other memory parameters for both rules. Only the plasticity-rule selector differed. After clean storage, plasticity was frozen and 0, 25, 50, 75, or 90\% of the full EC input was removed using 12 independently sampled masks per fraction and seed. Output--target cosine and nearest-target identity were first averaged across masks and track positions within each seed and then summarized across seeds. Because parameters were inherited from the error-driven track configuration and were not optimized separately for the direct instructed-write rule, this experiment tests behavior under a shared parameterization rather than the best attainable performance of either rule.
+
+\subsection{Readout-compatibility experiment}
+
+For each seed, 28 held-out sparse EC patterns were assigned CA3-like retrieval keys and pretrained CA1 targets. Memories were written once in a seed-specific random order. The aligned condition used the original target and decoder. The fixed-permutation condition applied one non-identity CA1 permutation to all targets while leaving the decoder fixed. The matched-decoder condition used the same permuted targets and correspondingly permuted decoder columns. The random-content condition associated each key with another memory's target using a derangement. The no-plasticity condition retained zero CA3--CA1 weights. Recall was evaluated with output--target cosine, reconstruction error, top-$K$ overlap, and nearest-target identity.
+
+\subsection{Cue-reconfiguration experiment}
+
+Models learned 40 complete laps. Cue identities exchanged positions every 10 laps, alternating between assignments $[0,1]$ and $[1,0]$. Plasticity was then frozen and one lap from each context was recalled. For each CA1 unit, spatial stability was the Pearson-style cosine between mean-centered context tuning curves. Cue modulation was the mean absolute activity difference between contexts. These two summaries quantify context sensitivity but do not by themselves classify a unit or population as undergoing rate or global remapping. Heat maps show the seed whose mean stability and modulation were closest to the across-seed medians; units were ordered by preferred position across the two contexts.
+
+The temporal control paired this alternating schedule with a no-swap schedule that retained assignment $[0,1]$ for all 40 laps. Within each seed, the two conditions shared the pretrained autoencoder, initial CA3--CA1 weights, CA3 wiring, MEC input trajectory, lap count, and plasticity parameters. Only the LEC cue assignment differed after the first 10 laps. After each training lap, plasticity was paused and both fixed context probes were evaluated; the probe matching the context scheduled for that lap was retained. Consecutive-lap tuning similarity was calculated for each CA1 unit after mean-centering its activity across track positions and then averaged across units. Cue-swap transitions were compared with the same lap transitions in the paired no-swap model. Intervals summarize seed-level means across 20 paired root seeds.
+
+\subsection{Selective degradation experiments}
+
+Models stored 20 clean laps with cue assignment $[0,1]$. During frozen recall, a fixed random subset of eligible EC units was zeroed throughout the complete lap. Masks were resampled independently between probes. Dropout fractions were 0, 0.25, 0.5, 0.75, and 0.9, with 12 masks per fraction and seed. LEC degradation operated only on the final 25 input units; MEC degradation operated only on the first 25.
+
+Cue identity was decoded at the two cue positions by cosine comparison of recalled LEC output with the two fixed cue templates. Spatial accuracy was the fraction of recalled MEC outputs whose nearest clean MEC target corresponded to the correct track position. MEC output cosine was averaged over all positions. The dense common-key control replaced the EC--CA3 map by a matrix with every entry equal to $1/50$, causing all CA3-like units to receive the same input average. Because this manipulation collapses item-specific pre-activation and is not matched to the normal map for sparsity, it tests the requirement for a discriminable retrieval key rather than the isolated effect of sparse connectivity.

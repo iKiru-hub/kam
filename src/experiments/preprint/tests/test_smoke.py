@@ -4,9 +4,16 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from experiments.preprint import compatibility, completion, cue_remapping
+import numpy as np
+
+from experiments.preprint import compatibility, completion, cue_remapping, cue_swap_control
 from experiments.preprint.artifacts import load_arrays
-from experiments.preprint.figures import figure_2_compatibility, figure_3_cue_remapping, figure_4_completion
+from experiments.preprint.figures import (
+    figure_2_compatibility,
+    figure_3_cue_remapping,
+    figure_4_completion,
+    figure_cue_swap_control,
+)
 
 
 def config() -> dict:
@@ -34,16 +41,30 @@ class SmokeTests(unittest.TestCase):
             self.assertEqual(load_arrays(track)["probe_ca1"].shape[0], 2)
             self.assertEqual(load_arrays(complete)["output_cosine"].shape[:2], (2, 3))
 
+    def test_cue_swap_control_is_matched_before_first_swap(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            artifact = cue_swap_control.run(
+                config(), Path(temporary) / "cue_swap_control"
+            )
+            arrays = load_arrays(artifact)
+            self.assertEqual(arrays["transition_similarity"].shape, (2, 2, 3))
+            self.assertTrue(np.array_equal(
+                arrays["scheduled_ca1"][:, 0, :2],
+                arrays["scheduled_ca1"][:, 1, :2],
+            ))
+
     def test_figures_rebuild_from_saved_arrays(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             first = compatibility.run(config(), root / "compatibility")
             track = cue_remapping.run(config(), root / "track")
             complete = completion.run(config(), root / "completion")
+            control = cue_swap_control.run(config(), root / "cue_swap_control")
             outputs = (
                 figure_2_compatibility.build(first, root / "figure2.png"),
                 figure_3_cue_remapping.build(track, root / "figure3.png"),
                 figure_4_completion.build(complete, root / "figure4.png"),
+                figure_cue_swap_control.build(control, root / "cue_swap.png"),
             )
             self.assertTrue(all(path.exists() for path in outputs))
 
