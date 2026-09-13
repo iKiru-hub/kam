@@ -1,0 +1,60 @@
+{
+  "seeds": [
+    51001,
+    51002
+  ],
+  "plasticity_rules": [
+    "base",
+    "err2"
+  ],
+  "dimension": 50,
+  "active": 5,
+  "autoencoder": {
+    "latent_dimension": 50,
+    "beta_latent": 25.0,
+    "beta_output": 25.0,
+    "epochs": 8,
+    "batch_size": 64,
+    "learning_rate": 0.001
+  },
+  "compatibility": {
+    "training_patterns": 128,
+    "validation_patterns": 32,
+    "memories": 28,
+    "epochs": 8,
+    "ca3_inputs_per_unit": 2,
+    "k_ca3": 5,
+    "k_ca1": 5,
+    "beta_ca3": 200.0,
+    "beta_ca1": 25.0,
+    "beta_output": 25.0,
+    "write_alpha": 0.08
+  },
+  "memory": {
+    "ca3_dimension": 50,
+    "ca3_inputs_per_unit": 29,
+    "k_ca3": 3,
+    "k_ca1": 5,
+    "beta_ca3": 170.6,
+    "beta_ca1": 41.8,
+    "alpha": 0.092,
+    "plasticity_rule": "err2"
+  },
+  "track": {
+    "training_laps": 40,
+    "validation_laps": 10,
+    "lap_length": 50,
+    "size": 50,
+    "cue_positions": [
+      10,
+      30
+    ],
+    "swap_every": 10,
+    "cue_sigma": 4.0,
+    "cue_beta": 40.0,
+    "cue_alpha": 0.1,
+    "mec_binarized": true,
+    "mec_sigma": 5.0,
+    "lec_sigma": 5.0
+  }
+}

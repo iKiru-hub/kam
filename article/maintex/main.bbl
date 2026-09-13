@@ -1,4 +1,4 @@
-\begin{thebibliography}{24}
+\begin{thebibliography}{23}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -122,13 +122,6 @@ Patrick~T. Sadtler, Kristin~M. Quick, Matthew~D. Golub, Steven~M. Chase, Stephen
 \newblock Neural constraints on learning.
 \newblock \emph{Nature}, 512\penalty0 (7515):\penalty0 423--426, 2014.
 \newblock \doi{10.1038/nature13665}.
-
-\bibitem[Schapiro et~al.(2017)Schapiro, {Turk-Browne}, Botvinick, and Norman]{schapiro2017}
-Anna~C. Schapiro, Nicholas~B. {Turk-Browne}, Matthew~M. Botvinick, and Kenneth~A. Norman.
-\newblock Complementary learning systems within the hippocampus: A neural network modelling approach to reconciling episodic memory with statistical learning.
-\newblock \emph{Philosophical Transactions of the Royal Society B: Biological Sciences}, 372\penalty0 (1711):\penalty0 20160049, January 2017.
-\newblock ISSN 0962-8436.
-\newblock \doi{10.1098/rstb.2016.0049}.
 
 \bibitem[Teyler and DiScenna(1986)]{teyler1986}
 Timothy~J. Teyler and Pascal DiScenna.

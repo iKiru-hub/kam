@@ -1,3 +1,17 @@
+"""
+autoencoder toolkit
+
+- def testing
+- def train_autoencoder
+- def reconstruct_data
+- def save_autoencoder
+- def load_autoencoder
+- def save_search_results
+- def find_ae
+
+"""
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
@@ -18,7 +32,6 @@ from collections.abc import Callable
 
 sys.path.append(os.path.abspath(__file__).split("src")[0] + "src")
 import core.models as models
-from core.utils import tqdm_enumerate
 from core.logger import logger
 import core.datagen as dg
 from core.constants import AE_PATH
@@ -134,6 +147,7 @@ def train_autoencoder(training_data: np.ndarray,
                       bit_kind: int=0,
                       criterion: Callable=MSELoss(),
                       disable: bool=True,
+                      test_every: int | None=1,
                       device=None) -> tuple:
 
     """
@@ -155,6 +169,9 @@ def train_autoencoder(training_data: np.ndarray,
         the learning rate
     disable: bool
         disable tqdm bar
+    test_every: int or None
+        evaluate the validation set every N epochs; use None to skip periodic
+        validation when the caller evaluates the final model separately
     device: str or torch.device, optional
         Training device. If omitted, CUDA is preferred, followed by Apple MPS
         and then CPU.
@@ -187,7 +204,8 @@ def train_autoencoder(training_data: np.ndarray,
     epoch = 0
     epoch_log = 100
     results = {"loss": [], "test": []}
-    for epoch in (pbar := tqdm(range(epochs), desc = f"{epoch}", disable=disable)):
+    for epoch in (pbar := tqdm(range(epochs), desc = f"{epoch}",
+                               disable=disable)):
     # for epoch in range(epochs):
         total_loss = 0
         for batch in dataloader:
@@ -195,9 +213,11 @@ def train_autoencoder(training_data: np.ndarray,
             # zs = dg.bitflip(x=batch[0], fraction=noise_level)
 
             if bit_kind == 0:
-                noisy_x = torch.tensor(dg.bitflip(x=clean_x, fraction=noise_level))
+                noisy_x = torch.tensor(dg.bitflip(x=clean_x,
+                                                  fraction=noise_level))
             elif bit_kind == 1:
-                noisy_x = torch.tensor(dg.bitkill(x=clean_x, fraction=noise_level))
+                noisy_x = torch.tensor(dg.bitkill(x=clean_x,
+                                                  fraction=noise_level))
             else:
                 noisy_x = dg.bitnoise(x=clean_x, fraction=noise_level)
             noisy_x = noisy_x.to(device, non_blocking=device.type == "cuda")
@@ -221,29 +241,31 @@ def train_autoencoder(training_data: np.ndarray,
 
             total_loss += loss.item()
 
-        # test loss
-        test_loss, _ = testing(data=test_dataloader,
-                               autoencoder=autoencoder,
-                               criterion=criterion,
-                               noise_level=noise_level,
-                               bit_kind=bit_kind,
-                               device=device)
-        # test_loss = test_loss.item()
-
         results["loss"] += [total_loss / len(dataloader)]
-        results["test"] += [test_loss.item()]
+        if test_every is not None and (epoch + 1) % int(test_every) == 0:
+            test_loss, _ = testing(data=test_dataloader,
+                                   autoencoder=autoencoder,
+                                   criterion=criterion,
+                                   noise_level=noise_level,
+                                   bit_kind=bit_kind,
+                                   device=device)
+            results["test"] += [test_loss.item()]
+        else:
+            results["test"] += [np.nan]
 
         if (epoch+1) % epoch_log == 0:
             pbar.set_description(f"Epoch [{epoch+1}], " + \
                 f"Loss: {total_loss / len(dataloader):.4f}, " + \
-                                 f"Test: {test_loss:.4f}")
+                                 f"Test: {results['test'][-1]:.4f}")
 
     return results, autoencoder
 
 
-def reconstruct_data(data: np.ndarray, model: models.Autoencoder | models.MTL,
-                     criterion: Callable=MSELoss, num: int=5, column: bool=False,
-                     noise_level: float=0., bit_kind: int=0, show: bool=True,
+def reconstruct_data(data: np.ndarray,
+                     model: models.Autoencoder | models.MTL,
+                     criterion: Callable=MSELoss, num: int=5,
+                     column: bool=False, noise_level: float=0.,
+                     bit_kind: int=0, show: bool=True,
                      plot: bool=True):
 
     """
@@ -295,9 +317,11 @@ def reconstruct_data(data: np.ndarray, model: models.Autoencoder | models.MTL,
             clean_x = batch[0].detach()
             # x = batch[0] if not column else batch[0].reshape(-1, 1)
             if bit_kind == 0:
-                noisy_x = torch.tensor(dg.bitflip(x=clean_x.cpu(), fraction=noise_level))
+                noisy_x = torch.tensor(dg.bitflip(x=clean_x.cpu(),
+                                                  fraction=noise_level))
             elif bit_kind == 1:
-                noisy_x = torch.tensor(dg.bitkill(x=clean_x.cpu(), fraction=noise_level))
+                noisy_x = torch.tensor(dg.bitkill(x=clean_x.cpu(),
+                                                  fraction=noise_level))
             elif bit_kind == 2:
                 noisy_x = dg.bitnoise(x=clean_x, fraction=noise_level)
             noisy_x = noisy_x.to(device, non_blocking=device.type == "cuda")
@@ -318,8 +342,10 @@ def reconstruct_data(data: np.ndarray, model: models.Autoencoder | models.MTL,
                 # forward pass with clean data
                 with torch.no_grad():
                     _, clean_ca1 = model(clean_x, ca1=True)
-                loss = criterion(reconstruction=outputs, clean_target=clean_x,
-                                 noisy_code=noisy_ca1, clean_code=clean_ca1)
+                loss = criterion(reconstruction=outputs,
+                                 clean_target=clean_x,
+                                 noisy_code=noisy_ca1,
+                                 clean_code=clean_ca1)
             else:
                 loss = criterion(outputs, clean_x)
 
@@ -336,11 +362,13 @@ def reconstruct_data(data: np.ndarray, model: models.Autoencoder | models.MTL,
     if plot:
         fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(15, 5))
 
-        ax1.imshow(original_data, aspect="auto", vmin=0, vmax=1, cmap="gray_r")
+        ax1.imshow(original_data, aspect="auto", vmin=0, vmax=1,
+                   cmap="gray_r")
         ax1.set_title("Original data")
         ax1.set_axis_off()
 
-        ax2.imshow(reconstructed_data, aspect="auto", vmin=0, vmax=1, cmap="gray_r")
+        ax2.imshow(reconstructed_data, aspect="auto", vmin=0, vmax=1,
+                   cmap="gray_r")
         ax2.set_title("Reconstructed data")
         ax2.set_axis_off()
 
@@ -356,9 +384,12 @@ def reconstruct_data(data: np.ndarray, model: models.Autoencoder | models.MTL,
 
 """ save & load """
 
-def save_autoencoder(autoencoder: models.Autoencoder, session: dict, name: str):
+def save_autoencoder(autoencoder: models.Autoencoder, session: dict,
+                     name: str):
 
-    """Save an autoencoder checkpoint and its session metadata in ``AE_PATH``."""
+    """
+    Save an autoencoder checkpoint and its session metadata in ``AE_PATH``
+    """
 
     if not isinstance(autoencoder, models.Autoencoder):
         raise TypeError("autoencoder must be an instance of models.Autoencoder")
@@ -502,7 +533,8 @@ def save_search_results(results: np.ndarray,
     return search_path
 
 
-def _match_ae(name: str, dim_ca1: int|None=None, noise_level: float|None=None,
+def _match_ae(name: str, dim_ca1: int|None=None,
+              noise_level: float|None=None,
               num_cue_patterns: int|None=None, bit_kind: int|None=None,
               max_num_patterns: int|None=None) -> float:
 

@@ -7,7 +7,67 @@
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{figure_5_plasticity_ablation.png}
-    \caption{\textbf{Matched-parameter comparison of the two plasticity rules.} Output--target cosine (left) and nearest-target identity accuracy (right) after 20 clean training laps, followed by frozen recall with increasing fractions of the full EC input removed. Curves show mean $\pm$ SEM across 20 root seeds after averaging 12 masks within each seed. All parameters, inputs, pretrained autoencoders, and CA3-like retrieval maps were shared across the paired rule conditions; only the update equation differed. The error-driven rule improved clean-state target discrimination, whereas the direct instructed-write rule retained higher output similarity under severe corruption. Parameters were not optimized separately for each rule.}
-    \label{fig:rule-ablation}
+    \includegraphics[width=\textwidth]{plasticity_comparison.png}
+    \caption{\textbf{Seed-paired comparison of instructive-driven and
+    error-driven plasticity.} Each grey line joins instructive-driven and
+    error-driven values obtained from the
+    same root seed; colored points are individual seed-level values and black
+    points with error bars show mean $\pm$ SEM across 20 seeds.
+    \textbf{(Upper left)} Readout-compatibility effect, defined as aligned minus
+    fixed-permutation output--target cosine in Fig.~\ref{fig:compatibility}A.
+    \textbf{(Upper right)} Cue-exchange effect, defined as tuning similarity at
+    exchange boundaries minus similarity at the same boundaries in the
+    no-swap control in Fig.~\ref{fig:compatibility}B.
+    \textbf{(Lower left)} Cue identity accuracy after 90\% LEC-like degradation
+    in Fig.~\ref{fig:degradation}A.
+    \textbf{(Lower right)} Nearest-position accuracy after 90\% MEC-like
+    degradation in Fig.~\ref{fig:degradation}C. Both rules shared inputs,
+    pretrained autoencoders, CA3 wiring seeds, storage order, corruption masks,
+    and hyperparameters; only
+    the CA3--CA1 update differed. Parameters were not optimized separately for
+    each rule.}
+    \label{fig:rule-comparison}
+\end{figure}
+
+\begin{figure}[p]
+    \centering
+    \begin{minipage}[t]{0.48\textwidth}
+    \textbf{A}\par
+    \includegraphics[width=\linewidth]{remapping_old_new_base.png}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[t]{0.48\textwidth}
+    \textbf{B}\par
+    \includegraphics[width=\linewidth]{remapping_old_new_err2.png}
+    \end{minipage}
+
+    \vspace{0.5em}
+
+    \begin{minipage}[t]{0.48\textwidth}
+    \textbf{C}\par
+    \includegraphics[width=\linewidth]{remapping_endpoint_base.png}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[t]{0.48\textwidth}
+    \textbf{D}\par
+    \includegraphics[width=\linewidth]{remapping_endpoint_err2.png}
+    \end{minipage}
+    \caption{\textbf{Reference-map dynamics and heterogeneity after cue
+    exchange.} \textbf{(A,B)} Similarity of the current CA1 tuning map to the
+    final pre-exchange map (purple) and to the final map of the ensuing
+    ten-lap block (orange), for instructive-driven (A) and error-driven (B)
+    plasticity. Relative lap zero is the first lap learned after cue exchange.
+    The adapted-map reference is retrospective and therefore equals one at the
+    block endpoint by construction; the informative result is the abrupt
+    crossover at exchange followed by smaller within-block changes.
+    \textbf{(C,D)} Seed-averaged empirical cumulative distributions of
+    unit-level tuning similarity between the pre-exchange and block-end maps
+    for instructive-driven (C) and error-driven (D) plasticity. Purple denotes
+    cue exchange and grey the matched no-swap control. For every curve, events
+    and units were aggregated within each root seed before the mean and SEM
+    were calculated across 20 seeds. These distributions describe population
+    heterogeneity and do not treat units as independent replicates. All panels
+    use the exact same EC--CA3 projection in the exchange and no-swap
+    schedules.}
+    \label{fig:remapping-dynamics}
 \end{figure}

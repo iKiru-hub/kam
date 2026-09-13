@@ -22,9 +22,29 @@ import core.models as models
 import core.datagen as dg
 import core.ae_tools as aect
 from core.constants import AE_PATH, MTL_PATH
-from core.utils import tqdm_enumerate
+from core.datagen import tqdm_enumerate
 from core.logger import logger
 
+
+def run_sequence(model: models.MTL, data: np.ndarray,
+                 learn: bool) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Run an ordered sequence without resetting the associative memory.
+
+    This is the appropriate primitive for continuous learning laps and frozen
+    recall probes.  The older accuracy-sweep functions below deliberately
+    reset the model for each prefix and serve a different purpose.
+    """
+
+    model.resume_lr() if learn else model.pause_lr()
+    model.eval()
+    output, ca1, ca3 = [], [], []
+    with torch.no_grad():
+        for sample in data:
+            model(torch.as_tensor(sample, dtype=torch.float32).reshape(-1, 1))
+            output.append(model._eo.reshape(-1).numpy().copy())
+            ca1.append(model._ca1.reshape(-1).numpy().copy())
+            ca3.append(model._ca3.reshape(-1).numpy().copy())
+    return np.stack(output), np.stack(ca1), np.stack(ca3)
 
 
 def cosine_criterion(x: torch.Tensor, y: torch.Tensor,
@@ -319,5 +339,4 @@ def find_mtl(dim_ca1: int|None=None, noise_level: float|None=None,
                 # print(f"retrieved: {_mtl} with {dim_ca1=}, {noise_level=}, {num_cue_patterns=}, {score=}")
 
     return out
-
 

@@ -1,0 +1,83 @@
+# Preprint simulations
+
+This folder contains the small, final simulation layer for the preprint.  It
+does not replace the exploratory scripts in `src/experiments/`.
+
+Each runner creates a new artifact folder containing the resolved
+configuration, compressed raw arrays, a tidy CSV table, a report, and a Git
+revision manifest.  Runners refuse to overwrite a nonempty folder.
+
+Run the simulations from the repository root:
+
+```sh
+PYTHONPATH=src python3 -m experiments.preprint.compatibility \
+  --config src/experiments/preprint/configs/final_compatibility.json \
+  --output results/preprint/v1/compatibility
+
+PYTHONPATH=src python3 -m experiments.preprint.cue_remapping \
+  --config src/experiments/preprint/configs/final_cue_remapping.json \
+  --output results/preprint/v1/cue_remapping
+
+PYTHONPATH=src python3 -m experiments.preprint.cue_swap_control \
+  --config src/experiments/preprint/configs/final_cue_remapping.json \
+  --output results/preprint/v1/cue_swap_control
+
+PYTHONPATH=src python3 -m experiments.preprint.completion \
+  --config src/experiments/preprint/configs/final_completion.json \
+  --output results/preprint/v1/completion
+
+PYTHONPATH=src python3 -m experiments.preprint.plasticity_ablation \
+  --config src/experiments/preprint/configs/final_plasticity_ablation.json \
+  --output results/preprint/v1/plasticity_ablation
+```
+
+Build figures only from saved artifacts:
+
+```sh
+PYTHONPATH=src python3 -m experiments.preprint.figures.figure_2_compatibility \
+  --artifact results/preprint/v1/compatibility \
+  --output article/figures/figure_2_compatibility.png
+
+PYTHONPATH=src python3 -m experiments.preprint.figures.figure_3_cue_remapping \
+  --artifact results/preprint/v1/cue_remapping \
+  --output article/figures/preprint/ca1_tuning_distribution.svg
+
+PYTHONPATH=src python3 -m experiments.preprint.figures.figure_cue_swap_control \
+  --artifact results/preprint/v1/cue_swap_control \
+  --output article/figures/preprint/cue_swap_control.svg
+```
+
+Build the compact main-text Figures 2 and 3:
+
+```sh
+PYTHONPATH=src python3 -m experiments.preprint_figure_2_experiment
+PYTHONPATH=src python3 -m experiments.preprint_figure_3_experiment
+```
+
+These commands write `article/figures/preprint/figure_2_main.png` and
+`article/figures/preprint/figure_3_main.png`.  They combine existing immutable
+artifacts and do not rerun the simulations.
+
+`compatibility.py` is the primary result.  It compares aligned instructions,
+fixed coordinate mismatch, matched decoder coordinates, random content, and
+no plasticity under paired seed-specific inputs.
+
+`cue_remapping.py` trains on a fixed cue-swap schedule, freezes learning, and
+measures CA1 spatial stability and cue modulation under two probe contexts.
+Its figure builder now exports only the population stability--modulation
+distribution, without duplicating the main-text heat maps or selecting example
+units.
+
+`cue_swap_control.py` compares the same alternating schedule with a fixed-cue
+schedule.  The pair shares seeds, autoencoder, CA3 wiring, MEC trajectories,
+lap count, and plasticity parameters.  It probes the scheduled context after
+each lap and reports consecutive-lap CA1 tuning similarity.
+
+`completion.py` stores clean laps, freezes learning, corrupts probes with
+independent masks, and compares normal, shuffled, dense, and identity CA3 key
+maps.  It reports both output recovery and clean-corrupted CA3 key overlap.
+
+`plasticity_ablation.py` compares the base instruction-gated update with the
+bounded error-driven update (`err2`) using the same autoencoder, CA3 key map,
+cue-track schedule, learning rate, and paired corruption masks.  It is a
+fixed-parameter control, not a per-rule optimization study.

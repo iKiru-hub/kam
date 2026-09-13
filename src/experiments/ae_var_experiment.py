@@ -11,7 +11,6 @@ sys.path.append(os.path.abspath(__file__).split("src")[0] + "src")
 import core.models as models
 import core.datagen as dg
 import core.training as ct
-import core.utils as utils
 import core.ae_tools as aect
 from core.logger import logger
 
@@ -113,7 +112,7 @@ def _main():
         values = _parameter_values(name)
         logger(f"{np.around(values, 1)} [{settings_ae[name]}]")
 
-        for j, value in utils.tqdm_enumerate(values):
+        for j, value in dg.tqdm_enumerate(values):
             for r in range(REPS):
                 # Reuse the same random realization for repetition r across
                 # all parameter values, isolating the parameter's effect.

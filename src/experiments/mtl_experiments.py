@@ -12,7 +12,6 @@ sys.path.append(os.path.abspath(__file__).split("src")[0] + "src")
 import core.models as models
 import core.datagen as dg
 import core.training as ct
-import core.utils as utils
 import core.ae_tools as aect
 import core.mtl_tools as mtlct
 from core.logger import logger

@@ -1,0 +1,16 @@
+{
+  "autoencoder_quality": [
+    {
+      "cosine": 0.9983357611231092,
+      "mse": 0.0009489540243521333
+    },
+    {
+      "cosine": 0.9986397034885302,
+      "mse": 0.0007150204619392753
+    }
+  ],
+  "experiment": "mtl_mec_degradation",
+  "protocol": "clean training followed by frozen recall with MEC-only dropout",
+  "protocol_version": "kam-preprint-v1",
+  "scientific_digest": "ec363246081cc1a291fcfacfa9b3bede3c640386f294ec5cddbb687415c69712"
+}

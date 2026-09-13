@@ -13,7 +13,6 @@ sys.path.append(os.path.abspath(__file__).split("src")[0] + "src")
 import core.models as models
 import core.datagen as dg
 import core.training as ct
-import core.utils as utils
 import core.functions as functions
 import core.ae_tools as aect
 import core.mtl_tools as mtlct
@@ -325,12 +324,6 @@ def train_mtl_cue_data(settings_sim: dict,
         axs[0].set_title("target")
         axs[1].imshow(np.stack(_data).T.reshape(50, -1), aspect="auto")
         axs[1].set_title("recall")
-        # for i, ax in enumerate(axs.flatten()):
-        #     if i > (len(_data)-1):
-        #         ax.axis("off")
-        #         continue
-        #     ax.imshow(_data[i], aspect="auto")
-        #     ax.set_title(f"{i}")
 
         plt.show()
 

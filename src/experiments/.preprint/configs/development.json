@@ -1,0 +1,6 @@
+{
+  "root_seeds": [31001, 31002, 31003, 31004, 31005, 31006, 31007, 31008],
+  "data": {"dimension": 50, "active": 5, "training_size": 512, "validation_size": 128, "memory_count": 28},
+  "autoencoder": {"latent_dimension": 50, "beta_latent": 25.0, "beta_output": 25.0, "epochs": 128, "batch_size": 64, "learning_rate": 0.001},
+  "memory": {"ca3_dimension": 50, "ca3_inputs_per_unit": 2, "k_ca3": 5, "k_ca1": 5, "beta_ca3": 200.0, "beta_ca1": 25.0, "beta_output": 25.0, "alpha": 0.08, "plasticity_rule": "base"}
+}

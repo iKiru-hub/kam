@@ -11,7 +11,7 @@ from pprint import pprint
 sys.path.append(os.path.abspath(__file__).split("src")[0] + "src")
 
 # local
-import core.utils as utils
+import core.datagen as dg
 import core.functions as functions
 
 
@@ -271,7 +271,7 @@ class MTL(nn.Module):
                 "nb_ei_ca3 must be between 1 and the EC input dimension "
                 f"({self._dim_ei}), got {self._nb_ei_ca3}"
             )
-        connection_indices = utils.make_equal_tuning(
+        connection_indices = dg.make_equal_tuning(
             dim_ca3,
             self._nb_ei_ca3,
         )
@@ -345,7 +345,7 @@ class MTL(nn.Module):
                                      K=self._K_ca3,
                                      beta=self._beta_ca3).reshape(-1, 1)
 
-        x_ca3 = utils.get_sample_from_num_swaps(x_0=x_ca3,
+        x_ca3 = dg.get_sample_from_num_swaps(x_0=x_ca3,
                                                 num_swaps=self._num_swaps_ca3)
 
         # forward pass through CA3 to CA1
@@ -355,7 +355,7 @@ class MTL(nn.Module):
                                      beta=self._beta_ca1,
                                      flag=False).reshape(-1, 1)
 
-        x_ca1 = utils.get_sample_from_num_swaps(x_0=x_ca1,
+        x_ca1 = dg.get_sample_from_num_swaps(x_0=x_ca1,
                                                 num_swaps=self._num_swaps_ca1)
 
         # compute instructive signal

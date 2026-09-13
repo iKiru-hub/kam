@@ -11,7 +11,7 @@ sys.path.append(os.path.abspath(__file__).split("src")[0] + "src/experiments")
 
 import ae_evolution_experiment as aee
 from core.logger import logger
-from core.utils import tqdm_enumerate
+from core.datagen import tqdm_enumerate
 
 
 GENERATIONS = 96

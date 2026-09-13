@@ -18,7 +18,7 @@ import mtl_experiments
 import mtl_evolution_experiment as mee
 import _lib
 from core.logger import logger
-from core.utils import tqdm_enumerate
+from core.datagen import tqdm_enumerate
 
 
 

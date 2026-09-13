@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1050" viewBox="0 0 1600 1050">
+  <style>
+    text { font-family: Arial, Helvetica, sans-serif; fill: #1e293b; }
+    .title { font-size: 31px; font-weight: 700; }
+    .subtitle { font-size: 18px; fill: #475569; }
+    .section { font-size: 25px; font-weight: 700; }
+    .boxhead { font-size: 20px; font-weight: 700; }
+    .body { font-size: 16px; }
+    .small { font-size: 14px; fill: #475569; }
+    .tag { font-size: 15px; font-weight: 700; }
+  </style>
+  <defs>
+    <marker id="arrow" markerWidth="11" markerHeight="11" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L9,4 L0,8 Z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <rect width="1600" height="1050" fill="#f8fafc"/>
+  <text x="70" y="60" class="title">How Figures 2 and 3 fit together</text>
+  <text x="70" y="90" class="subtitle">Each row is one causal test: manipulate the representation, measure what CA1 preserves, then state the restrained conclusion.</text>
+
+  <!-- shared setup -->
+  <rect x="70" y="125" width="1460" height="95" rx="16" fill="#eef2ff" stroke="#a5b4fc" stroke-width="2"/>
+  <text x="100" y="160" class="boxhead">Shared model family</text>
+  <text x="100" y="190" class="body">Frozen entorhinal target code (ET) → CA3 sparse key → plastic CA3→CA1 weights → recalled CA1 state (IS).</text>
+  <rect x="1100" y="147" width="180" height="42" rx="20" fill="#dbeafe"/>
+  <text x="1130" y="174" class="tag">base rule</text>
+  <rect x="1300" y="147" width="180" height="42" rx="20" fill="#fae8ff"/>
+  <text x="1330" y="174" class="tag">err2 rule</text>
+  <text x="1110" y="209" class="small">Both rules are run on matched seeds, inputs, keys, and masks.</text>
+
+  <!-- Figure 2 -->
+  <text x="70" y="275" class="section">Figure 2 — Does CA1 retain a decoder-compatible code while cues change?</text>
+  <line x1="315" y1="372" x2="385" y2="372" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="765" y1="372" x2="835" y2="372" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="1215" y1="372" x2="1285" y2="372" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="70" y="305" width="245" height="135" rx="16" fill="#fff" stroke="#60a5fa" stroke-width="2"/>
+  <text x="92" y="338" class="boxhead">1. Write associations</text>
+  <text x="92" y="367" class="body">Bind CA3 keys to ET/IS</text>
+  <text x="92" y="391" class="body">states during training.</text>
+  <text x="92" y="421" class="small">Same stored episodes for both rules</text>
+  <rect x="385" y="305" width="380" height="135" rx="16" fill="#fff" stroke="#818cf8" stroke-width="2"/>
+  <text x="407" y="338" class="boxhead">2. Change the cue sequence</text>
+  <text x="407" y="367" class="body">Compare: unchanged sequence vs</text>
+  <text x="407" y="391" class="body">cue swap at transition events.</text>
+  <text x="407" y="421" class="small">Control isolates the cost of changing cues</text>
+  <rect x="835" y="305" width="380" height="135" rx="16" fill="#fff" stroke="#34d399" stroke-width="2"/>
+  <text x="857" y="338" class="boxhead">3. Read out recalled CA1</text>
+  <text x="857" y="367" class="body">Measure code similarity, tuning,</text>
+  <text x="857" y="391" class="body">and cue-specific reorganization.</text>
+  <text x="857" y="421" class="small">Probe CA1, not training performance</text>
+  <rect x="1285" y="305" width="245" height="135" rx="16" fill="#ecfdf5" stroke="#10b981" stroke-width="2"/>
+  <text x="1307" y="338" class="boxhead">Claim</text>
+  <text x="1307" y="367" class="body">Stored CA1 states retain</text>
+  <text x="1307" y="391" class="body">an addressable relation to</text>
+  <text x="1307" y="415" class="body">the pretrained ET code.</text>
+
+  <rect x="70" y="470" width="260" height="117" rx="12" fill="#dbeafe"/>
+  <text x="90" y="499" class="boxhead">2A · compatibility</text>
+  <text x="90" y="525" class="body">Aligned / permuted /</text><text x="90" y="547" class="body">matched decoder controls</text>
+  <text x="90" y="573" class="small">plot_1_a[_base/_err2]</text>
+  <rect x="350" y="470" width="260" height="117" rx="12" fill="#ede9fe"/>
+  <text x="370" y="499" class="boxhead">2B · swap control</text>
+  <text x="370" y="525" class="body">Similarity across time:</text><text x="370" y="547" class="body">swap versus no swap</text>
+  <text x="370" y="573" class="small">plot_1_b[_base/_err2]</text>
+  <rect x="630" y="470" width="260" height="117" rx="12" fill="#dcfce7"/>
+  <text x="650" y="499" class="boxhead">2C–D · CA1 fields</text>
+  <text x="650" y="525" class="body">Context A and B tuning</text><text x="650" y="547" class="body">maps (illustrative rule)</text>
+  <text x="650" y="573" class="small">plot_1_c / plot_1_d</text>
+  <rect x="910" y="470" width="310" height="117" rx="12" fill="#fef3c7"/>
+  <text x="930" y="499" class="boxhead">2E · population summary</text>
+  <text x="930" y="525" class="body">Spatial stability × cue</text><text x="930" y="547" class="body">modulation per CA1 unit</text>
+  <text x="930" y="573" class="small">plot_1_e[_base/_err2]</text>
+  <rect x="1240" y="470" width="290" height="117" rx="12" fill="#f1f5f9"/>
+  <text x="1260" y="499" class="boxhead">Interpret cautiously</text>
+  <text x="1260" y="525" class="body">Cue swaps reorganize the</text><text x="1260" y="547" class="body">retrieved code; they do not</text><text x="1260" y="569" class="body">prove biological remapping.</text>
+
+  <!-- Figure 3 -->
+  <text x="70" y="660" class="section">Figure 3 — Which entorhinal component is needed for robust recall?</text>
+  <line x1="410" y1="756" x2="480" y2="756" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="960" y1="756" x2="1030" y2="756" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="70" y="690" width="340" height="135" rx="16" fill="#fff" stroke="#fb923c" stroke-width="2"/>
+  <text x="92" y="723" class="boxhead">1. Corrupt one ET stream</text>
+  <text x="92" y="752" class="body">Randomly mask MEC-like spatial</text>
+  <text x="92" y="776" class="body">or LEC-like cue features.</text>
+  <text x="92" y="806" class="small">0–90% loss; matched masks per seed</text>
+  <rect x="480" y="690" width="480" height="135" rx="16" fill="#fff" stroke="#f59e0b" stroke-width="2"/>
+  <text x="502" y="723" class="boxhead">2. Recall with two CA3 regimes</text>
+  <text x="502" y="752" class="body">Normal sparse keys versus dense / less</text>
+  <text x="502" y="776" class="body">selective keys, under base and err2 writes.</text>
+  <text x="502" y="806" class="small">Tests whether sparse addressing supports completion</text>
+  <rect x="1030" y="690" width="500" height="135" rx="16" fill="#fff7ed" stroke="#f97316" stroke-width="2"/>
+  <text x="1052" y="723" class="boxhead">3. Score the recovered information</text>
+  <text x="1052" y="752" class="body">Cue accuracy, position accuracy, and MEC cosine</text>
+  <text x="1052" y="776" class="body">as degradation becomes more severe.</text>
+  <text x="1052" y="806" class="small">Claim: selective degradation has selective consequences</text>
+
+  <rect x="70" y="855" width="330" height="117" rx="12" fill="#ffedd5"/>
+  <text x="90" y="884" class="boxhead">3A · LEC → cue recall</text>
+  <text x="90" y="910" class="body">How cue accuracy degrades</text><text x="90" y="932" class="body">when cue information is lost</text>
+  <text x="90" y="958" class="small">plot_2_a[_base/_err2]</text>
+  <rect x="420" y="855" width="330" height="117" rx="12" fill="#ffedd5"/>
+  <text x="440" y="884" class="boxhead">3B · LEC → MEC code</text>
+  <text x="440" y="910" class="body">Does the spatial ET component</text><text x="440" y="932" class="body">remain recoverable?</text>
+  <text x="440" y="958" class="small">plot_2_b[_base/_err2]</text>
+  <rect x="770" y="855" width="330" height="117" rx="12" fill="#ffedd5"/>
+  <text x="790" y="884" class="boxhead">3C · MEC → position</text>
+  <text x="790" y="910" class="body">How position decoding degrades</text><text x="790" y="932" class="body">when spatial input is lost</text>
+  <text x="790" y="958" class="small">plot_2_c[_base/_err2]</text>
+  <rect x="1120" y="855" width="410" height="117" rx="12" fill="#ffedd5"/>
+  <text x="1140" y="884" class="boxhead">3D · MEC → cue recall</text>
+  <text x="1140" y="910" class="body">Cross-check: cue information should</text><text x="1140" y="932" class="body">be comparatively less affected</text>
+  <text x="1140" y="958" class="small">plot_2_d[_base/_err2]</text>
+</svg>

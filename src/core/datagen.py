@@ -1,3 +1,8 @@
+"""
+data generation file
+"""
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
@@ -8,7 +13,6 @@ import os, sys
 import json
 sys.path.append(os.path.abspath(__file__).split("src")[0] + "src")
 
-import core.visualization as visualization
 import core.functions as functions
 from core.logger import logger
 
@@ -27,6 +31,38 @@ DEFAULT_CUE_SPACING = 10
 
 
 """
+simple plotting
+"""
+
+def plot_stimuli(samples: np.ndarray):
+
+    """
+    This function plots the z patterns
+
+    Parameters
+    ----------
+    samples : np.ndarray
+        z patterns
+    """
+
+    fig, (ax, ax2) = plt.subplots(2, 1, figsize=(10, 5))
+    ax.imshow(samples, aspect="auto", vmin=0, vmax=1, cmap="gray_r")
+    ax.set_xlabel("size")
+    ax.set_ylabel("samples")
+    if len(samples) < 20:
+        ax.set_yticks(range(samples.shape[0]))
+        ax.set_yticklabels(range(1, 1+samples.shape[0]))
+    ax.set_title("z patterns")
+
+    ax2.imshow(samples.sum(axis=0).reshape(1, -1),
+               aspect="auto", cmap="gray_r")
+    ax2.set_xlabel("size")
+    ax2.set_title("Average z pattern")
+    plt.show()
+
+
+
+"""
 =============================================================================
 STIMULUS GENERATOR
 =============================================================================
@@ -34,9 +70,11 @@ STIMULUS GENERATOR
 
 
 
-def stimulus_generator(N: int, size: int=10, heads: int=2, variance: float=0.1,
+def stimulus_generator(N: int, size: int=10, heads: int=2,
+                       variance: float=0.1,
                        higher_heads: int=None, higher_variance: float=None,
-                       plot: bool=False, use_uniform: bool=True) -> np.ndarray:
+                       plot: bool=False,
+                       use_uniform: bool=True) -> np.ndarray:
 
     """
     This function generates random z patterns with a certain
@@ -108,7 +146,7 @@ def stimulus_generator(N: int, size: int=10, heads: int=2, variance: float=0.1,
                 samples[i, x] += np.random.binomial(1, p)
 
     if plot:
-        visualization.plot_stimuli(samples=samples)
+        plot_stimuli(samples=samples)
 
     return samples
 
@@ -146,7 +184,7 @@ def sparse_stimulus_generator(N: int, K: int, size: int=10,
     samples = samples.astype(np.float32)
 
     if plot:
-        visualization.plot_stimuli(samples=samples)
+        plot_stimuli(samples=samples)
 
     return samples
 
@@ -641,6 +679,12 @@ def get_sample_from_num_swaps(x_0, num_swaps: int, regions=None):
         A new binary array with num_swaps positions flipped from 1 to 0 and
         num_swaps positions flipped from 0 to 1.
     """
+    # The common model path uses zero swaps.  Returning the original tensor
+    # directly keeps its shape and type (CA3/CA1 are column tensors) rather
+    # than converting it through NumPy for a no-op perturbation.
+    if int(num_swaps) == 0:
+        return x_0
+
     x = np.copy(x_0)
 
     if regions is None:
@@ -787,6 +831,20 @@ def makebitfunction(kind: int):
     elif kind == 1: return bitkill
     elif kind == 2: return bitnoise
     else: raise NameError(f"wrong {kind=}")
+
+
+"""
+=============================================================================
+MISCELLANOUS
+=============================================================================
+"""
+
+def tqdm_enumerate(iter, **tqdm_kwargs):
+    """ use 'enumerate' together with 'tqdm' progress bar """
+    i = 0
+    for y in tqdm(iter, **tqdm_kwargs):
+        yield i, y
+        i += 1
 
 
 if __name__ == "__main__":
