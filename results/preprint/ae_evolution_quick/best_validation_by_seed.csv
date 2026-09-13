@@ -1,0 +1,2 @@
+seed,sparse_mse,track_mse,composite_mse,sparse_cosine,track_cosine,sparse_latent_active,track_latent_active
+41001,0.2570131719112396,0.21267114579677582,0.23484215885400772,0.3043602406978607,0.5525145530700684,8.0,8.0

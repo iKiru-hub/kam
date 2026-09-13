@@ -1,0 +1,72 @@
+{
+  "purpose": "Select an autoencoder encoding basis for preprint simulations",
+  "objective": "0.5 * sparse validation MSE + 0.5 * MEC+LEC track validation MSE",
+  "parameter_names": [
+    "K_ca1",
+    "beta_latent",
+    "beta_output"
+  ],
+  "parameter_centers": [
+    5.0,
+    25.0,
+    25.0
+  ],
+  "parameter_scales": [
+    3.0,
+    20.0,
+    20.0
+  ],
+  "parameter_lower": [
+    1.0,
+    1.0,
+    1.0
+  ],
+  "parameter_upper": [
+    20.0,
+    160.0,
+    160.0
+  ],
+  "evaluation": {
+    "dimension": 50,
+    "latent_dimension": 50,
+    "active_input": 5,
+    "use_bias": false,
+    "learning_rate": 0.001,
+    "batch_size": 64,
+    "epochs": 64,
+    "sparse_training_patterns": 1024,
+    "sparse_validation_patterns": 128,
+    "track_training_laps": 20,
+    "track_validation_laps": 5,
+    "development_seeds": [
+      41001,
+      41002,
+      41003
+    ],
+    "sparse_weight": 0.5,
+    "track_weight": 0.5,
+    "track": {
+      "size": 50,
+      "lap_length": 50,
+      "cue_positions": [
+        10,
+        30
+      ],
+      "cue_sigma": 4,
+      "cue_beta": 40,
+      "cue_alpha": 0.1,
+      "mec_binarized": true,
+      "mec_sigma": 5.0,
+      "lec_sigma": 5.0,
+      "swap_every_laps": 10
+    }
+  },
+  "search": {
+    "generations": 96,
+    "population_size": 7,
+    "workers": 8,
+    "boundary_penalty": 0.1
+  },
+  "actual_workers": 7,
+  "important_note": "K_eo is fixed because output sparsemoid is inactive in Autoencoder.forward"
+}

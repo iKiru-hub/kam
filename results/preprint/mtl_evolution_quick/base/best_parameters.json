@@ -1,0 +1,11 @@
+{
+  "ca3_inputs_per_unit": 32,
+  "k_ca3": 6,
+  "beta_ca3": 159.66696915626525,
+  "beta_ca1": 53.47226076126098,
+  "alpha": 0.2179379267692566,
+  "fitness": 0.6091189956996176,
+  "clean_score": 0.5426261345545451,
+  "mec_degraded_score": 0.54,
+  "lec_degraded_score": 0.7447308525443077
+}

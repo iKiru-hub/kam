@@ -1,0 +1,110 @@
+{
+  "seeds": [
+    51001,
+    51002
+  ],
+  "plasticity_rules": [
+    "base",
+    "err2"
+  ],
+  "dimension": 50,
+  "active": 5,
+  "autoencoder": {
+    "latent_dimension": 50,
+    "beta_latent": 3.912370204925537,
+    "beta_output": 25.333004221320152,
+    "epochs": 8,
+    "batch_size": 64,
+    "learning_rate": 0.001
+  },
+  "compatibility": {
+    "training_patterns": 128,
+    "validation_patterns": 32,
+    "memories": 28,
+    "epochs": 8,
+    "ca3_inputs_per_unit": 2,
+    "k_ca3": 5,
+    "k_ca1": 5,
+    "beta_ca3": 200.0,
+    "beta_ca1": 25.0,
+    "beta_output": 25.0,
+    "write_alpha": 0.08
+  },
+  "memory": {
+    "ca3_dimension": 50,
+    "ca3_inputs_per_unit": 36,
+    "k_ca3": 4,
+    "k_ca1": 5,
+    "beta_ca3": 49.61400566101074,
+    "beta_ca1": 61.913451480865476,
+    "alpha": 0.027140734910964956,
+    "plasticity_rule": "err2"
+  },
+  "track": {
+    "training_laps": 40,
+    "validation_laps": 10,
+    "lap_length": 50,
+    "size": 50,
+    "cue_positions": [
+      10,
+      30
+    ],
+    "swap_every": 10,
+    "cue_sigma": 4.0,
+    "cue_beta": 40.0,
+    "cue_alpha": 0.1,
+    "mec_binarized": true,
+    "mec_sigma": 5.0,
+    "lec_sigma": 5.0
+  },
+  "memory_by_rule": {
+    "base": {
+      "ca3_dimension": 50,
+      "ca3_inputs_per_unit": 1,
+      "k_ca3": 1,
+      "k_ca1": 5,
+      "beta_ca3": 260.9558969497681,
+      "beta_ca1": 5.0,
+      "alpha": 0.00890362691879272,
+      "plasticity_rule": "base"
+    },
+    "err2": {
+      "ca3_dimension": 50,
+      "ca3_inputs_per_unit": 36,
+      "k_ca3": 4,
+      "k_ca1": 5,
+      "beta_ca3": 49.61400566101074,
+      "beta_ca1": 61.913451480865476,
+      "alpha": 0.027140734910964956,
+      "plasticity_rule": "err2"
+    }
+  },
+  "compatibility_by_rule": {
+    "base": {
+      "training_patterns": 2048,
+      "validation_patterns": 256,
+      "memories": 28,
+      "epochs": 1024,
+      "ca3_inputs_per_unit": 1,
+      "k_ca3": 1,
+      "k_ca1": 5,
+      "beta_ca3": 260.9558969497681,
+      "beta_ca1": 5.0,
+      "beta_output": 25.333004221320152,
+      "write_alpha": 0.00890362691879272
+    },
+    "err2": {
+      "training_patterns": 2048,
+      "validation_patterns": 256,
+      "memories": 28,
+      "epochs": 1024,
+      "ca3_inputs_per_unit": 36,
+      "k_ca3": 4,
+      "k_ca1": 5,
+      "beta_ca3": 49.61400566101074,
+      "beta_ca1": 61.913451480865476,
+      "beta_output": 25.333004221320152,
+      "write_alpha": 0.027140734910964956
+    }
+  }
+}

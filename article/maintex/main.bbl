@@ -1,4 +1,4 @@
-\begin{thebibliography}{23}
+\begin{thebibliography}{24}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -44,6 +44,12 @@ Christine Grienberger and Jeffrey~C. Magee.
 \newblock \emph{Nature}, 611\penalty0 (7936):\penalty0 554--562, November 2022.
 \newblock ISSN 1476-4687.
 \newblock \doi{10.1038/s41586-022-05378-6}.
+
+\bibitem[Hansen(2016)]{hansen2016}
+Nikolaus Hansen.
+\newblock The {CMA} evolution strategy: A tutorial.
+\newblock \emph{arXiv preprint arXiv:1604.00772}, 2016.
+\newblock \doi{10.48550/arXiv.1604.00772}.
 
 \bibitem[Hargreaves et~al.(2005)Hargreaves, Rao, Lee, and Knierim]{hargreaves2005}
 Eric~L. Hargreaves, Geeta Rao, Inah Lee, and James~J. Knierim.

@@ -13,7 +13,8 @@ CA1 state, and the decoder maps that state back to EC output. This architecture
 separates the selection of associative content from its expression in a
 pre-existing output basis.
 
-We evaluated two plasticity rules under matched inputs and parameters
+We first evaluated two plasticity rules under matched inputs and a shared
+reference parameter configuration
 (Fig.~\ref{fig:model}B). The instructive-driven rule writes an outer-product
 association gated by the IS without considering the current recalled state.
 The bounded error-driven rule instead potentiates CA3--CA1 synapses for underexpressed
@@ -81,8 +82,8 @@ meaning to the unchanged decoder. Reconstruction therefore depends on
 compatibility between the instructed CA1 coordinates and the fixed output
 basis, not on information content alone. The higher one-shot aligned recall
 under the instructive-driven rule is also consistent with its full instructed write,
-whereas the error-driven rule makes a bounded residual correction at the same
-learning rate.
+whereas the error-driven rule makes a bounded residual correction under the
+same reference configuration.
 
 \subsection{Cue exchanges induce reproducible CA1 reconfiguration}
 
@@ -169,21 +170,22 @@ producing a mixture of stable and context-dependent recalled CA1 activity.
     error-driven seed. Units have the same order and are sorted by preferred position
     across contexts; color limits are shared. \textbf{(D)} Unit-level
     relationship between mean-centered spatial stability and cue modulation
-    for the error-driven rule (left) and instructive-driven rule (right),
+    for the instructive-driven rule (left) and error-driven rule (right),
     pooling 50 units from each of 20 seeds
     (1,000 points per rule). The vertical line marks zero stability. Panels C
     and D illustrate heterogeneous stable and cue-dependent responses but do
     not formally classify remapping type; confidence intervals in the text use
     seed-level summaries. \textbf{(E)} Event-aligned consecutive-lap tuning
-    similarity for the error-driven rule in the cue-exchange schedule and an
-    exact-wiring no-swap control. Lap zero is the first post-exchange lap;
+    similarity for the instructive-driven rule (left) and error-driven rule
+    (right) in the cue-exchange schedule and exact-wiring no-swap control. Lap
+    zero is the first post-exchange lap;
     values were averaged across three exchanges within each seed and curves
     show mean $\pm$ SEM across 20 seeds. \textbf{(F)} Error-driven
     lap-by-lap population-map similarity, averaged across 20 seeds. Before
     comparison, each unit was mean-centered over track position and the full
     position-by-unit map was vectorized. Dashed lines mark cue-exchange
-    boundaries. Panels B, E, and F were generated with the identical EC--CA3
-    projection in the two schedules and both plasticity rules.}
+    boundaries. For each plasticity rule, panels B, E, and F used an identical
+    EC--CA3 projection in the exchange and no-swap schedules.}
     \label{fig:compatibility}
 \end{figure}
 
@@ -238,12 +240,65 @@ recall deteriorates once the feedforward retrieval key loses discriminability.
 Supplementary Fig.~\ref{fig:rule-comparison} collects four seed-paired contrasts
 that summarize how the rule choice changes these effects.
 
+\subsection{Evolution identifies rule-specific operating regimes and
+load-dependent trade-offs}
+
+The matched reference configuration above isolates consequences of changing
+the update equation, but it need not be favorable to both rules. We therefore
+performed separate covariance matrix adaptation evolution strategy (CMA-ES)
+searches for the instructive-driven and error-driven rules on three fixed
+development seeds. The objective equally weighted clean recall, recall after
+85\% MEC-like degradation, and recall after 85\% LEC-like degradation; these
+development evaluations were not treated as experimental replicates. A
+preceding autoencoder search selected
+$K_{\mathrm{CA1}}=5$, $\beta_{\mathrm{latent}}=3.912$, and
+$\beta_{\mathrm{out}}=25.333$. The independently selected MTL configurations
+were sparse for the instructive-driven rule (EC--CA3 fan-in 1,
+$K_{\mathrm{CA3}}=1$, $\beta_{\mathrm{CA3}}=260.956$,
+$\beta_{\mathrm{CA1}}=5.000$, and $\alpha=0.00890$) and more distributed for
+the error-driven rule (fan-in 36, $K_{\mathrm{CA3}}=4$,
+$\beta_{\mathrm{CA3}}=49.614$, $\beta_{\mathrm{CA1}}=61.913$, and
+$\alpha=0.02714$). Their development-set composite scores were 0.723 and
+0.838, respectively. Because both parameter vectors were selected on the same
+three seeds used to define the objective, these values describe optimization
+outcomes rather than unbiased estimates of generalization.
+
+A one-parameter-at-a-time analysis evaluated multipliers from 0.1 to 9 around
+each selected vector while fixing all other parameters
+(Fig.~\ref{fig:degradation}E). The composite score changed smoothly near most
+selected values but was not uniformly insensitive. Reducing
+$\beta_{\mathrm{CA3}}$ tenfold caused the largest decrease for both rules
+($-0.246$ for instructive-driven and $-0.391$ for error-driven), and extreme
+changes in error-driven $\alpha$, $\beta_{\mathrm{CA1}}$, or
+$K_{\mathrm{CA3}}$ were also detrimental. Small positive differences at a few
+tested points were at most 0.004, consistent with finite search resolution
+rather than proof of a unique optimum. The analysis therefore supports a local
+operating region while revealing important parameter asymmetries; it is not a
+global robustness guarantee.
+
+We next tested the selected configurations on 10 held-out seeds while
+increasing associative load from 1 to all 90 non-repeating ordered pairs drawn
+from 10 cue identities (Fig.~\ref{fig:degradation}F). Every pair was presented
+three times, and exact two-cue recall was measured from clean probes and after
+50\% LEC-unit dropout. Instructive-driven clean recall declined from
+$1.000\pm0.000$ at one pair to $0.223\pm0.029$ at 90 pairs (mean $\pm$ SEM),
+with degraded recall declining from $1.000\pm0.000$ to $0.073\pm0.012$.
+Error-driven recall was non-monotonic: clean accuracy was
+$0.900\pm0.100$ at one pair, $0.630\pm0.054$ at 10 pairs, and
+$0.751\pm0.043$ at 90 pairs; corresponding degraded values were
+$0.700\pm0.117$, $0.158\pm0.023$, and $0.232\pm0.015$. Thus the two selected
+regimes exhibited different load-dependent behavior. The late improvement of
+the error-driven curve is consistent with repeated exposure providing a richer
+calibration set for residual correction, but the present experiment does not
+distinguish that account from sampling, order, or regularization effects.
+
 \begin{figure}[!htbp]
     \centering
     \includegraphics[width=\textwidth]{figure_3.pdf}
-    \caption{\textbf{Modality-specific recall under selective EC
-    degradation.} Each panel shows the instructive-driven rule on the left and
-    error-driven rule on the right. \textbf{(A)} Cue-identity accuracy during
+    \caption{\textbf{Selective degradation, parameter sensitivity, and
+    cue-pair load.} In panels A--D, each pair of plots shows the
+    instructive-driven rule on the left and the error-driven rule on the right.
+    \textbf{(A)} Cue-identity accuracy during
     LEC-only degradation.
     \textbf{(B)} MEC output--target cosine during LEC-only degradation.
     \textbf{(C)} MEC nearest-position accuracy during MEC-only degradation.
@@ -253,7 +308,18 @@ that summarize how the rule choice changes these effects.
     dense common-key control, which collapses item-specific key structure and
     is not sparsity matched. Dotted horizontal lines denote chance accuracy
     where applicable. All degraded probes were performed with plasticity
-    disabled.}
+    disabled. \textbf{(E)} Change in the three-component composite recall
+    score when one MTL parameter was multiplied by the indicated factor while
+    all others were held at that rule's evolved value. Integer parameters were
+    rounded and model-valid bounds were enforced; values are means over the
+    three development seeds used by the search. \textbf{(F)} Exact recall of
+    ordered cue pairs as the number stored increased from 1 to 90. Color
+    denotes the rule; open solid curves use intact probes and filled dashed
+    curves use 50\% LEC dropout. Points show mean $\pm$ SEM across 10 held-out
+    seeds, and the dotted line marks chance ($1/100$). Panels E and F use
+    separately evolved rule-specific configurations and therefore compare
+    operating regimes, whereas panels A--D use the shared reference
+    configuration to isolate the update rule.}
     \label{fig:degradation}
 \end{figure}
 

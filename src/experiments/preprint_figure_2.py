@@ -70,6 +70,7 @@ import matplotlib.pyplot as plt
 
 from core import functions
 from experiments.preprint_common import (
+    apply_evolved_parameters,
     build_mtl,
     cue_track,
     row_cosine,
@@ -84,9 +85,10 @@ from experiments.preprint_common import (
 RULE_LABELS = {"base": "Instructive-driven", "err2": "Error-driven"}
 
 
-# All reported values are here rather than being hidden in a configuration
-# hierarchy.  Both update rules are evaluated with matched inputs, encoders,
-# CA3 wiring, and storage order.  Only their CA3→CA1 update equation changes.
+# All fallback values are here rather than being hidden in a configuration
+# hierarchy.  At runtime, available evolution artifacts replace these defaults
+# with the selected autoencoder and rule-specific MTL parameters.  The two
+# rules still share seeds, inputs, encoders, storage order, and probes.
 SETTINGS = {
     "seeds": list(range(51001, 51021)),
     "plasticity_rules": ["base", "err2"],
@@ -149,18 +151,13 @@ COMPATIBILITY_CONDITIONS = (
 
 
 def seed_value(root_seed: int, stream: int) -> int:
-    """Give each part of a replicate an independent deterministic seed."""
-
+    """ Give each part of a replicate an independent deterministic seed """
     return int(np.random.SeedSequence([root_seed, stream]).generate_state(1)[0])
 
 
-def write_associations(
-    CA3_keys: torch.Tensor,
-    IS_targets: torch.Tensor,
-    config: dict,
-    plasticity_rule: str,
-) -> torch.Tensor:
-    """Store CA3-key/IS associations with either preprint update rule.
+def write_associations(CA3_keys: torch.Tensor, IS_targets: torch.Tensor,
+    config: dict, plasticity_rule: str) -> torch.Tensor:
+    """ Store CA3-key/IS associations with either preprint update rule.
 
     ``base`` is direct instructed writing. ``err2`` first recalls the current
     CA1 state, then applies bounded potentiation/depression to its residual
@@ -169,28 +166,30 @@ def write_associations(
     compatibility control explicit.
     """
 
-    weights = torch.zeros((CA3_keys.shape[1], CA3_keys.shape[1]), dtype=torch.float32)
+    weights = torch.zeros((CA3_keys.shape[1], CA3_keys.shape[1]),
+                          dtype=torch.float32)
     for CA3_key, IS in zip(CA3_keys, IS_targets):
         if plasticity_rule == "base":
-            weights = (1.0 - config["write_alpha"] * IS[:, None]) * weights + config["write_alpha"] * IS[:, None] @ CA3_key[None, :]
+            weights = (1.0 - config["write_alpha"] * IS[:, None]) * weights + \
+                    config["write_alpha"] * IS[:, None] @ CA3_key[None, :]
         elif plasticity_rule == "err2":
-            CA1_recall = functions.sparsemoid(
-                (weights @ CA3_key).reshape(1, -1),
-                K=config["k_ca1"],
-                beta=config["beta_ca1"],
-            ).reshape(-1)
+            CA1_recall = functions.sparsemoid((weights @ CA3_key).reshape(1, -1),
+                K=config["k_ca1"], beta=config["beta_ca1"],).reshape(-1)
             positive_error = torch.relu(IS - CA1_recall)
             negative_error = torch.relu(CA1_recall - IS)
-            potentiation = config["write_alpha"] * (positive_error[:, None] @ CA3_key[None, :]) * (1.0 - weights)
-            depression = config["write_alpha"] * (negative_error[:, None] @ CA3_key[None, :]) * weights
+            potentiation = config["write_alpha"] * \
+                    (positive_error[:, None] @ CA3_key[None, :]) * (1.0 - weights)
+            depression = config["write_alpha"] * \
+                    (negative_error[:, None] @ CA3_key[None, :]) * weights
             weights = (weights + potentiation - depression).clamp(0.0, 1.0)
         else:
             raise ValueError(f"Unknown plasticity rule: {plasticity_rule}")
     return weights
 
 
-def sparse_ca3_keys(EC_inputs: torch.Tensor, rng: np.random.Generator, config: dict) -> torch.Tensor:
-    """Create balanced sparse CA3 keys from EC inputs for panel A.
+def sparse_ca3_keys(EC_inputs: torch.Tensor, rng: np.random.Generator,
+                    config: dict) -> torch.Tensor:
+    """ Create balanced sparse CA3 keys from EC inputs for panel A.
 
     Each CA3 unit receives two permuted EC inputs.  Repeating a permutation
     construction balances EC participation across the CA3 population, then a
@@ -201,22 +200,25 @@ def sparse_ca3_keys(EC_inputs: torch.Tensor, rng: np.random.Generator, config: d
     weights = np.zeros((dimension, dimension), dtype=np.float32)
     for _ in range(config["ca3_inputs_per_unit"]):
         weights[np.arange(dimension), rng.permutation(dimension)] += 1.0 / dimension
-    return functions.sparsemoid(EC_inputs @ torch.as_tensor(weights).T, K=config["k_ca3"], beta=config["beta_ca3"])
+    return functions.sparsemoid(EC_inputs @ torch.as_tensor(weights).T,
+                                K=config["k_ca3"], beta=config["beta_ca3"])
 
 
-def recall_direct(keys: torch.Tensor, weights: torch.Tensor, decoder: torch.Tensor, config: dict) -> np.ndarray:
-    """Read the direct-write memory through the fixed CA1-to-EC decoder."""
+def recall_direct(keys: torch.Tensor, weights: torch.Tensor,
+                  decoder: torch.Tensor, config: dict) -> np.ndarray:
+    """ Read the direct-write memory through the fixed CA1-to-EC decoder """
 
     ca1 = functions.sparsemoid(keys @ weights.T, K=config["k_ca1"], beta=config["beta_ca1"])
     return torch.sigmoid(config["beta_output"] * (ca1 @ decoder.T)).detach().numpy()
 
 
 def prepare_compatibility(seed: int, settings: dict) -> dict:
-    """Create shared pretraining, keys, and counterfactual IS targets.
+    """ Create shared pretraining data and counterfactual IS targets.
 
     The returned data are deliberately rule-free.  Both ``base`` and ``err2``
-    subsequently see exactly this encoder, EC memory set, CA3 key set, IS
-    permutation, and storage order.
+    subsequently see exactly this encoder, EC memory set, IS permutation, and
+    storage order.  CA3 keys are generated inside ``run_compatibility`` from a
+    matched seed stream using each rule's evolved CA3 parameters.
     """
 
     config = settings["compatibility"]
@@ -229,10 +231,14 @@ def prepare_compatibility(seed: int, settings: dict) -> dict:
     # novel patterns that the CA3→CA1 synapses must store in one shot.
     # ------------------------------------------------------------------
     rng = np.random.default_rng(seed_value(seed, 1))
-    EC_training, seen = sparse_patterns(config["training_patterns"], settings["dimension"], settings["active"], rng)
-    EC_validation, seen = sparse_patterns(config["validation_patterns"], settings["dimension"], settings["active"], rng, seen)
-    EC_memories, _ = sparse_patterns(config["memories"], settings["dimension"], settings["active"], rng, seen)
-    ae_settings = {**settings, "autoencoder": {**settings["autoencoder"], "epochs": config["epochs"]}}
+    EC_training, seen = sparse_patterns(config["training_patterns"],
+                                        settings["dimension"], settings["active"], rng)
+    EC_validation, seen = sparse_patterns(config["validation_patterns"],
+                                          settings["dimension"], settings["active"], rng, seen)
+    EC_memories, _ = sparse_patterns(config["memories"], settings["dimension"],
+                                     settings["active"], rng, seen)
+    ae_settings = {**settings, "autoencoder": {**settings["autoencoder"],
+                                               "epochs": config["epochs"]}}
     autoencoder, _ = train_autoencoder(EC_training, EC_validation, ae_settings, seed_value(seed, 2))
 
     # ------------------------------------------------------------------
@@ -244,10 +250,10 @@ def prepare_compatibility(seed: int, settings: dict) -> dict:
     # ------------------------------------------------------------------
     EC = torch.as_tensor(EC_memories)
     encoder, decoder, _, _ = autoencoder.get_weights(bias=False)
-    IS = functions.sparsemoid(EC @ encoder.detach().T, K=config["k_ca1"], beta=settings["autoencoder"]["beta_latent"])
+    IS = functions.sparsemoid(EC @ encoder.detach().T, K=config["k_ca1"],
+                              beta=settings["autoencoder"]["beta_latent"])
     permutation = np.roll(rng.permutation(settings["dimension"]), 1)
     content_permutation = np.roll(rng.permutation(len(EC_memories)), 1)
-    CA3_keys = sparse_ca3_keys(EC, rng, config)
     order = rng.permutation(len(EC_memories))
 
     # ------------------------------------------------------------------
@@ -268,40 +274,39 @@ def prepare_compatibility(seed: int, settings: dict) -> dict:
         "EC_memories": EC_memories,
         "decoder": decoder.detach(),
         "IS_by_condition": IS_by_condition,
-        "CA3_keys": CA3_keys,
         "order": order,
         "permutation": permutation,
     }
 
 
-def run_compatibility(
-    seed: int,
-    prepared: dict,
-    settings: dict,
-    plasticity_rule: str,
-) -> tuple[np.ndarray, list[dict]]:
-    """Apply one rule to the shared Figure-2A coordinate protocol."""
+def run_compatibility(seed: int, prepared: dict, settings: dict,
+    plasticity_rule: str, ) -> tuple[np.ndarray, list[dict]]:
 
-    config = settings["compatibility"]
+    """ Apply one rule to the shared Figure-2A coordinate protocol """
+
+    config = settings.get("compatibility_by_rule", {}).get(
+        plasticity_rule, settings["compatibility"])
     EC_memories = prepared["EC_memories"]
-    cosine = np.zeros((len(COMPATIBILITY_CONDITIONS), len(EC_memories)), dtype=np.float32)
+    rng = np.random.default_rng(seed_value(seed, 3))
+    CA3_keys = sparse_ca3_keys(torch.as_tensor(EC_memories), rng, config)
+    cosine = np.zeros((len(COMPATIBILITY_CONDITIONS), len(EC_memories)),
+                      dtype=np.float32)
     rows = []
     for condition_index, condition in enumerate(COMPATIBILITY_CONDITIONS):
         if condition == "no_plasticity":
-            weights = torch.zeros((settings["dimension"], settings["dimension"]), dtype=torch.float32)
+            weights = torch.zeros((settings["dimension"], settings["dimension"]),
+                                  dtype=torch.float32)
         else:
-            weights = write_associations(
-                prepared["CA3_keys"][prepared["order"]],
-                prepared["IS_by_condition"][condition][prepared["order"]],
-                config,
-                plasticity_rule,
-            )
+            weights = write_associations(CA3_keys[prepared["order"]],
+                            prepared["IS_by_condition"][condition][prepared["order"]],
+                            config, plasticity_rule,)
         # The matched-decoder control changes decoder columns by the same
         # fixed permutation used for IS.  This is the algebraic rescue test.
         readout_decoder = prepared["decoder"]
         if condition == "matched_decoder":
             readout_decoder = readout_decoder[:, prepared["permutation"]]
-        EC_recall = recall_direct(prepared["CA3_keys"], weights, readout_decoder, config)
+        EC_recall = recall_direct(CA3_keys, weights,
+                                  readout_decoder, config)
         cosine[condition_index] = row_cosine(EC_recall, EC_memories)
         rows.extend(
             {
@@ -318,7 +323,7 @@ def run_compatibility(
 
 
 def tuning_similarity(first: np.ndarray, second: np.ndarray) -> np.ndarray:
-    """Return one mean-centered spatial-tuning similarity per CA1 unit.
+    """ Return one mean-centered spatial-tuning similarity per CA1 unit.
 
     Inputs have shape ``(track position, CA1 unit)``.  Mean centering makes
     this a comparison of field shape/location rather than overall firing rate.
@@ -332,14 +337,14 @@ def tuning_similarity(first: np.ndarray, second: np.ndarray) -> np.ndarray:
 
 
 def context_schedule(laps: int, swap_every: int, swap: bool) -> list[list[int]]:
-    """Return cue identities at the two fixed cue positions for each lap."""
+    """ Return cue identities at the two fixed cue positions for each lap """
     if not swap:
         return [[0, 1]] * laps
     return [[0, 1] if (lap // swap_every) % 2 == 0 else [1, 0] for lap in range(laps)]
 
 
 def prepare_cue_remapping(seed: int, settings: dict) -> dict:
-    """Create shared cue-track inputs and one frozen encoder for both rules.
+    """ Create shared cue-track inputs and one frozen encoder for both rules.
 
     ``EC_swap_laps`` and ``EC_no_swap_laps`` are generated from the same seed, so
     their MEC halves are checked to be identical.  Each schedule gets a fresh
@@ -390,20 +395,17 @@ def prepare_cue_remapping(seed: int, settings: dict) -> dict:
     }
 
 
-def run_cue_remapping(
-    seed: int,
-    prepared: dict,
-    settings: dict,
-    plasticity_rule: str,
-) -> tuple[dict[str, np.ndarray], list[dict]]:
-    """Apply one rule to the shared cue-swap/no-swap protocol.
+def run_cue_remapping(seed: int, prepared: dict, settings: dict,
+                      plasticity_rule: str,) -> tuple[dict[str, np.ndarray], list[dict]]:
+    """ Apply one rule to the shared cue-swap/no-swap protocol.
 
     The scheduled-context probe yields the lap-to-lap curve in panel B.  The
     final two probes of the swap model yield the heatmaps in C/D and per-unit
     stability/modulation values in E.
     """
 
-    memory = {**settings["memory"], "plasticity_rule": plasticity_rule}
+    memory = settings.get("memory_by_rule", {}).get(
+        plasticity_rule, {**settings["memory"], "plasticity_rule": plasticity_rule})
     swap_schedule, no_swap_schedule = prepared["schedules"]
 
     # Learn each schedule one lap at a time, then probe without learning:
@@ -464,14 +466,14 @@ def run_cue_remapping(
 
 
 def mean_sem(values: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Return the across-seed mean and SEM along the first axis."""
+    """ Return the across-seed mean and SEM along the first axis """
 
     values = np.asarray(values, dtype=float)
     return values.mean(axis=0), values.std(axis=0, ddof=1) / np.sqrt(values.shape[0])
 
 
 def save_panel(figure, output: Path, name: str, rule: str, display_rule: str) -> None:
-    """Save editable and raster versions of a rule-specific panel."""
+    """ Save editable and raster versions of a rule-specific panel """
 
     for suffix in ("png", "svg"):
         figure.savefig(output / f"{name}_{rule}.{suffix}", dpi=300, bbox_inches="tight")
@@ -481,7 +483,7 @@ def save_panel(figure, output: Path, name: str, rule: str, display_rule: str) ->
 
 
 def build_arrangement_guide(output: Path) -> None:
-    """Draw a simple map from saved plot files to composed Figure 2 panels."""
+    """ Draw a simple map from saved plot files to composed Figure 2 panels """
 
     panels = (
         (0, 2, "A", "Decoder compatibility", ("plot_1_a_base.svg", "plot_1_a_err2.svg")),
@@ -512,8 +514,9 @@ def build_arrangement_guide(output: Path) -> None:
     plt.close(figure)
 
 
-def representative_fields(fields: np.ndarray, stability: np.ndarray, modulation: np.ndarray) -> tuple[np.ndarray, np.ndarray, float]:
-    """Choose the seed closest to median stability/modulation for heatmaps."""
+def representative_fields(fields: np.ndarray, stability: np.ndarray,
+                          modulation: np.ndarray) -> tuple[np.ndarray, np.ndarray, float]:
+    """ Choose the seed closest to median stability/modulation for heatmaps """
 
     scores = np.column_stack((stability.mean(axis=1), modulation.mean(axis=1)))
     center = np.median(scores, axis=0)
@@ -524,7 +527,7 @@ def representative_fields(fields: np.ndarray, stability: np.ndarray, modulation:
 
 
 def build_panels(arrays: dict[str, np.ndarray], output: Path, display_rule: str) -> None:
-    """Save Figure-2 panels as individual PNGs for external composition.
+    """ Save Figure-2 panels as individual PNGs for external composition.
 
     ``plot_1_a.png`` through ``plot_1_e.png`` use ``display_rule``. Matching
     ``_base`` and ``_err2`` files are also saved for rule comparison.
@@ -533,7 +536,11 @@ def build_panels(arrays: dict[str, np.ndarray], output: Path, display_rule: str)
     rules = arrays["plasticity_rules"].tolist()
     conditions = arrays["compatibility_conditions"].tolist()
     schedule_names = arrays["schedule_conditions"].tolist()
-    labels = {"aligned": "Aligned", "fixed_permutation": "Fixed\npermutation", "matched_decoder": "Matched\ndecoder", "random_content": "Random\ncontent", "no_plasticity": "No\nplasticity"}
+    labels = {"aligned": "Aligned",
+              "fixed_permutation": "Fixed\npermutation",
+              "matched_decoder": "Matched\ndecoder",
+              "random_content": "Random\ncontent",
+              "no_plasticity": "No\nplasticity"}
     colors = {"swap": "#6a3d9a", "no_swap": "0.40"}
 
     for rule_index, rule in enumerate(rules):
@@ -544,9 +551,12 @@ def build_panels(arrays: dict[str, np.ndarray], output: Path, display_rule: str)
         positions = np.arange(len(conditions))
         for seed_index, seed_values in enumerate(values):
             jitter = np.random.default_rng(7000 + seed_index).uniform(-0.08, 0.08, len(positions))
-            axis.scatter(positions + jitter, seed_values, color="0.55", alpha=0.45, s=14, linewidths=0)
+            axis.scatter(positions + jitter, seed_values, color="0.55",
+                         alpha=0.45, s=14, linewidths=0)
         axis.errorbar(positions, mean, yerr=sem, color="black", fmt="o", capsize=3, markersize=5)
-        axis.set(xticks=positions, xticklabels=[labels[name] for name in conditions], ylabel="Output–target cosine", ylim=(-0.04, 1.04), title=f"Decoder compatibility ({rule_label})")
+        axis.set(xticks=positions, xticklabels=[labels[name] for name in conditions],
+                 ylabel="Output–target cosine",
+                 ylim=(-0.04, 1.04), title=f"Decoder compatibility ({rule_label})")
         axis.spines[["top", "right"]].set_visible(False)
         save_panel(figure, output, "plot_1_a", rule, display_rule)
 
@@ -560,23 +570,31 @@ def build_panels(arrays: dict[str, np.ndarray], output: Path, display_rule: str)
             axis.fill_between(x, mean - sem, mean + sem, color=colors[schedule], alpha=0.16)
         for position in x[changed[0, 0]]:
             axis.axvline(position, color="#6a3d9a", linestyle="--", linewidth=0.8, alpha=0.45)
-        axis.set(xlabel="Probe after lap", ylabel="CA1 tuning similarity", ylim=(-0.05, 1.05), title=f"Cue-schedule transition control ({rule_label})")
+        axis.set(xlabel="Probe after lap", ylabel="CA1 tuning similarity",
+                 ylim=(-0.05, 1.05), title=f"Cue-schedule transition control ({rule_label})")
         axis.legend(frameon=False)
         axis.spines[["top", "right"]].set_visible(False)
         save_panel(figure, output, "plot_1_b", rule, display_rule)
 
-        fields, order, vmax = representative_fields(arrays["probe_ca1"][rule_index], arrays["spatial_stability"][rule_index], arrays["cue_modulation"][rule_index])
+        fields, order, vmax = representative_fields(arrays["probe_ca1"][rule_index],
+                                                    arrays["spatial_stability"][rule_index],
+                                                    arrays["cue_modulation"][rule_index])
         for context_index, name in enumerate(("plot_1_c", "plot_1_d")):
             figure, axis = plt.subplots(figsize=(4.6, 3.6))
-            image = axis.imshow(fields[context_index, :, order].T, origin="lower", aspect="auto", cmap="magma", vmin=0.0, vmax=vmax)
+            image = axis.imshow(fields[context_index, :, order].T, origin="lower",
+                                aspect="auto", cmap="magma", vmin=0.0, vmax=vmax)
             figure.colorbar(image, ax=axis, label="CA1 activity")
-            axis.set(xlabel="Track position", ylabel="CA1 unit", title=f"Cue context {'A' if context_index == 0 else 'B'} ({rule_label})")
+            axis.set(xlabel="Track position", ylabel="CA1 unit",
+                     title=f"Cue context {'A' if context_index == 0 else 'B'} ({rule_label})")
             save_panel(figure, output, name, rule, display_rule)
 
         figure, axis = plt.subplots(figsize=(4.7, 3.6))
-        axis.scatter(arrays["spatial_stability"][rule_index].ravel(), arrays["cue_modulation"][rule_index].ravel(), color="#3d85c6", alpha=0.38, s=10, linewidths=0)
+        axis.scatter(arrays["spatial_stability"][rule_index].ravel(),
+                     arrays["cue_modulation"][rule_index].ravel(), color="#3d85c6",
+                     alpha=0.38, s=10, linewidths=0)
         axis.axvline(0.0, color="0.45", linestyle=":", linewidth=1)
-        axis.set(xlabel="Mean-centered spatial stability", ylabel="Cue modulation", title=f"CA1 tuning distribution ({rule_label})")
+        axis.set(xlabel="Mean-centered spatial stability", ylabel="Cue modulation",
+                 title=f"CA1 tuning distribution ({rule_label})")
         axis.spines[["top", "right"]].set_visible(False)
         save_panel(figure, output, "plot_1_e", rule, display_rule)
 
@@ -594,6 +612,7 @@ def main() -> None:
 
     settings = copy.deepcopy(SETTINGS)
     settings["plasticity_rules"] = list(args.rules)
+    apply_evolved_parameters(settings, ROOT_DIR)
     if args.quick:
         settings["seeds"] = settings["seeds"][:2]
         settings["autoencoder"]["epochs"] = 8
@@ -616,8 +635,10 @@ def main() -> None:
         rule_compatibility, rule_transitions, rule_changes = [], [], []
         rule_fields, rule_stability, rule_modulation = [], [], []
         for plasticity_rule in settings["plasticity_rules"]:
-            cosine, seed_rows = run_compatibility(seed, compatibility_setup, settings, plasticity_rule)
-            remapping, remapping_rows = run_cue_remapping(seed, cue_setup, settings, plasticity_rule)
+            cosine, seed_rows = run_compatibility(seed, compatibility_setup,
+                                                  settings, plasticity_rule)
+            remapping, remapping_rows = run_cue_remapping(seed, cue_setup,
+                                                          settings, plasticity_rule)
             rule_compatibility.append(cosine.mean(axis=1))
             rule_transitions.append(remapping["transition"])
             rule_changes.append(remapping["cue_changed"])

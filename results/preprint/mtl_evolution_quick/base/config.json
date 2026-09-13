@@ -1,0 +1,88 @@
+{
+  "plasticity_rule": "base",
+  "plasticity_label": "Instructive-driven",
+  "parameter_names": [
+    "ca3_inputs_per_unit",
+    "k_ca3",
+    "beta_ca3",
+    "beta_ca1",
+    "alpha"
+  ],
+  "parameter_centers": [
+    29.0,
+    3.0,
+    170.6,
+    41.8,
+    0.092
+  ],
+  "parameter_scales": [
+    8.0,
+    2.0,
+    60.0,
+    20.0,
+    0.05
+  ],
+  "parameter_lower": [
+    1.0,
+    1.0,
+    5.0,
+    5.0,
+    0.005
+  ],
+  "parameter_upper": [
+    49.0,
+    15.0,
+    300.0,
+    120.0,
+    0.4
+  ],
+  "settings": {
+    "seeds": [
+      42001
+    ],
+    "dimension": 50,
+    "active": 5,
+    "autoencoder": {
+      "latent_dimension": 50,
+      "beta_latent": 25.0,
+      "beta_output": 25.0,
+      "epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001
+    },
+    "memory": {
+      "ca3_dimension": 50,
+      "k_ca1": 5
+    },
+    "track": {
+      "training_laps": 4,
+      "validation_laps": 2,
+      "lap_length": 50,
+      "size": 50,
+      "cue_positions": [
+        10,
+        30
+      ],
+      "cue_sigma": 4.0,
+      "cue_beta": 40.0,
+      "cue_alpha": 0.1,
+      "mec_binarized": true,
+      "mec_sigma": 5.0,
+      "lec_sigma": 5.0
+    },
+    "degradation_fraction": 0.5,
+    "masks_per_modality": 2,
+    "score_weights": {
+      "clean": 0.3333333333333333,
+      "mec_degraded": 0.3333333333333333,
+      "lec_degraded": 0.3333333333333333
+    }
+  },
+  "search": {
+    "generations": 2,
+    "population_size": 8,
+    "workers": 1,
+    "boundary_penalty": 0.05
+  },
+  "actual_workers": 1
+}

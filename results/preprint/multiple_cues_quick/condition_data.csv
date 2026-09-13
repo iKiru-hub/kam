@@ -1,0 +1,7 @@
+rule,seed,capacity,plasticity_label,ae_validation_mse,clean_pair_accuracy,degraded_pair_accuracy,collision_rate,recruitment_fraction,fraction_spatial,fraction_cue-general,fraction_cue-specific,fraction_mixed,fraction_neutral
+base,53001,1,Instructive-driven,0.1020263209939003,0.0,0.0,0.0,0.04,0.1,0.38,0.0,0.3,0.22
+base,53001,2,Instructive-driven,0.1020263209939003,0.0,0.0,0.0,0.06,0.12,0.3,0.0,0.52,0.06
+base,53001,4,Instructive-driven,0.1020263209939003,0.25,0.125,0.0,0.1,0.22,0.2,0.0,0.58,0.0
+err2,53001,1,Error-driven,0.1020263209939003,1.0,0.75,0.0,0.16,0.36,0.22,0.0,0.4,0.02
+err2,53001,2,Error-driven,0.1020263209939003,1.0,0.75,0.0,0.3,0.5,0.0,0.04,0.44,0.02
+err2,53001,4,Error-driven,0.1020263209939003,0.75,0.3125,0.0,0.56,0.36,0.0,0.0,0.64,0.0

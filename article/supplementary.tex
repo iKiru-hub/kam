@@ -1,6 +1,134 @@
 \clearpage
 \section*{Supplementary material}
 
+\section*{Appendix A: Evolutionary hyperparameter selection}
+
+\subsection*{Optimization strategy}
+
+Hyperparameters were selected with the covariance matrix adaptation evolution
+strategy (CMA-ES), a stochastic, derivative-free optimizer for nonlinear and
+non-convex objectives \citep{hansen2016}. CMA-ES sampled a multivariate normal
+population in standardized coordinates and adapted its mean, covariance, and
+global step size from candidate rankings. If $g$ is a standardized genome,
+model parameters were decoded as
+\begin{equation}
+\theta(g)=\operatorname{clip}_{[\ell,u]}(c+s\odot g),
+\label{eq:cma-decoding}
+\end{equation}
+where $c$, $s$, $\ell$, and $u$ are the parameter-wise centers, scales, lower
+bounds, and upper bounds. Count-valued parameters were rounded to the nearest
+integer after clipping. A quadratic penalty discouraged samples outside the
+standardized bounds before clipping. Candidate evaluations were parallelized
+across CPU processes, but parallelization did not change the objective.
+
+The search was used only for engineering model selection. Model weights were
+not encoded in the genome: autoencoder weights were still learned with Adam,
+and CA3--CA1 weights were still changed by the local plasticity rule. Fixed
+development seeds made candidate evaluations deterministic and comparable.
+No seed was optimized separately, and development seeds were disjoint from the
+20 seeds used for the matched principal experiments and the 10 seeds used for
+the cue-pair load test. A single CMA-ES run was performed for each reported
+search, so the results characterize the selected run rather than variability
+across independent optimizer restarts.
+
+\subsection*{Autoencoder objective}
+
+The autoencoder search varied $K_{\mathrm{CA1}}$, the latent sparse-activation
+gain $\beta_{\mathrm{latent}}$, and the decoder gain
+$\beta_{\mathrm{out}}$. It used three development seeds (41001--41003). For
+each candidate and seed, separate autoencoders were trained for 64 epochs on
+(i) 1,024 sparse binary EC patterns and (ii) 20 MEC+LEC track laps, then tested
+on 128 disjoint sparse patterns and five independently generated track laps.
+The minimized objective was
+\begin{equation}
+J_{\mathrm{AE}}(\theta)=\frac{1}{3}\sum_{s=1}^{3}
+\left[\frac{1}{2}\mathcal{L}_{\mathrm{sparse},s}(\theta)
++\frac{1}{2}\mathcal{L}_{\mathrm{track},s}(\theta)\right],
+\label{eq:ae-evolution-fitness}
+\end{equation}
+where each $\mathcal{L}$ is mean squared validation reconstruction error. The
+search used 96 generations of seven candidates (672 candidate evaluations)
+with boundary-penalty coefficient 0.1. The selected values were
+$K_{\mathrm{CA1}}=5$, $\beta_{\mathrm{latent}}=3.912370$, and
+$\beta_{\mathrm{out}}=25.333004$. Their mean sparse, track, and equally weighted
+validation MSEs were 0.001770, 0.000593, and 0.001182, respectively.
+
+\subsection*{MTL recall objective}
+
+The selected autoencoder parameters were fixed before the MTL searches. Five
+MTL parameters were then optimized independently for the instructive-driven
+and error-driven rules: EC--CA3 fan-in $F$, CA3 target activity
+$K_{\mathrm{CA3}}$, CA3 and CA1 inverse-temperature gains, and plasticity rate
+$\alpha$. For each of three development seeds (42001--42003), one autoencoder,
+one bank of clean training and validation laps, and fixed MEC/LEC corruption
+masks were prepared before optimization and reused for every candidate and
+both rules.
+
+After 20 clean storage laps, three components were calculated. Clean recall was
+the mean of full-output cosine, exact-position accuracy, and cue-identity
+accuracy,
+\begin{equation}
+J_{\mathrm{clean}}=\frac{1}{3}
+(C_{\mathrm{EC}}+A_{\mathrm{pos}}+A_{\mathrm{cue}}).
+\end{equation}
+At 85\% MEC dropout, the score averaged position and cue accuracy; at 85\% LEC
+dropout, it averaged cue accuracy and MEC output cosine:
+\begin{align}
+J_{\mathrm{MECdrop}}&=\frac{1}{2}
+(A_{\mathrm{pos}}^{\mathrm{MECdrop}}+
+ A_{\mathrm{cue}}^{\mathrm{MECdrop}}),\\
+J_{\mathrm{LECdrop}}&=\frac{1}{2}
+(A_{\mathrm{cue}}^{\mathrm{LECdrop}}+
+ C_{\mathrm{MEC}}^{\mathrm{LECdrop}}).
+\end{align}
+Each degraded component was averaged over six fixed masks per modality. CMA-ES
+maximized the equally weighted mean over components and development seeds,
+\begin{equation}
+J_{\mathrm{MTL}}(\theta,r)=\frac{1}{3}\sum_{s=1}^{3}
+\frac{J_{\mathrm{clean},s}+J_{\mathrm{MECdrop},s}+
+J_{\mathrm{LECdrop},s}}{3},
+\label{eq:mtl-evolution-fitness}
+\end{equation}
+for rule $r$. Each rule used 128 generations of eight candidates (1,024
+candidate evaluations) and boundary-penalty coefficient 0.05.
+
+\begin{table}[H]
+\centering
+\small
+\caption{\textbf{MTL CMA-ES search domains and selected values.} Fan-in and
+$K_{\mathrm{CA3}}$ are integer counts. Scores are evaluated on the three fixed
+development seeds and are therefore optimization, not holdout, performance.}
+\label{tab:evolved-parameters}
+\begin{tabular}{lrrrr}
+\toprule
+Parameter & Search range & Center & Instructive-driven & Error-driven \\
+\midrule
+EC--CA3 fan-in $F$ & 1--49 & 29 & 1 & 36 \\
+$K_{\mathrm{CA3}}$ & 1--15 & 3 & 1 & 4 \\
+$\beta_{\mathrm{CA3}}$ & 5--300 & 170.6 & 260.955897 & 49.614006 \\
+$\beta_{\mathrm{CA1}}$ & 5--120 & 41.8 & 5.000000 & 61.913451 \\
+$\alpha$ & 0.005--0.400 & 0.092 & 0.008904 & 0.027141 \\
+\midrule
+$J_{\mathrm{clean}}$ & -- & -- & 0.700577 & 0.976506 \\
+$J_{\mathrm{MECdrop}}$ & -- & -- & 0.531667 & 0.566111 \\
+$J_{\mathrm{LECdrop}}$ & -- & -- & 0.936270 & 0.972739 \\
+$J_{\mathrm{MTL}}$ & -- & -- & 0.722838 & 0.838452 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The two searches converged to qualitatively different retrieval codes. The
+instructive-driven optimum lay on the lower bounds for fan-in,
+$K_{\mathrm{CA3}}$, and $\beta_{\mathrm{CA1}}$, whereas the error-driven
+solution used a broader EC--CA3 projection and four active CA3-like units.
+Boundary solutions should not be interpreted as biological estimates or as
+proof that the global optimum lies at those values. They indicate that, under
+the stated objective and bounds, the two update rules favor different
+computational regimes. The local multiplier analysis in
+Fig.~\ref{fig:degradation}E probes the immediate neighborhood of these selected
+vectors; Eq.~\ref{eq:local-sensitivity} and its limitations are described in
+Methods.
+
 \setcounter{figure}{0}
 \renewcommand{\thefigure}{S\arabic{figure}}
 \renewcommand{\theHfigure}{S\arabic{figure}}
@@ -21,11 +149,13 @@
     \textbf{(Lower left)} Cue identity accuracy after 90\% LEC-like degradation
     in Fig.~\ref{fig:degradation}A.
     \textbf{(Lower right)} Nearest-position accuracy after 90\% MEC-like
-    degradation in Fig.~\ref{fig:degradation}C. Both rules shared inputs,
-    pretrained autoencoders, CA3 wiring seeds, storage order, corruption masks,
-    and hyperparameters; only
-    the CA3--CA1 update differed. Parameters were not optimized separately for
-    each rule.}
+    degradation in Fig.~\ref{fig:degradation}C. These contrasts refer to the
+    shared-reference experiments in Figs.~\ref{fig:compatibility} and
+    \ref{fig:degradation}A--D: both rules shared inputs, pretrained
+    autoencoders, memory hyperparameters, CA3 wiring seeds, storage order, and
+    corruption masks; only the CA3--CA1 update differed. They are distinct from
+    the rule-specific evolved operating regimes in
+    Fig.~\ref{fig:degradation}E,F and Table~\ref{tab:evolved-parameters}.}
     \label{fig:rule-comparison}
 \end{figure}
 

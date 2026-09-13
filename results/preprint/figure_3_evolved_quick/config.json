@@ -1,0 +1,82 @@
+{
+  "seeds": [
+    51001,
+    51002
+  ],
+  "plasticity_rules": [
+    "base",
+    "err2"
+  ],
+  "dimension": 50,
+  "active": 5,
+  "autoencoder": {
+    "latent_dimension": 50,
+    "beta_latent": 3.912370204925537,
+    "beta_output": 25.333004221320152,
+    "epochs": 8,
+    "batch_size": 64,
+    "learning_rate": 0.001
+  },
+  "memory": {
+    "ca3_dimension": 50,
+    "ca3_inputs_per_unit": 36,
+    "k_ca3": 4,
+    "k_ca1": 5,
+    "beta_ca3": 49.61400566101074,
+    "beta_ca1": 61.913451480865476,
+    "alpha": 0.027140734910964956,
+    "plasticity_rule": "err2"
+  },
+  "track": {
+    "training_laps": 20,
+    "validation_laps": 5,
+    "lap_length": 50,
+    "size": 50,
+    "cue_positions": [
+      10,
+      30
+    ],
+    "cue_sigma": 4.0,
+    "cue_beta": 40.0,
+    "cue_alpha": 0.1,
+    "mec_binarized": true,
+    "mec_sigma": 5.0,
+    "lec_sigma": 5.0
+  },
+  "degradation": {
+    "fractions": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      0.9
+    ],
+    "masks_per_fraction": 2,
+    "key_modes": [
+      "normal",
+      "dense"
+    ]
+  },
+  "memory_by_rule": {
+    "base": {
+      "ca3_dimension": 50,
+      "ca3_inputs_per_unit": 1,
+      "k_ca3": 1,
+      "k_ca1": 5,
+      "beta_ca3": 260.9558969497681,
+      "beta_ca1": 5.0,
+      "alpha": 0.00890362691879272,
+      "plasticity_rule": "base"
+    },
+    "err2": {
+      "ca3_dimension": 50,
+      "ca3_inputs_per_unit": 36,
+      "k_ca3": 4,
+      "k_ca1": 5,
+      "beta_ca3": 49.61400566101074,
+      "beta_ca1": 61.913451480865476,
+      "alpha": 0.027140734910964956,
+      "plasticity_rule": "err2"
+    }
+  }
+}

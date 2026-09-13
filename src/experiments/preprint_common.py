@@ -171,3 +171,64 @@ def write_artifact(output: Path, config: dict, arrays: dict[str, np.ndarray], ro
             writer.writeheader()
             writer.writerows(rows)
     return output
+
+
+def apply_evolved_parameters(settings: dict, root_dir: Path) -> dict:
+    """Update preprint settings with the best available evolved parameters.
+
+    The figure scripts keep readable fallback defaults near the top of each
+    file.  When evolution artifacts are present, this helper replaces those
+    defaults with the selected autoencoder and rule-specific MTL parameters.
+    Missing files are ignored, which keeps quick exploratory copies runnable.
+    """
+
+    ae_path = root_dir / "results/preprint/ae_evolution/best_parameters.json"
+    if ae_path.exists():
+        ae_best = json.loads(ae_path.read_text())
+        settings["active"] = int(ae_best.get("K_ca1", settings["active"]))
+        settings["autoencoder"]["beta_latent"] = float(
+            ae_best.get("beta_latent", settings["autoencoder"]["beta_latent"]))
+        settings["autoencoder"]["beta_output"] = float(
+            ae_best.get("beta_output", settings["autoencoder"]["beta_output"]))
+
+    memory_defaults = settings.get("memory", {})
+    rule_memories = {}
+    compatibility_defaults = settings.get("compatibility")
+    compatibility_by_rule = {}
+
+    for rule in settings.get("plasticity_rules", []):
+        memory = {**memory_defaults, "plasticity_rule": rule}
+        best_path = root_dir / f"results/preprint/mtl_evolution/{rule}/best_parameters.json"
+        if best_path.exists():
+            best = json.loads(best_path.read_text())
+            memory.update({
+                "ca3_inputs_per_unit": int(best["ca3_inputs_per_unit"]),
+                "k_ca3": int(best["k_ca3"]),
+                "beta_ca3": float(best["beta_ca3"]),
+                "beta_ca1": float(best["beta_ca1"]),
+                "alpha": float(best["alpha"]),
+            })
+        memory["k_ca1"] = int(settings["active"])
+        rule_memories[rule] = memory
+
+        if compatibility_defaults is not None:
+            config = dict(compatibility_defaults)
+            config.update({
+                "ca3_inputs_per_unit": memory["ca3_inputs_per_unit"],
+                "k_ca3": memory["k_ca3"],
+                "k_ca1": memory["k_ca1"],
+                "beta_ca3": memory["beta_ca3"],
+                "beta_ca1": memory["beta_ca1"],
+                "beta_output": settings["autoencoder"]["beta_output"],
+                "write_alpha": memory["alpha"],
+            })
+            compatibility_by_rule[rule] = config
+
+    if rule_memories:
+        settings["memory_by_rule"] = rule_memories
+        display_rule = "err2" if "err2" in rule_memories else next(iter(rule_memories))
+        settings["memory"] = dict(rule_memories[display_rule])
+    if compatibility_by_rule:
+        settings["compatibility_by_rule"] = compatibility_by_rule
+
+    return settings

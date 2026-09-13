@@ -1,27 +1,27 @@
 # Fdb version 4
-["bibtex main"] 1789307609.07297 "main.aux" "main.bbl" "main" 1789307611.29776 0
-  "./references.bib" 1788202082.63827 97920 13833828b426bfe8b8ea033c84784b69 ""
+["bibtex main"] 1789342196.20641 "main.aux" "main.bbl" "main" 1789342196.26641 0
+  "./references.bib" 1789341848.69936 98128 8d0f1d4471448c474764dd26f641dbf1 ""
   "/usr/local/texlive/2026/texmf-dist/bibtex/bst/natbib/plainnat.bst" 1233624470 26816 ffe5423d2019860bad9f54bc402fac15 ""
-  "main.aux" 1789307611.08003 19009 5d820bcf54997119f90c395bdbc9a1ac "pdflatex"
+  "main.aux" 1789342196.1502 22760 c5ad022afb90036f9483d9b1c422f957 "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1789307609.13527 "main.tex" "main.pdf" "main" 1789307611.29787 0
-  "../abstract.tex" 1789212658.31835 2100 373327b4222ac2a333fb1c5542e5c3a2 ""
-  "../discussion.tex" 1789212611.7307 9523 234701f54bc9a84c71405b838046ac8f ""
+["pdflatex"] 1789342139.71447 "main.tex" "main.pdf" "main" 1789342196.26644 0
+  "../abstract.tex" 1789341554.19801 2391 52b21ef9b237dc3274b978eacb63fa39 ""
+  "../discussion.tex" 1789341779.42733 10967 c6ca3e37181e2113e5397f08f60c02c6 ""
   "../figures/preprint/figure_1.png" 1789306174.07562 801026 9d5dd9488b464ae299c0cad291e622f9 ""
   "../figures/preprint/figure_2.pdf" 1789307596.26302 761868 b95e5495eb50f52ee96fc3872632376a ""
-  "../figures/preprint/figure_3.pdf" 1789153029.36617 779909 669ac7069fee4883fe5596d34cd22d7a ""
+  "../figures/preprint/figure_3.pdf" 1789341164.06727 978934 c272bc65147e937adbb3710ce247371e ""
   "../figures/preprint/plasticity_comparison.png" 1789306365.29024 507311 1b61ce0cd255df2a2409d146e49851e2 ""
   "../figures/preprint/remapping_endpoint_base.png" 1789212371.14325 149870 33d8eeee184a874c97fdc3326dec3f81 ""
   "../figures/preprint/remapping_endpoint_err2.png" 1789212371.14575 137390 9bef8382b0de21a902d2cded16cd9da3 ""
   "../figures/preprint/remapping_old_new_base.png" 1789212371.13809 121000 c5438fd10be2f81f4dd7694437ef75d2 ""
   "../figures/preprint/remapping_old_new_err2.png" 1789212371.14093 113376 5d1c05c0930f320733d23dc98879a0b5 ""
-  "../introduction.tex" 1789152696.60586 7042 8706ad1578f97a7686bbbce0c57d64e0 ""
-  "../methods.tex" 1789306250.77069 19848 79aafa555f1ade6785bbe4284b7d69b4 ""
-  "../results.tex" 1789306358.60594 15853 dd7038390581751a3e5ea6f719cbb954 ""
-  "../supplementary.tex" 1789213769.66523 3391 b654fb8087a91d9a0e9dbd2319874804 ""
+  "../introduction.tex" 1789341848.58919 7174 f10b08038481ba1f211124c650f4688c ""
+  "../methods.tex" 1789342034.0837 23428 c54b52a64b92fe956bd043ee0be59ed1 ""
+  "../results.tex" 1789341584.31598 20170 e9913dfd4ff21201c7e74fe28510a6bc ""
+  "../supplementary.tex" 1789341830.12756 9866 04be77a47bb5b792ebe472dc62520cae ""
   "/usr/local/texlive/2026/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm" 1246382020 1004 54797486969f23fa377b128694d548df ""
   "/usr/local/texlive/2026/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex8.tfm" 1246382020 988 bdf658c3bfc2d96d3c8b02cfc1c94c20 ""
@@ -135,10 +135,10 @@
   "/usr/local/texlive/2026/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1785513800 5573038 b99aad5e4898a9034e953632f940512b ""
   "/usr/local/texlive/2026/texmf-var/web2c/pdftex/pdflatex.fmt" 1785513725 3636773 3e0ec8bf1e08d1ee34ed6083b3df2c6b ""
   "/usr/local/texlive/2026/texmf.cnf" 1774209515 577 648cd9f92f9c0eac486f4c71c85cfbbe ""
-  "main.aux" 1789307611.08003 19009 5d820bcf54997119f90c395bdbc9a1ac "pdflatex"
-  "main.bbl" 1789307609.13358 9257 3e0579a3ff03ab8eb0a9571a1c69ad11 "bibtex main"
-  "main.out" 1789307611.08376 3587 1186652cacf761674f6074f93c06a7e1 "pdflatex"
-  "main.tex" 1789307608.4834 1363 7667f1fd5ede1bfd65d01723906a6bb9 ""
+  "main.aux" 1789342196.1502 22760 c5ad022afb90036f9483d9b1c422f957 "pdflatex"
+  "main.bbl" 1789342196.2646 9461 615c597cc1091a5ad59b5ab9db8b7563 "bibtex main"
+  "main.out" 1789342196.15122 4386 0e440ed699841e0c06e5b652fb4b3e8e "pdflatex"
+  "main.tex" 1789341848.64566 1506 645b82ae4d76477537b890451a6e9e13 ""
   (generated)
   "main.aux"
   "main.log"

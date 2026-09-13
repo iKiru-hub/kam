@@ -1,0 +1,8 @@
+{
+  "K_ca1": 8,
+  "beta_latent": 13.629612922668457,
+  "beta_output": 2.828388214111328,
+  "composite_validation_mse": 0.23484215885400772,
+  "sparse_validation_mse": 0.2570131719112396,
+  "track_validation_mse": 0.21267114579677582
+}

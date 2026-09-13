@@ -1,0 +1,2 @@
+seed,clean_score,clean_fidelity,clean_position_accuracy,clean_cue_accuracy,mec_degraded_score,lec_degraded_score,ae_validation_mse,composite_score
+42001,0.5417842785517375,0.5253528356552124,0.1,1.0,0.51,0.7271419316530228,0.3041239380836487,0.5929754034015867
