@@ -5,6 +5,23 @@
     "base": 0.85,
     "err2": 0.85
   },
+  "optimization_seeds": [
+    42001,
+    42002,
+    42003
+  ],
+  "independent_sensitivity_seeds": [
+    54001,
+    54002,
+    54003,
+    54004,
+    54005,
+    54006,
+    54007,
+    54008,
+    54009,
+    54010
+  ],
   "common_sensitivity_degradation_fraction": 0.85,
   "rules": [
     "base",
@@ -26,6 +43,7 @@
     1.5,
     2.0,
     3.0,
+    7.0,
     9.0
   ],
   "sensitivity_lower_bounds": [
@@ -45,16 +63,24 @@
   "workers": 8,
   "settings": {
     "seeds": [
-      42001,
-      42002,
-      42003
+      54001,
+      54002,
+      54003,
+      54004,
+      54005,
+      54006,
+      54007,
+      54008,
+      54009,
+      54010
     ],
     "dimension": 50,
     "active": 5,
+    "stimulus_order": "shuffled",
     "autoencoder": {
       "latent_dimension": 50,
-      "beta_latent": 3.912370204925537,
-      "beta_output": 25.333004221320152,
+      "beta_latent": 25.0,
+      "beta_output": 25.0,
       "epochs": 256,
       "batch_size": 64,
       "learning_rate": 0.001
@@ -87,5 +113,5 @@
       "lec_degraded": 0.3333333333333333
     }
   },
-  "note": "integer parameters are rounded; sensitivity uses model-valid bounds, not narrower CMA search bounds"
+  "note": "cells report paired mean change plus across-seed SD; integer parameters are rounded; sensitivity uses model-valid bounds, not narrower CMA search bounds"
 }

@@ -53,7 +53,12 @@ from experiments.preprint_mlt_evolution import (  # noqa: E402
 
 DEFAULT_MTL_RESULTS = ROOT_DIR / "results/preprint/mtl_evolution"
 DEFAULT_OUTPUT = ROOT_DIR / "results/preprint/parameter_sensitivity"
-DEFAULT_MULTIPLIERS = [0.1, 0.3, 0.5, 0.7, 1.0, 1.5, 2.0, 3.0, 9.0]
+DEFAULT_MULTIPLIERS = [0.1, 0.3, 0.5, 0.7, 1.0, 1.5, 2.0, 3.0, 7.0, 9.0]
+
+# Independent evaluation seeds, disjoint from the three CMA-ES development
+# seeds. Perturbed and unmodified candidates are paired on every seed.
+N_EVALUATION_RUNS = 10
+EVALUATION_SEEDS = list(range(54001, 54001 + N_EVALUATION_RUNS))
 
 # Sensitivity bounds should express model validity, not the narrower domain
 # chosen for CMA-ES.  Reusing the search bounds previously mapped every
@@ -262,19 +267,48 @@ def organize_results(rules: list[str], multipliers: list[float], best: dict[str,
     return scores, actual_values, rows, seed_rows
 
 
+def paired_delta_summary(rules: list[str], multipliers: list[float],
+                         seed_rows: list[dict]) -> tuple[np.ndarray, np.ndarray]:
+    """Return mean and SD of paired per-seed changes from the 1x candidate."""
+
+    shape = (len(rules), len(PARAMETER_NAMES), len(multipliers))
+    means = np.empty(shape, dtype=float)
+    deviations = np.empty(shape, dtype=float)
+
+    for rule_index, rule in enumerate(rules):
+        for parameter_index, parameter in enumerate(PARAMETER_NAMES):
+            selected = [row for row in seed_rows
+                        if row["plasticity_rule"] == rule
+                        and row["varied_parameter"] == parameter]
+            baseline = {
+                int(row["seed"]): float(row["composite_score"])
+                for row in selected
+                if np.isclose(float(row["multiplier"]), 1.0)
+            }
+            for multiplier_index, multiplier in enumerate(multipliers):
+                deltas = np.asarray([
+                    float(row["composite_score"]) - baseline[int(row["seed"])]
+                    for row in selected
+                    if np.isclose(float(row["multiplier"]), multiplier)
+                ])
+                if len(deltas) != len(baseline):
+                    raise RuntimeError("missing paired sensitivity evaluation")
+                means[rule_index, parameter_index, multiplier_index] = deltas.mean()
+                deviations[rule_index, parameter_index, multiplier_index] = (
+                    deltas.std(ddof=1) if len(deltas) > 1 else 0.0
+                )
+    return means, deviations
+
+
 def make_heatmap(output: Path, rules: list[str], multipliers: list[float],
-                 scores: np.ndarray) -> None:
-    """Plot change in composite score relative to each evolved optimum."""
+                 delta_mean: np.ndarray, delta_std: np.ndarray) -> None:
+    """Plot paired mean score change and across-run standard deviation."""
 
     baseline_index = int(np.argmin(np.abs(np.asarray(multipliers) - 1.0)))
     if not np.isclose(multipliers[baseline_index], 1.0):
         raise ValueError("multipliers must contain 1.0 for the evolved baseline")
 
-    # Each row's 1.0 cell is the same evolved candidate.  Subtracting that
-    # score makes robustness comparable despite different absolute performance
-    # of the two plasticity rules.
-    delta = scores[..., 0] - scores[:, :, baseline_index, 0][:, :, None]
-    color_limit = max(float(np.max(np.abs(delta))), 0.01)
+    color_limit = max(float(np.max(np.abs(delta_mean))), 0.01)
 
     figure, axes = plt.subplots(
         1, len(rules),
@@ -290,7 +324,7 @@ def make_heatmap(output: Path, rules: list[str], multipliers: list[float],
     for rule_index, rule in enumerate(rules):
         axis = axes[0, rule_index]
         image = axis.imshow(
-            delta[rule_index],
+            delta_mean[rule_index],
             aspect="auto",
             cmap="RdBu_r",
             vmin=-color_limit,
@@ -311,14 +345,16 @@ def make_heatmap(output: Path, rules: list[str], multipliers: list[float],
         # plot interpretable without guessing exact colors.
         for row in range(len(PARAMETER_NAMES)):
             for column in range(len(multipliers)):
-                value = delta[rule_index, row, column]
+                value = delta_mean[rule_index, row, column]
+                uncertainty = delta_std[rule_index, row, column]
                 color = "white" if abs(value) > 0.55 * color_limit else "black"
                 label = "0.000" if abs(value) < 0.0005 else f"{value:+.3f}"
-                axis.text(column, row, label, ha="center", va="center",
-                          fontsize=7, color=color)
+                axis.text(column, row, f"{label}\n±{uncertainty:.3f}",
+                          ha="center", va="center", fontsize=6.2,
+                          linespacing=0.9, color=color)
 
     colorbar = figure.colorbar(images[0], ax=axes.ravel().tolist(), shrink=0.85)
-    colorbar.set_label(r"$\Delta$ composite score from evolved optimum")
+    colorbar.set_label(r"Mean paired $\Delta$ from selected configuration")
     figure.savefig(output / "parameter_sensitivity_heatmap.svg", bbox_inches="tight")
     figure.savefig(output / "parameter_sensitivity_heatmap.png", dpi=300, bbox_inches="tight")
     plt.close(figure)
@@ -328,10 +364,12 @@ def save_results(output: Path, rules: list[str], multipliers: list[float],
                  settings: dict[str, Any], best: dict[str, np.ndarray],
                  scores: np.ndarray, actual_values: np.ndarray,
                  rows: list[dict], seed_rows: list[dict], workers: int,
-                 source: Path, source_fractions: dict[str, float]) -> None:
+                 source: Path, source_fractions: dict[str, float],
+                 optimization_seeds: list[int]) -> None:
     """Save plot-ready arrays, tidy tables, and full analysis provenance."""
 
     output.mkdir(parents=True, exist_ok=True)
+    delta_mean, delta_std = paired_delta_summary(rules, multipliers, seed_rows)
     np.savez_compressed(
         output / "arrays.npz",
         rules=np.asarray(rules),
@@ -343,11 +381,15 @@ def save_results(output: Path, rules: list[str], multipliers: list[float],
         scores=scores,
         actual_values=actual_values,
         best_parameters=np.stack([best[rule] for rule in rules]),
+        paired_delta_mean=delta_mean,
+        paired_delta_std=delta_std,
     )
     config = {
         "analysis": "one-at-a-time sensitivity around each rule's evolved optimum",
         "source_mtl_results": str(source.resolve()),
         "source_search_degradation_fractions": source_fractions,
+        "optimization_seeds": optimization_seeds,
+        "independent_sensitivity_seeds": settings["seeds"],
         "common_sensitivity_degradation_fraction": settings["degradation_fraction"],
         "rules": rules,
         "parameter_names": list(PARAMETER_NAMES),
@@ -356,7 +398,7 @@ def save_results(output: Path, rules: list[str], multipliers: list[float],
         "sensitivity_upper_bounds": SENSITIVITY_UPPER.tolist(),
         "workers": workers,
         "settings": settings,
-        "note": "integer parameters are rounded; sensitivity uses model-valid bounds, not narrower CMA search bounds",
+        "note": "cells report paired mean change plus across-seed SD; integer parameters are rounded; sensitivity uses model-valid bounds, not narrower CMA search bounds",
     }
     (output / "config.json").write_text(json.dumps(config, indent=2) + "\n")
 
@@ -365,7 +407,7 @@ def save_results(output: Path, rules: list[str], multipliers: list[float],
             writer = csv.DictWriter(handle, fieldnames=list(table[0]))
             writer.writeheader()
             writer.writerows(table)
-    make_heatmap(output, rules, multipliers, scores)
+    make_heatmap(output, rules, multipliers, delta_mean, delta_std)
 
 
 def parse_args() -> argparse.Namespace:
@@ -380,6 +422,9 @@ def parse_args() -> argparse.Namespace:
                         default=min(8, os.cpu_count() or 1))
     parser.add_argument("--degradation-fraction", type=float, default=None,
                         help="common dropped fraction; defaults to the value shared by the searches")
+    parser.add_argument("--evaluation-seeds", nargs="+", type=int,
+                        default=EVALUATION_SEEDS,
+                        help="independent seeds used for paired sensitivity evaluation")
     parser.add_argument("--quick", action="store_true")
     return parser.parse_args()
 
@@ -396,13 +441,15 @@ def main() -> None:
     settings, best, source_fractions = load_inputs(
         args.mtl_results, args.rules, args.degradation_fraction
     )
+    optimization_seeds = list(settings["seeds"])
+    settings["seeds"] = list(args.evaluation_seeds)
     multipliers = list(args.multipliers)
     output = args.output
 
     if args.quick:
         # The quick run validates multiprocessing and output generation; it is
         # not a scientific sensitivity result.
-        settings["seeds"] = settings["seeds"][:1]
+        settings["seeds"] = settings["seeds"][:2]
         settings["autoencoder"]["epochs"] = 3
         settings["track"]["training_laps"] = 4
         settings["track"]["validation_laps"] = 2
@@ -423,7 +470,7 @@ def main() -> None:
     save_results(
         output, args.rules, multipliers, settings, best,
         scores, actual_values, rows, seed_rows, workers, args.mtl_results,
-        source_fractions,
+        source_fractions, optimization_seeds,
     )
     print(f"Saved sensitivity data and heatmap to {output}")
 

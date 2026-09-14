@@ -25,6 +25,8 @@
     "base",
     "err2"
   ],
+  "stimulus_kind": "mec_lec",
+  "parameter_mode": "reference",
   "dimension": 50,
   "active": 5,
   "autoencoder": {
@@ -36,8 +38,8 @@
     "learning_rate": 0.001
   },
   "compatibility": {
-    "training_patterns": 2048,
-    "validation_patterns": 256,
+    "training_patterns": 2000,
+    "validation_patterns": 250,
     "memories": 28,
     "epochs": 1024,
     "ca3_inputs_per_unit": 2,
@@ -58,6 +60,28 @@
     "alpha": 0.092,
     "plasticity_rule": "err2"
   },
+  "memory_by_rule": {
+    "base": {
+      "ca3_dimension": 50,
+      "ca3_inputs_per_unit": 29,
+      "k_ca3": 3,
+      "k_ca1": 5,
+      "beta_ca3": 170.6,
+      "beta_ca1": 41.8,
+      "alpha": 0.092,
+      "plasticity_rule": "base"
+    },
+    "err2": {
+      "ca3_dimension": 50,
+      "ca3_inputs_per_unit": 29,
+      "k_ca3": 3,
+      "k_ca1": 5,
+      "beta_ca3": 170.6,
+      "beta_ca1": 41.8,
+      "alpha": 0.092,
+      "plasticity_rule": "err2"
+    }
+  },
   "track": {
     "training_laps": 40,
     "validation_laps": 10,
@@ -74,5 +98,33 @@
     "mec_binarized": true,
     "mec_sigma": 5.0,
     "lec_sigma": 5.0
+  },
+  "compatibility_by_rule": {
+    "base": {
+      "training_patterns": 2000,
+      "validation_patterns": 250,
+      "memories": 28,
+      "epochs": 1024,
+      "ca3_inputs_per_unit": 29,
+      "k_ca3": 3,
+      "k_ca1": 5,
+      "beta_ca3": 170.6,
+      "beta_ca1": 41.8,
+      "beta_output": 25.0,
+      "write_alpha": 0.092
+    },
+    "err2": {
+      "training_patterns": 2000,
+      "validation_patterns": 250,
+      "memories": 28,
+      "epochs": 1024,
+      "ca3_inputs_per_unit": 29,
+      "k_ca3": 3,
+      "k_ca1": 5,
+      "beta_ca3": 170.6,
+      "beta_ca1": 41.8,
+      "beta_output": 25.0,
+      "write_alpha": 0.092
+    }
   }
 }

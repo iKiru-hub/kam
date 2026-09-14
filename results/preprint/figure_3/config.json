@@ -25,6 +25,7 @@
     "base",
     "err2"
   ],
+  "parameter_mode": "reference",
   "dimension": 50,
   "active": 5,
   "autoencoder": {
@@ -44,6 +45,28 @@
     "beta_ca1": 41.8,
     "alpha": 0.092,
     "plasticity_rule": "err2"
+  },
+  "memory_by_rule": {
+    "base": {
+      "ca3_dimension": 50,
+      "ca3_inputs_per_unit": 29,
+      "k_ca3": 3,
+      "k_ca1": 5,
+      "beta_ca3": 170.6,
+      "beta_ca1": 41.8,
+      "alpha": 0.092,
+      "plasticity_rule": "base"
+    },
+    "err2": {
+      "ca3_dimension": 50,
+      "ca3_inputs_per_unit": 29,
+      "k_ca3": 3,
+      "k_ca1": 5,
+      "beta_ca3": 170.6,
+      "beta_ca1": 41.8,
+      "alpha": 0.092,
+      "plasticity_rule": "err2"
+    }
   },
   "track": {
     "training_laps": 20,
@@ -67,7 +90,8 @@
       0.25,
       0.5,
       0.75,
-      0.9
+      0.9,
+      1.0
     ],
     "masks_per_fraction": 12,
     "key_modes": [

@@ -4,7 +4,8 @@
 
 Simulations were implemented in Python using NumPy and PyTorch and run on CPU.
 Figures~\ref{fig:compatibility} and \ref{fig:degradation}A--D used 20 root
-seeds (51001--51020); the cue-pair load experiment used 10 held-out root seeds
+seeds (51001--51020); sensitivity used 10 independent root seeds
+(54001--54010), and the cue-pair load experiment used 10 held-out root seeds
 (53001--53010). Autoencoder and MTL hyperparameter searches used separate fixed
 development seeds (41001--41003 and 42001--42003, respectively). Conditions
 and plasticity rules within an experiment were paired by root seed whenever
@@ -16,9 +17,12 @@ alter the underlying values.
 
 For the evolution-informed analyses, bounded hyperparameter configurations were
 selected using the covariance matrix adaptation evolution strategy (CMA-ES), a
-stochastic derivative-free optimizer \citep{hansen2016}. The autoencoder search minimized held-out
-reconstruction error, after which independent MTL searches maximized a
-composite of clean and selectively degraded recall for each plasticity rule.
+stochastic derivative-free optimizer \citep{hansen2016}. A standalone
+autoencoder search minimized held-out reconstruction error. Independent MTL
+searches maximized a composite of clean and selectively degraded recall for
+each plasticity rule while retaining the common reference autoencoder basis;
+the two searches therefore report related but non-composed engineering
+analyses.
 Search data, objectives, bounds, and selected values are reported in Appendix
 A. The shared reference configuration was retained separately to provide a
 matched update-rule comparison and was not produced by the rule-specific
@@ -54,10 +58,11 @@ layer autoencoder mapped EC input to a 50-unit CA1 representation and back to a
 50-unit EC output. CA1 activity used a differentiable top-$K$ sparse activation
 with $K_{\mathrm{CA1}}=5$; output activity used a sigmoid decoder. The shared
 reference configuration in Figs.~\ref{fig:compatibility} and
-\ref{fig:degradation}A--D used latent and output gains of 25. The
-evolution-informed analyses in Fig.~\ref{fig:degradation}E,F used the selected
-values $\beta_{\mathrm{latent}}=3.912$ and
-$\beta_{\mathrm{out}}=25.333$. Linear encoder and decoder biases were disabled.
+\ref{fig:degradation} used latent and output gains of 25. The separate
+autoencoder CMA-ES analysis in Appendix A explored whether those gains could
+be improved, but its selected values were not substituted into the final MTL
+searches or figure-generating simulations. Linear encoder and decoder biases
+were disabled.
 Specifically, if $z_{(1)}\geq\cdots\geq z_{(N)}$ are the sorted
 preactivations, the activation threshold and sparse nonlinearity were
 \begin{align}
@@ -89,9 +94,12 @@ therefore supplied the instructed CA1 state (IS), and the decoder defined the
 output coordinates against which compatibility was tested.
 
 For the readout-compatibility experiment, the autoencoder was trained for 1024
-epochs on 2048 unique binary EC patterns with five active units and evaluated
-on 256 held-out patterns. Twenty-eight additional unique patterns were reserved
-for one-shot associative storage. For the cue-reconfiguration experiment, the
+epochs on 2,000 structured MEC+LEC samples and evaluated on 250 held-out
+samples. Twenty-eight additional patterns were reserved for one-shot
+associative storage. Samples were drawn from independently generated laps
+containing both cue assignments and shuffled before training, validation, and
+storage; the assay therefore preserved marginal MEC+LEC structure without a
+sequential track traversal. For the cue-reconfiguration experiment, the
 autoencoder was trained for 256 epochs on the 40 training laps and evaluated on
 10 separately generated laps. For the degradation experiment, it was trained
 for 256 epochs on 20 intact laps and evaluated on five separately generated
@@ -130,15 +138,12 @@ from the same underlying spatial and cue statistics.
 
 EC input was projected to 50 CA3-like units through a fixed sparse matrix
 followed by a differentiable top-$K$ activation. In the shared reference
-configuration, the compatibility experiment
-used two EC inputs per CA3-like unit, $K_{\mathrm{CA3}}=5$, inverse-temperature
-parameter $\beta_{\mathrm{CA3}}=200$, and learning rate $\alpha=0.08$. Track
-experiments used 29 EC inputs per CA3-like unit, $K_{\mathrm{CA3}}=3$,
-$\beta_{\mathrm{CA3}}=170.6$, and $\alpha=0.092$. The normal track map was
+configuration, all principal experiments used 29 EC inputs per CA3-like unit,
+$K_{\mathrm{CA3}}=3$, $\beta_{\mathrm{CA3}}=170.6$, and
+$\alpha=0.092$. The normal track map was
 constructed to balance EC participation across CA3-like units.
 CA3--CA1 weights were initialized to zero. The CA1 recall activation used
-$K_{\mathrm{CA1}}=5$, with inverse temperature 25 in the compatibility
-experiment and 41.8 in the track experiments. Figure~\ref{fig:degradation}E,F
+$K_{\mathrm{CA1}}=5$, with inverse temperature 41.8. Figure~\ref{fig:degradation}E,F
 instead used the rule-specific values selected by CMA-ES and listed in Appendix
 A.
 
@@ -340,7 +345,9 @@ distribution therefore separates two complementary aspects of mixed tuning.
 Models stored 20 intact laps with cue assignment $[0,1]$. During frozen recall,
 a fixed random subset of eligible EC units was zeroed throughout a complete
 probe lap. Masks were sampled independently between probes. Dropped fractions
-were 0, 0.25, 0.50, 0.75, and 0.90, with 12 masks per fraction and root seed.
+were 0, 0.25, 0.50, 0.75, 0.90, and 1.00, with 12 masks per fraction and root
+seed. The Results report the 0.90 partial-degradation point; the curves continue
+to complete ablation for reference.
 LEC-like degradation operated on the final 25 input units; MEC-like degradation
 operated on the first 25.
 
@@ -399,18 +406,20 @@ than an item-specific key.
 
 The local sensitivity analysis started from each rule's independently selected
 parameter vector $\theta_r^*$. For parameter $j$ and multiplier
-$m\in\{0.1,0.3,0.5,0.7,1,1.5,2,3,9\}$, it evaluated
+$m\in\{0.1,0.3,0.5,0.7,1,1.5,2,3,7,9\}$, it evaluated
 \begin{equation}
 \Delta J_{rjm}=
 J_r(\theta_{r,-j}^*,m\theta_{r,j}^*)-J_r(\theta_r^*),
 \label{eq:local-sensitivity}
 \end{equation}
-using the same composite objective and three development seeds as the MTL
-search. Fan-in and $K_{\mathrm{CA3}}$ were rounded to integers. Values outside
+using the same composite objective on 10 independent seeds (54001--54010),
+disjoint from the MTL search seeds. Cells report the mean paired change from
+the unperturbed vector together with the across-seed standard deviation.
+Fan-in and $K_{\mathrm{CA3}}$ were rounded to integers. Values outside
 model-valid ranges were clipped, so repeated cells can occur when several
 multipliers map to the same integer or bound. This is a one-at-a-time local
 analysis; it does not measure compensatory interactions among parameters or
-out-of-development-set uncertainty.
+global identifiability.
 
 For the load experiment, $N_{\mathrm{cue}}=10$ fixed LEC templates generated
 $N_{\mathrm{cue}}(N_{\mathrm{cue}}-1)=90$ ordered, non-repeating assignments

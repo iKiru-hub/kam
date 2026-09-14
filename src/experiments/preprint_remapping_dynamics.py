@@ -15,9 +15,11 @@ For each root seed, one pretrained EC-CA1-EC basis is shared by two schedules:
 ``no_swap``
     Cue identities remain fixed, but the same lap boundaries are analyzed.
 
-The schedules share their MEC trajectory, probe inputs, plasticity parameters,
-and EC-CA3 wiring.  The instructive-driven (internal identifier ``base``) and
-error-driven (``err2``) rules also receive these same inputs and wiring.
+Within each rule, the schedules share their MEC trajectory, probe inputs,
+plasticity parameters, and EC-CA3 wiring. The instructive-driven (internal
+identifier ``base``) and error-driven (``err2``) rules receive the same inputs
+and pretrained basis. Reference mode also shares numerical MTL parameters;
+evolved mode uses the separately selected configurations.
 
 After every training lap, plasticity is paused and CA1 is probed in the
 context scheduled for that lap.  Three event-aligned measurements are then
@@ -75,16 +77,20 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from experiments.preprint_common import (
+    apply_evolved_parameters,
+    apply_reference_parameters,
     build_mtl,
     cue_track,
     row_cosine,
     run_mtl,
     train_autoencoder,
     write_artifact,
+    PARAMETER_MODES,
 )
 
 
 RULE_LABELS = {"base": "Instructive-driven", "err2": "Error-driven"}
+PARAMETER_MODE = "reference"
 SCHEDULE_LABELS = {"swap": "Cue exchange", "no_swap": "No-swap control"}
 SCHEDULE_COLORS = {"swap": "#6a3d9a", "no_swap": "0.40"}
 
@@ -92,25 +98,48 @@ SCHEDULE_COLORS = {"swap": "#6a3d9a", "no_swap": "0.40"}
 SETTINGS = {
     "seeds": list(range(51001, 51021)),
     "plasticity_rules": ["base", "err2"],
+    "parameter_mode": PARAMETER_MODE,
     "dimension": 50,
     "active": 5,
     "autoencoder": {
         "latent_dimension": 50,
-        "beta_latent": 25.0,
-        "beta_output": 25.0,
+        "beta_latent": 3.912370204925537,
+        "beta_output": 25.333004221320152,
         "epochs": 256,
         "batch_size": 64,
         "learning_rate": 0.001,
     },
     "memory": {
         "ca3_dimension": 50,
-        "ca3_inputs_per_unit": 29,
-        "k_ca3": 3,
+        "ca3_inputs_per_unit": 36,
+        "k_ca3": 4,
         "k_ca1": 5,
-        "beta_ca3": 170.6,
-        "beta_ca1": 41.8,
-        "alpha": 0.092,
+        "beta_ca3": 49.61400566101074,
+        "beta_ca1": 61.913451480865476,
+        "alpha": 0.027140734910964956,
         "plasticity_rule": "err2",
+    },
+    "memory_by_rule": {
+        "base": {
+            "ca3_dimension": 50,
+            "ca3_inputs_per_unit": 1,
+            "k_ca3": 1,
+            "k_ca1": 5,
+            "beta_ca3": 260.9558969497681,
+            "beta_ca1": 5.0,
+            "alpha": 0.00890362691879272,
+            "plasticity_rule": "base",
+        },
+        "err2": {
+            "ca3_dimension": 50,
+            "ca3_inputs_per_unit": 36,
+            "k_ca3": 4,
+            "k_ca1": 5,
+            "beta_ca3": 49.61400566101074,
+            "beta_ca1": 61.913451480865476,
+            "alpha": 0.027140734910964956,
+            "plasticity_rule": "err2",
+        },
     },
     "track": {
         "training_laps": 40,
@@ -254,7 +283,8 @@ def event_measurements(
 def run_rule(seed: int, prepared: dict, settings: dict, rule: str) -> tuple[dict[str, np.ndarray], list[dict]]:
     """Train both schedules under one rule and retain every frozen CA1 probe."""
 
-    memory = {**settings["memory"], "plasticity_rule": rule}
+    memory = settings.get("memory_by_rule", {}).get(
+        rule, {**settings["memory"], "plasticity_rule": rule})
     relative_laps = np.asarray(settings["analysis"]["relative_laps"], dtype=int)
     block_length = settings["track"]["swap_every"]
 
@@ -270,8 +300,9 @@ def run_rule(seed: int, prepared: dict, settings: dict, rule: str) -> tuple[dict
     similarity_matrices = []
 
     for schedule_index, (laps, schedule) in enumerate(zip(prepared["laps"], prepared["schedules"])):
-        # The exact same wiring seed is deliberately reused across schedules
-        # and rules. CA3-CA1 weights begin at zero in every model.
+        # The exact same wiring seed is reused across schedules and rules.
+        # Reference mode fixes the architecture across rules; evolved mode
+        # permits rule-specific fan-in and K_CA3.
         model = build_mtl(prepared["autoencoder"], memory, seed_value(seed, 20))
         lap_fields = []
         for lap_input, assignment in zip(laps, schedule):
@@ -456,11 +487,20 @@ def main() -> None:
         default=None,
         help="Rule copied to unsuffixed plot files; defaults to err2.",
     )
+    parser.add_argument(
+        "--parameter-mode", choices=PARAMETER_MODES, default=PARAMETER_MODE,
+        help="shared reference parameters or rule-specific evolved values",
+    )
     parser.add_argument("--quick", action="store_true", help="Run a low-cost smoke test.")
     args = parser.parse_args()
 
     settings = copy.deepcopy(SETTINGS)
     settings["plasticity_rules"] = list(args.rules)
+    settings["parameter_mode"] = args.parameter_mode
+    if args.parameter_mode == "reference":
+        apply_reference_parameters(settings)
+    else:
+        apply_evolved_parameters(settings, ROOT_DIR)
     if args.quick:
         settings["seeds"] = settings["seeds"][:2]
         settings["autoencoder"]["epochs"] = 8

@@ -44,10 +44,11 @@
     ],
     "dimension": 50,
     "active": 5,
+    "stimulus_order": "shuffled",
     "autoencoder": {
       "latent_dimension": 50,
-      "beta_latent": 3.912370204925537,
-      "beta_output": 25.333004221320152,
+      "beta_latent": 25.0,
+      "beta_output": 25.0,
       "epochs": 256,
       "batch_size": 64,
       "learning_rate": 0.001
@@ -81,10 +82,10 @@
     }
   },
   "search": {
-    "generations": 128,
+    "generations": 96,
     "population_size": 8,
-    "workers": 4,
+    "workers": 8,
     "boundary_penalty": 0.05
   },
-  "actual_workers": 4
+  "actual_workers": 8
 }

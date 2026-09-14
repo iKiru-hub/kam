@@ -10,9 +10,9 @@ Goal
 
 Protocol in one replicate
     1. Pretrain the EC--CA1--EC encoder on clean MEC+LEC track samples.
-    2. Train matched CA3--CA1 models over 20 clean laps with each selected
-       update rule (``base`` and ``err2`` by default). The cue arrangement
-       stays [0, 1] during storage.
+    2. Train CA3--CA1 models over 20 clean laps using instructive-driven
+       (``base``) and error-driven (``err2``) plasticity. Main-text reference
+       mode holds all numerical parameters fixed across the rules.
     3. Freeze plasticity and probe the last clean lap repeatedly.  Each probe
        removes 0, 25, 50, 75, or 90 percent of *one* modality, using a mask
        fixed for that whole lap and resampled for the next probe.
@@ -61,44 +61,71 @@ import matplotlib.pyplot as plt
 from core import datagen
 from experiments.preprint_common import (
     apply_evolved_parameters,
+    apply_reference_parameters,
     build_mtl,
     cue_track,
     row_cosine,
     run_mtl,
     train_autoencoder,
     write_artifact,
+    PARAMETER_MODES,
 )
 
 
 # Stable internal identifiers map to descriptive labels in manuscript figures.
 RULE_LABELS = {"base": "Instructive-driven", "err2": "Error-driven"}
+PARAMETER_MODE = "reference"
 
 
-# All reported parameters are deliberately visible here.  The 20 seeds are
+# All selected parameters are deliberately visible here. The 20 seeds are
 # independent model/track replicates; 12 masks measure within-seed variation.
-# Both rules share each seed's EC laps, frozen encoder, and probe masks.
+# Reference mode shares EC laps, frozen encoder, probes, and all numerical MTL
+# parameters. Evolved mode is retained as a rule-specific diagnostic.
 SETTINGS = {
     "seeds": list(range(51001, 51021)),
     "plasticity_rules": ["base", "err2"],
+    "parameter_mode": PARAMETER_MODE,
     "dimension": 50,
     "active": 5,
     "autoencoder": {
         "latent_dimension": 50,
-        "beta_latent": 25.0,
-        "beta_output": 25.0,
+        "beta_latent": 3.912370204925537,
+        "beta_output": 25.333004221320152,
         "epochs": 256,
         "batch_size": 64,
         "learning_rate": 0.001,
     },
     "memory": {
         "ca3_dimension": 50,
-        "ca3_inputs_per_unit": 29,
-        "k_ca3": 3,
+        "ca3_inputs_per_unit": 36,
+        "k_ca3": 4,
         "k_ca1": 5,
-        "beta_ca3": 170.6,
-        "beta_ca1": 41.8,
-        "alpha": 0.092,
+        "beta_ca3": 49.61400566101074,
+        "beta_ca1": 61.913451480865476,
+        "alpha": 0.027140734910964956,
         "plasticity_rule": "err2",
+    },
+    "memory_by_rule": {
+        "base": {
+            "ca3_dimension": 50,
+            "ca3_inputs_per_unit": 1,
+            "k_ca3": 1,
+            "k_ca1": 5,
+            "beta_ca3": 260.9558969497681,
+            "beta_ca1": 5.0,
+            "alpha": 0.00890362691879272,
+            "plasticity_rule": "base",
+        },
+        "err2": {
+            "ca3_dimension": 50,
+            "ca3_inputs_per_unit": 36,
+            "k_ca3": 4,
+            "k_ca1": 5,
+            "beta_ca3": 49.61400566101074,
+            "beta_ca1": 61.913451480865476,
+            "alpha": 0.027140734910964956,
+            "plasticity_rule": "err2",
+        },
     },
     "track": {
         "training_laps": 20,
@@ -114,7 +141,7 @@ SETTINGS = {
         "lec_sigma": 5.0,
     },
     "degradation": {
-        "fractions": [0.0, 0.25, 0.5, 0.75, 0.9],
+        "fractions": [0.0, 0.25, 0.5, 0.75, 0.9, 1.],
         "masks_per_fraction": 12,
         "key_modes": ["normal", "dense"],
     },
@@ -199,8 +226,8 @@ def position_accuracy(EC_recall: np.ndarray, EC_target: np.ndarray) -> float:
 def prepare_seed(seed: int, settings: dict) -> dict:
     """ Create clean EC storage, probes, and encoder shared by both rules.
 
-    No CA3→CA1 weights are stored here.  The returned components are held
-    fixed while each update rule gets its own matched CA3→CA1 model.
+    No CA3→CA1 weights are stored here. The returned components are held fixed
+    while each rule receives the configuration selected by parameter mode.
     """
 
     track = settings["track"]
@@ -258,8 +285,9 @@ def run_rule(seed: int, prepared: dict, settings: dict,
         # EC→CA3 matrix with identical rows before storage, so all items share
         # essentially one common key.
         # ------------------------------------------------------------------
-        # The wiring seed does not depend on rule.  Base and err2 therefore
-        # start from the same CA3 keys before they diverge through learning.
+        # The seed is shared across rules. Reference mode also fixes fan-in and
+        # K_CA3; evolved mode matches stochastic draws while allowing distinct
+        # key architectures.
         model = build_mtl(prepared["autoencoder"], memory, seed_value(seed, 10 + mode_index))
         apply_key_control(model, mode)
         # Storage happens on the same clean laps for all conditions.
@@ -390,13 +418,21 @@ def main() -> None:
                         help="Plasticity rules to compare; both are paired by default.")
     parser.add_argument("--display-rule", default=None,
                         help="Rule used for unsuffixed plot_2_*.png panels; defaults to err2 when present.")
+    parser.add_argument(
+        "--parameter-mode", choices=PARAMETER_MODES, default=PARAMETER_MODE,
+        help="shared reference parameters or rule-specific evolved values",
+    )
     parser.add_argument("--quick", action="store_true",
                         help="Run two low-cost seeds for a smoke test.")
     args = parser.parse_args()
 
     settings = copy.deepcopy(SETTINGS)
     settings["plasticity_rules"] = list(args.rules)
-    apply_evolved_parameters(settings, ROOT_DIR)
+    settings["parameter_mode"] = args.parameter_mode
+    if args.parameter_mode == "reference":
+        apply_reference_parameters(settings)
+    else:
+        apply_evolved_parameters(settings, ROOT_DIR)
     if args.quick:
         settings["seeds"] = settings["seeds"][:2]
         settings["autoencoder"]["epochs"] = 8

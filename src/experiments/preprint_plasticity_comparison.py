@@ -80,10 +80,15 @@ def figure_3_metrics(arrays: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
 
     modes = arrays["key_modes"].tolist()
     normal = modes.index("normal")
+    fractions = np.asarray(arrays["fractions"], dtype=float)
+    matches = np.flatnonzero(np.isclose(fractions, 0.90))
+    if len(matches) != 1:
+        raise ValueError("Figure 3 arrays must contain exactly one 90% degradation level.")
+    partial = int(matches[0])
     # Mean masks within seed before any comparison between rules.
     return {
-        "lec_cue_accuracy_90": arrays["lec_cue_accuracy"][:, :, normal, -1].mean(axis=-1),
-        "mec_position_accuracy_90": arrays["mec_position_accuracy"][:, :, normal, -1].mean(axis=-1),
+        "lec_cue_accuracy_90": arrays["lec_cue_accuracy"][:, :, normal, partial].mean(axis=-1),
+        "mec_position_accuracy_90": arrays["mec_position_accuracy"][:, :, normal, partial].mean(axis=-1),
     }
 
 

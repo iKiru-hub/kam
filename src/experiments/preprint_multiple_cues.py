@@ -62,7 +62,7 @@ from experiments.preprint_common import (  # noqa: E402
 # Main scientific choices
 # =============================================================================
 
-N_CUES =10
+N_CUES = 8
 SEEDS = list(range(53001, 53011))  # holdout seeds, not evolution seeds
 RULES = ("base", "err2")
 RULE_LABELS = {"base": "Instructive-driven", "err2": "Error-driven"}
@@ -605,7 +605,7 @@ def plot_capacity(axis: plt.Axes, conditions: list[dict], levels: list[int]) -> 
                           label=f"{RULE_LABELS[rule]}, {label}")
     axis.set(xlabel="Stored ordered cue pairs", ylabel="Exact pair accuracy",
              ylim=(-0.03, 1.03), title="A  Cue-pair capacity")
-    axis.legend(frameon=False, fontsize=7)
+    axis.legend(frameon=False, fontsize=7, loc="upper right")
     finish_axis(axis)
 
 
@@ -666,7 +666,7 @@ def plot_preprint_capacity(output: Path, conditions: list[dict],
                                loc="lower left")
     axis.add_artist(first_legend)
     axis.legend(handles=condition_handles, frameon=False, fontsize=7,
-                loc="lower center")
+                loc="upper right")
     finish_axis(axis)
     save_plot(figure, output, "plot_multiple_cues_preprint_capacity")
 

@@ -1,11 +1,11 @@
 {
-  "ca3_inputs_per_unit": 36,
-  "k_ca3": 4,
-  "beta_ca3": 49.61400566101074,
-  "beta_ca1": 61.913451480865476,
-  "alpha": 0.027140734910964956,
-  "fitness": 0.838451959380397,
-  "clean_score": 0.9765055804782444,
-  "mec_degraded_score": 0.5661111111111111,
-  "lec_degraded_score": 0.9727391865518359
+  "ca3_inputs_per_unit": 9,
+  "k_ca3": 5,
+  "beta_ca3": 54.40001068115234,
+  "beta_ca1": 26.92844085693359,
+  "alpha": 0.08197491747140884,
+  "fitness": 0.8177786814062683,
+  "clean_score": 0.9350666138860914,
+  "mec_degraded_score": 0.565,
+  "lec_degraded_score": 0.9532694303327136
 }

@@ -26,8 +26,9 @@ not encoded in the genome: autoencoder weights were still learned with Adam,
 and CA3--CA1 weights were still changed by the local plasticity rule. Fixed
 development seeds made candidate evaluations deterministic and comparable.
 No seed was optimized separately, and development seeds were disjoint from the
-20 seeds used for the matched principal experiments and the 10 seeds used for
-the cue-pair load test. A single CMA-ES run was performed for each reported
+20 seeds used for the matched principal experiments, the 10 independent seeds
+used for sensitivity analysis, and the 10 seeds used for the cue-pair load
+test. A single CMA-ES run was performed for each reported
 search, so the results characterize the selected run rather than variability
 across independent optimizer restarts.
 
@@ -53,16 +54,22 @@ $K_{\mathrm{CA1}}=5$, $\beta_{\mathrm{latent}}=3.912370$, and
 $\beta_{\mathrm{out}}=25.333004$. Their mean sparse, track, and equally weighted
 validation MSEs were 0.001770, 0.000593, and 0.001182, respectively.
 
-\subsection*{MTL recall objective}
+\subsection*{Medial-temporal-lobe (MTL) recall objective}
 
-The selected autoencoder parameters were fixed before the MTL searches. Five
+The autoencoder search above documents an alternative basis optimization. For
+the final MTL searches and all figure-generating simulations, however, we
+retained the common reference basis ($K_{\mathrm{CA1}}=5$,
+$\beta_{\mathrm{latent}}=\beta_{\mathrm{out}}=25$), avoiding a simultaneous
+change of representational basis and associative rule. Five
 MTL parameters were then optimized independently for the instructive-driven
 and error-driven rules: EC--CA3 fan-in $F$, CA3 target activity
 $K_{\mathrm{CA3}}$, CA3 and CA1 inverse-temperature gains, and plasticity rate
 $\alpha$. For each of three development seeds (42001--42003), one autoencoder,
 one bank of clean training and validation laps, and fixed MEC/LEC corruption
 masks were prepared before optimization and reused for every candidate and
-both rules.
+both rules. Storage vectors were shuffled within each generated lap, with cue
+locations carried along with their samples. This preserved the marginal
+MEC+LEC distribution while removing sequential adjacency and traversal order.
 
 After 20 clean storage laps, three components were calculated. Clean recall was
 the mean of full-output cosine, exact-position accuracy, and cue-identity
@@ -89,8 +96,8 @@ J_{\mathrm{MTL}}(\theta,r)=\frac{1}{3}\sum_{s=1}^{3}
 J_{\mathrm{LECdrop},s}}{3},
 \label{eq:mtl-evolution-fitness}
 \end{equation}
-for rule $r$. Each rule used 128 generations of eight candidates (1,024
-candidate evaluations) and boundary-penalty coefficient 0.05.
+for rule $r$. Each rule used 96 generations of eight candidates (768 candidate
+evaluations) and boundary-penalty coefficient 0.05.
 
 \begin{table}[H]
 \centering
@@ -103,28 +110,27 @@ development seeds and are therefore optimization, not holdout, performance.}
 \toprule
 Parameter & Search range & Center & Instructive-driven & Error-driven \\
 \midrule
-EC--CA3 fan-in $F$ & 1--49 & 29 & 1 & 36 \\
-$K_{\mathrm{CA3}}$ & 1--15 & 3 & 1 & 4 \\
-$\beta_{\mathrm{CA3}}$ & 5--300 & 170.6 & 260.955897 & 49.614006 \\
-$\beta_{\mathrm{CA1}}$ & 5--120 & 41.8 & 5.000000 & 61.913451 \\
-$\alpha$ & 0.005--0.400 & 0.092 & 0.008904 & 0.027141 \\
+EC--CA3 fan-in $F$ & 1--49 & 29 & 36 & 9 \\
+$K_{\mathrm{CA3}}$ & 1--15 & 3 & 6 & 5 \\
+$\beta_{\mathrm{CA3}}$ & 5--300 & 170.6 & 286.747318 & 54.400011 \\
+$\beta_{\mathrm{CA1}}$ & 5--120 & 41.8 & 9.160055 & 26.928441 \\
+$\alpha$ & 0.005--0.400 & 0.092 & 0.033657 & 0.081975 \\
 \midrule
-$J_{\mathrm{clean}}$ & -- & -- & 0.700577 & 0.976506 \\
-$J_{\mathrm{MECdrop}}$ & -- & -- & 0.531667 & 0.566111 \\
-$J_{\mathrm{LECdrop}}$ & -- & -- & 0.936270 & 0.972739 \\
-$J_{\mathrm{MTL}}$ & -- & -- & 0.722838 & 0.838452 \\
+$J_{\mathrm{clean}}$ & -- & -- & 0.700864 & 0.935067 \\
+$J_{\mathrm{MECdrop}}$ & -- & -- & 0.539444 & 0.565000 \\
+$J_{\mathrm{LECdrop}}$ & -- & -- & 0.901139 & 0.953269 \\
+$J_{\mathrm{MTL}}$ & -- & -- & 0.713816 & 0.817779 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The two searches converged to qualitatively different retrieval codes. The
-instructive-driven optimum lay on the lower bounds for fan-in,
-$K_{\mathrm{CA3}}$, and $\beta_{\mathrm{CA1}}$, whereas the error-driven
-solution used a broader EC--CA3 projection and four active CA3-like units.
-Boundary solutions should not be interpreted as biological estimates or as
-proof that the global optimum lies at those values. They indicate that, under
-the stated objective and bounds, the two update rules favor different
-computational regimes. The local multiplier analysis in
+The two searches converged to quantitatively different retrieval regimes. The
+instructive-driven solution used broader EC--CA3 fan-in and a sharper CA3
+activation but a softer CA1 recall nonlinearity; the error-driven solution used
+narrower fan-in, lower CA3 gain, steeper CA1 recall, and a larger learning
+rate. These values should not be interpreted as biological estimates or as
+proof of global optimality. They indicate that, under the stated objective and
+bounds, the two update rules favor different computational regimes. The local multiplier analysis in
 Fig.~\ref{fig:degradation}E probes the immediate neighborhood of these selected
 vectors; Eq.~\ref{eq:local-sensitivity} and its limitations are described in
 Methods.

@@ -5,9 +5,11 @@ CA3 supplies a sparse retrieval key, CA1 supplies a learned association, and a
 frozen CA1-to-EC decoder gives the recalled CA1 activity its meaning.
 
 Panel A: decoder-coordinate compatibility
-    A one-layer autoencoder is pretrained on sparse EC patterns and then
-    frozen.  Twenty-eight new patterns are stored through CA3-to-CA1 weights
-    under both the direct-write (``base``) and error-driven (``err2``) rules.
+    A one-layer autoencoder is pretrained on structured MEC+LEC track samples
+    and then frozen. Twenty-eight held-out samples are shuffled and stored
+    individually through CA3-to-CA1 weights
+    under the instructive-driven (``base``) and error-driven (``err2``) rules.
+    The main-text default holds all numerical parameters fixed across rules.
     The instructed CA1 target is either left in the decoder's coordinates,
     permuted while leaving the decoder fixed, or permuted together with the
     decoder.  This asks whether information is sufficient for recall, or
@@ -20,9 +22,11 @@ Panel A: decoder-coordinate compatibility
 Panels B--E: cue-dependent CA1 reconfiguration
     MEC-like spatial input and LEC-like cue input form a circular track.  Two
     cues remain at fixed positions, but their identities swap every ten laps.
-    A matched no-swap control has the same random seed, MEC trajectory,
-    pretrained encoder, EC→CA3 wiring, and learning parameters. Each rule gets
-    its own matched CA3→CA1 model. After each learned lap the
+    Within each rule, a matched no-swap control has the same random seed, MEC
+    trajectory, pretrained encoder, EC→CA3 wiring, and learning parameters.
+    Across rules, stimuli and encoder are shared. In reference mode all MTL
+    parameters are also shared; evolved mode instead uses separately selected
+    regimes. Each rule gets its own CA3→CA1 model. After each learned lap the
     model is frozen and probed, so an abrupt change in tuning can be assigned
     to the cue schedule rather than to learning continuing during the probe.
 
@@ -71,6 +75,7 @@ import matplotlib.pyplot as plt
 from core import functions
 from experiments.preprint_common import (
     apply_evolved_parameters,
+    apply_reference_parameters,
     build_mtl,
     cue_track,
     row_cosine,
@@ -78,33 +83,49 @@ from experiments.preprint_common import (
     sparse_patterns,
     train_autoencoder,
     write_artifact,
+    PARAMETER_MODES,
 )
 
 
 # Stable internal identifiers map to descriptive labels in manuscript figures.
 RULE_LABELS = {"base": "Instructive-driven", "err2": "Error-driven"}
 
+# Stimulus family used only by the decoder-compatibility experiment (panel A).
+#
+# ``mec_lec`` draws held-out samples from the same structured MEC+LEC track
+# family used by MTL evolution, then shuffles them so storage is non-sequential.
+# ``random`` reproduces the original unique sparse binary-pattern experiment.
+# Panels B--E always use the MEC+LEC cue-track protocol regardless of this
+# setting.
+STIMULUS_KIND = "mec_lec"
+STIMULUS_KINDS = ("mec_lec", "random")
 
-# All fallback values are here rather than being hidden in a configuration
-# hierarchy.  At runtime, available evolution artifacts replace these defaults
-# with the selected autoencoder and rule-specific MTL parameters.  The two
-# rules still share seeds, inputs, encoders, storage order, and probes.
+# Main-text Figure 2 is a controlled comparison: both rules share all model
+# parameters and differ only in the update equation. ``evolved`` remains
+# available for a system-level diagnostic using each rule's selected regime.
+PARAMETER_MODE = "reference"
+
+
+# Evolved fallback values remain visible below, but main-text runs replace them
+# with the shared reference point. Evolved mode reads the saved JSON artifacts.
 SETTINGS = {
     "seeds": list(range(51001, 51021)),
     "plasticity_rules": ["base", "err2"],
+    "stimulus_kind": STIMULUS_KIND,
+    "parameter_mode": PARAMETER_MODE,
     "dimension": 50,
     "active": 5,
     "autoencoder": {
         "latent_dimension": 50,
-        "beta_latent": 25.0,
-        "beta_output": 25.0,
+        "beta_latent": 3.912370204925537,
+        "beta_output": 25.333004221320152,
         "epochs": 256,
         "batch_size": 64,
         "learning_rate": 0.001,
     },
     "compatibility": {
-        "training_patterns": 2048,
-        "validation_patterns": 256,
+        "training_patterns": 2000,
+        "validation_patterns": 250,
         "memories": 28,
         "epochs": 1024,
         "ca3_inputs_per_unit": 2,
@@ -117,13 +138,35 @@ SETTINGS = {
     },
     "memory": {
         "ca3_dimension": 50,
-        "ca3_inputs_per_unit": 29,
-        "k_ca3": 3,
+        "ca3_inputs_per_unit": 36,
+        "k_ca3": 4,
         "k_ca1": 5,
-        "beta_ca3": 170.6,
-        "beta_ca1": 41.8,
-        "alpha": 0.092,
+        "beta_ca3": 49.61400566101074,
+        "beta_ca1": 61.913451480865476,
+        "alpha": 0.027140734910964956,
         "plasticity_rule": "err2",
+    },
+    "memory_by_rule": {
+        "base": {
+            "ca3_dimension": 50,
+            "ca3_inputs_per_unit": 1,
+            "k_ca3": 1,
+            "k_ca1": 5,
+            "beta_ca3": 260.9558969497681,
+            "beta_ca1": 5.0,
+            "alpha": 0.00890362691879272,
+            "plasticity_rule": "base",
+        },
+        "err2": {
+            "ca3_dimension": 50,
+            "ca3_inputs_per_unit": 36,
+            "k_ca3": 4,
+            "k_ca1": 5,
+            "beta_ca3": 49.61400566101074,
+            "beta_ca1": 61.913451480865476,
+            "alpha": 0.027140734910964956,
+            "plasticity_rule": "err2",
+        },
     },
     "track": {
         "training_laps": 40,
@@ -213,30 +256,62 @@ def recall_direct(keys: torch.Tensor, weights: torch.Tensor,
 
 
 def prepare_compatibility(seed: int, settings: dict) -> dict:
-    """ Create shared pretraining data and counterfactual IS targets.
+    """Create panel-A memories and their counterfactual IS targets.
 
-    The returned data are deliberately rule-free.  Both ``base`` and ``err2``
-    subsequently see exactly this encoder, EC memory set, IS permutation, and
-    storage order.  CA3 keys are generated inside ``run_compatibility`` from a
-    matched seed stream using each rule's evolved CA3 parameters.
+    The returned data are deliberately rule-free. Both rules subsequently see
+    exactly this encoder, EC memory set, IS permutation, and storage order.
+    CA3 keys are generated inside ``run_compatibility`` from the same seed
+    stream using the CA3 parameters selected by ``parameter_mode``.
+
+    ``settings['stimulus_kind']`` selects either shuffled, held-out MEC+LEC
+    samples from the MTL-evolution input family or the original unique random
+    sparse vectors. Both branches preserve disjoint pretraining, validation,
+    and memory sets.
     """
 
     config = settings["compatibility"]
 
     # ------------------------------------------------------------------
-    # 1. Make three disjoint EC datasets.
+    # 1. Make independent pretraining, validation, and memory datasets.
     #
-    # Training/validation patterns define the encoder's pretrained output
-    # basis.  ``EC_memories`` are held out until after pretraining: they are the
-    # novel patterns that the CA3→CA1 synapses must store in one shot.
+    # In the default branch every row contains [MEC | LEC]. Memory laps contain
+    # both cue arrangements, after which positions are sampled and shuffled to
+    # remove temporal order. The alternative branch creates unique K-sparse
+    # binary vectors exactly as in the original compatibility experiment.
     # ------------------------------------------------------------------
     rng = np.random.default_rng(seed_value(seed, 1))
-    EC_training, seen = sparse_patterns(config["training_patterns"],
-                                        settings["dimension"], settings["active"], rng)
-    EC_validation, seen = sparse_patterns(config["validation_patterns"],
-                                          settings["dimension"], settings["active"], rng, seen)
-    EC_memories, _ = sparse_patterns(config["memories"], settings["dimension"],
-                                     settings["active"], rng, seen)
+    track = settings["track"]
+
+    def structured_samples(count: int, stream: int) -> np.ndarray:
+        laps = max(2, int(np.ceil(count / track["lap_length"])))
+        schedule = [[0, 1] if lap % 2 == 0 else [1, 0] for lap in range(laps)]
+        values = cue_track(laps, track, schedule, seed_value(seed, stream))
+        flattened = values.reshape(-1, track["size"])
+        selection = rng.permutation(len(flattened))[:count]
+        return flattened[selection]
+
+    stimulus_kind = settings["stimulus_kind"]
+    if stimulus_kind == "mec_lec":
+        EC_training = structured_samples(config["training_patterns"], 40)
+        EC_validation = structured_samples(config["validation_patterns"], 41)
+        EC_memories = structured_samples(config["memories"], 42)
+    elif stimulus_kind == "random":
+        EC_training, seen = sparse_patterns(
+            config["training_patterns"], settings["dimension"],
+            settings["active"], rng,
+        )
+        EC_validation, seen = sparse_patterns(
+            config["validation_patterns"], settings["dimension"],
+            settings["active"], rng, seen,
+        )
+        EC_memories, _ = sparse_patterns(
+            config["memories"], settings["dimension"],
+            settings["active"], rng, seen,
+        )
+    else:
+        raise ValueError(
+            f"Unknown stimulus_kind {stimulus_kind!r}; choose one of {STIMULUS_KINDS}"
+        )
     ae_settings = {**settings, "autoencoder": {**settings["autoencoder"],
                                                "epochs": config["epochs"]}}
     autoencoder, _ = train_autoencoder(EC_training, EC_validation, ae_settings, seed_value(seed, 2))
@@ -413,9 +488,9 @@ def run_cue_remapping(seed: int, prepared: dict, settings: dict,
     #       scheduled EC lap → update CA3→CA1 → read-only context A/B probes
     scheduled, final_probes = [], []
     for EC_laps, schedule in zip(prepared["EC_laps_by_schedule"], prepared["schedules"]):
-        # Reusing this exact seed across schedules and rules holds the EC→CA3
-        # projection fixed. The only designed schedule difference is whether
-        # cue identities exchange positions after each ten-lap block.
+        # Reusing this exact seed holds the random draw fixed within a rule's
+        # swap/no-swap pair. Reference mode also matches the architecture
+        # across rules; evolved mode permits rule-specific fan-in and sparsity.
         model = build_mtl(prepared["autoencoder"], memory, seed_value(seed, 20))
         condition_probes = []
         for EC_lap, assignment in zip(EC_laps, schedule):
@@ -607,18 +682,31 @@ def main() -> None:
                         help="Plasticity rules to compare; both are paired by default.")
     parser.add_argument("--display-rule", default=None,
                         help="Rule used for unsuffixed plot_1_*.png panels; defaults to err2 when present.")
+    parser.add_argument(
+        "--stimulus-kind", choices=STIMULUS_KINDS, default=STIMULUS_KIND,
+        help="Panel-A input family: evolution-matched MEC+LEC samples or random sparse vectors.",
+    )
+    parser.add_argument(
+        "--parameter-mode", choices=PARAMETER_MODES, default=PARAMETER_MODE,
+        help="shared reference parameters for controlled comparison, or rule-specific evolved values",
+    )
     parser.add_argument("--quick", action="store_true", help="Run two low-cost seeds for a smoke test.")
     args = parser.parse_args()
 
     settings = copy.deepcopy(SETTINGS)
     settings["plasticity_rules"] = list(args.rules)
-    apply_evolved_parameters(settings, ROOT_DIR)
+    settings["stimulus_kind"] = args.stimulus_kind
+    settings["parameter_mode"] = args.parameter_mode
+    if args.parameter_mode == "reference":
+        apply_reference_parameters(settings)
+    else:
+        apply_evolved_parameters(settings, ROOT_DIR)
     if args.quick:
         settings["seeds"] = settings["seeds"][:2]
         settings["autoencoder"]["epochs"] = 8
         settings["compatibility"]["epochs"] = 8
-        settings["compatibility"]["training_patterns"] = 128
-        settings["compatibility"]["validation_patterns"] = 32
+        settings["compatibility"]["training_patterns"] = 100
+        settings["compatibility"]["validation_patterns"] = 50
 
     # ------------------------------------------------------------------
     # 5. Repeat the paired protocol across 20 independent seeds and save raw

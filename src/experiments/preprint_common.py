@@ -18,6 +18,25 @@ import torch
 from core import ae_tools, datagen, models, mtl_tools
 
 
+# Shared controlled configuration used for the main representational and
+# degradation comparisons. In reference mode, base and err2 differ only in
+# their plasticity equation. Evolved mode is applied separately below.
+REFERENCE_AE_PARAMETERS = {
+    "K_ca1": 5,
+    "beta_latent": 25.0,
+    "beta_output": 25.0,
+}
+REFERENCE_MTL_PARAMETERS = {
+    "ca3_inputs_per_unit": 29,
+    "k_ca3": 3,
+    "k_ca1": 5,
+    "beta_ca3": 170.6,
+    "beta_ca1": 41.8,
+    "alpha": 0.092,
+}
+PARAMETER_MODES = ("reference", "evolved")
+
+
 @contextmanager
 def legacy_numpy_seed(seed: int):
     """Temporarily seed legacy helpers that use NumPy's global RNG."""
@@ -173,6 +192,44 @@ def write_artifact(output: Path, config: dict, arrays: dict[str, np.ndarray], ro
     return output
 
 
+def apply_reference_parameters(settings: dict) -> dict:
+    """Apply one shared parameter point to every selected plasticity rule."""
+
+    settings["active"] = REFERENCE_AE_PARAMETERS["K_ca1"]
+    settings["autoencoder"]["beta_latent"] = REFERENCE_AE_PARAMETERS["beta_latent"]
+    settings["autoencoder"]["beta_output"] = REFERENCE_AE_PARAMETERS["beta_output"]
+
+    memory_defaults = settings.get("memory", {})
+    shared_memory = {
+        **memory_defaults,
+        **REFERENCE_MTL_PARAMETERS,
+    }
+    rule_memories = {
+        rule: {**shared_memory, "plasticity_rule": rule}
+        for rule in settings.get("plasticity_rules", [])
+    }
+    settings["memory_by_rule"] = rule_memories
+    if rule_memories:
+        display_rule = "err2" if "err2" in rule_memories else next(iter(rule_memories))
+        settings["memory"] = dict(rule_memories[display_rule])
+
+    if "compatibility" in settings:
+        settings["compatibility_by_rule"] = {
+            rule: {
+                **settings["compatibility"],
+                "ca3_inputs_per_unit": memory["ca3_inputs_per_unit"],
+                "k_ca3": memory["k_ca3"],
+                "k_ca1": memory["k_ca1"],
+                "beta_ca3": memory["beta_ca3"],
+                "beta_ca1": memory["beta_ca1"],
+                "beta_output": settings["autoencoder"]["beta_output"],
+                "write_alpha": memory["alpha"],
+            }
+            for rule, memory in rule_memories.items()
+        }
+    return settings
+
+
 def apply_evolved_parameters(settings: dict, root_dir: Path) -> dict:
     """Update preprint settings with the best available evolved parameters.
 
@@ -192,12 +249,21 @@ def apply_evolved_parameters(settings: dict, root_dir: Path) -> dict:
             ae_best.get("beta_output", settings["autoencoder"]["beta_output"]))
 
     memory_defaults = settings.get("memory", {})
+    explicit_rule_memories = settings.get("memory_by_rule", {})
     rule_memories = {}
     compatibility_defaults = settings.get("compatibility")
     compatibility_by_rule = {}
 
     for rule in settings.get("plasticity_rules", []):
-        memory = {**memory_defaults, "plasticity_rule": rule}
+        # Prefer a rule-specific configuration written directly in the
+        # experiment file.  The JSON artifact, when present, remains the
+        # authoritative override.  This makes the figure scripts reproducible
+        # even if the evolution output directory is moved or archived.
+        memory = {
+            **memory_defaults,
+            **explicit_rule_memories.get(rule, {}),
+            "plasticity_rule": rule,
+        }
         best_path = root_dir / f"results/preprint/mtl_evolution/{rule}/best_parameters.json"
         if best_path.exists():
             best = json.loads(best_path.read_text())

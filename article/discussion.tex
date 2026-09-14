@@ -36,9 +36,10 @@ the decoder that gives its coordinates meaning; rapid CA3--CA1 learning then
 places a new, key-addressable experience within that basis. This resembles
 feature reuse after pretraining in deep networks \citep{yosinski2014}, but the
 analogy is functional rather than mechanistic. Likewise, the covariance matrix
-adaptation evolution strategy (CMA-ES) used to select autoencoder and
-rule-specific MTL operating points was an engineering procedure, not a proposed
-neural learning mechanism. The development-set fitness combined clean recall
+adaptation evolution strategy (CMA-ES) used in separate autoencoder and
+rule-specific MTL searches was an engineering procedure, not a proposed neural
+learning mechanism. The final MTL search retained the common reference
+autoencoder basis. Its development-set fitness combined clean recall
 with two selective-degradation scores, making parameter choice explicit but
 necessarily task dependent. In a biological circuit, the
 basis could reflect development, prior learning, and ongoing
@@ -73,7 +74,8 @@ changes, but also by whether the new population state remains interpretable at
 the output.
 
 Comparing the two update rules clarifies why the form of rapid plasticity
-matters. The instructive-driven rule produced stronger one-shot reconstruction and a larger
+matters. The two rules produced similar aligned one-shot reconstruction under
+the shared reference configuration. The instructive-driven rule showed a larger
 drop in tuning similarity at cue exchanges, followed by a more gradual recovery
 over the next laps. The error-driven rule performed a bounded residual
 correction and recovered most consecutive-lap stability by the following lap;
@@ -85,20 +87,22 @@ adds a computational mechanism
 for correcting under- and overexpressed CA1 components. The shared-reference
 panels reveal consequences of the update signal under matched conditions. The
 separate CMA-ES searches ask a complementary question and identify markedly
-different operating regimes: a nearly one-hot CA3-like key for the
-instructive-driven rule and a more distributed key with steeper CA1 recall for
-the error-driven rule. The sensitivity and load panels consequently compare
+different operating regimes: the instructive-driven solution uses broader
+EC--CA3 fan-in and sharper CA3 selection, whereas the error-driven solution
+uses narrower fan-in, a steeper CA1 recall nonlinearity, and a larger learning
+rate. The sensitivity and load panels consequently compare
 complete optimized regimes, not update equations in isolation. Keeping these
 two comparisons separate prevents a favorable parameterization from being
 mistaken for an intrinsic property of a plasticity rule.
 
 The local sensitivity analysis provides limited evidence that the selected
 behavior is not confined to one numerically exact point. Moderate perturbations
-often preserved much of the composite score, whereas reducing the CA3 gain and
-several extreme error-driven perturbations were strongly detrimental. This is
-not a structural-identifiability analysis: parameters were varied one at a
-time, only three development seeds were used, and integer rounding or clipping
-created plateaus. The selected values should therefore be read as reproducible
+often preserved much of the composite score, whereas extreme CA3 sparsity or
+gain perturbations were strongly detrimental. This is not a
+structural-identifiability analysis: parameters were varied one at a time and
+integer rounding or clipping created plateaus. Although the perturbations were
+evaluated on 10 seeds independent of the search, the selected values should
+therefore be read as reproducible
 working configurations within stated bounds, not uniquely inferred biological
 parameters.
 
@@ -144,10 +148,11 @@ These limitations suggest direct next tests. Model performance should depend
 more strongly on compatibility between an instructed CA1 state and its output
 basis than on the magnitude of CA1 change alone. Degraded-cue recall should
 track retrieval-key discriminability across sparsity-matched controls. The
-non-monotonic error-driven load curve further motivates factorial tests that
-hold total writes and cue-identity coverage fixed while varying the number of
-stored pairs; such controls could distinguish residual calibration from serial
-order and regularization effects. Experimentally, the broad prediction is
+steep load-dependent decline and intermediate-load error-driven advantage
+motivate factorial tests that hold total writes and cue-identity coverage fixed
+while varying the number of stored pairs; such controls could distinguish rule
+effects from serial order and regularization. Experimentally, the broad
+prediction is
 that learning-related CA1 reconfiguration can remain behaviorally useful when
 recipient populations preserve or acquire an appropriate readout, whereas an
 equally large but readout-incompatible change should impair retrieval.

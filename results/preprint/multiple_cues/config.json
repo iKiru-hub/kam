@@ -119,22 +119,22 @@
   "memory_parameters": {
     "base": {
       "ca3_dimension": 50,
-      "ca3_inputs_per_unit": 1,
-      "k_ca3": 1,
+      "ca3_inputs_per_unit": 36,
+      "k_ca3": 6,
       "k_ca1": 5,
-      "beta_ca3": 260.9558969497681,
-      "beta_ca1": 5.0,
-      "alpha": 0.00890362691879272,
+      "beta_ca3": 286.74731788635256,
+      "beta_ca1": 9.160055446624753,
+      "alpha": 0.033656690835952754,
       "plasticity_rule": "base"
     },
     "err2": {
       "ca3_dimension": 50,
-      "ca3_inputs_per_unit": 36,
-      "k_ca3": 4,
+      "ca3_inputs_per_unit": 9,
+      "k_ca3": 5,
       "k_ca1": 5,
-      "beta_ca3": 49.61400566101074,
-      "beta_ca1": 61.913451480865476,
-      "alpha": 0.027140734910964956,
+      "beta_ca3": 54.40001068115234,
+      "beta_ca1": 26.92844085693359,
+      "alpha": 0.08197491747140884,
       "plasticity_rule": "err2"
     }
   },
@@ -146,10 +146,11 @@
     ],
     "dimension": 50,
     "active": 5,
+    "stimulus_order": "shuffled",
     "autoencoder": {
       "latent_dimension": 50,
-      "beta_latent": 3.912370204925537,
-      "beta_output": 25.333004221320152,
+      "beta_latent": 25.0,
+      "beta_output": 25.0,
       "epochs": 256,
       "batch_size": 64,
       "learning_rate": 0.001

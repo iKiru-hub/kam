@@ -9,12 +9,24 @@
 - [x] ultimate evolution mtl
 - [ ] evolution plots
 - [x] parameters robustness
-- [x] multi-cue capacity check
-- [ ] plot 2 rerun and update
-- [ ] plot 3 rerun and update
+- [x] multi-cue capacity analysis
+- [x] plot 2 rerun and update
+- [x] plot 3 rerun and update
 - [ ] article update
 - [ ] article review
 - [ ] article rewrite
 - [ ] article review
 
+*the dataset should be improve for evolution**
+- [x] ultimate evolution ae
+- [x] ultimate evolution mtl
+- [ ] evolution plots
+- [x] parameters robustness
+- [x] multi-cue capacity analysis
+- [x] plot 2 rerun and update
+- [x] plot 3 rerun and update
+- [ ] article update
+- [ ] article review
+- [ ] article rewrite
+- [ ] article review
 
