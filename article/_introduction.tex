@@ -24,3 +24,25 @@ The relevance of BTSP thus lies both in the involvement in place cells formation
 Computational work additionally show how BTSP-like plasticity rules can manifest content-addressable storage dynamics \cite{wu2025}.
 The present study abstracts this pattern as an entorhinal IS used to update CA3-CA1 synapic weights; it does not propose an account of eligibility traces, dendritic plateau potentials, or other biophysical details of BTSP.
 
+Another property exhibited by CA1 activity is sensitivity to context.
+Shifts in environmental or cue configurations can affect local firing rates, field shapes, and the morphology of ensembles, producing phenomena such as rate and global remapping \cite{muller1987, leutgeb2005}.
+The direct entorhinal projections deliver spatial and nonspatial information that can be jointly determine these changes.
+In the model proposed in this work, distinct MEC and LEC-like input partitions offer a controlled way to represent those channels, aimed at testing pathwy-selective perturbation.
+
+Our main proposal adds a representational conditions to this circuit motif.
+If rapid plasticity at CA1 synapses encode patterns whicle the downdestream readout stays fixed, the pattern may retain information regarding the stimulus but being functionally useless if it falls outside the neural activity subspace or internal coordinates to which the readout decoder is tuned.
+Related constraints have been osberved outside the hippocampus.
+For instance, in brain-computer-interface experiments, motor-cortical perturbations that stayed within previous neural manifoldwere learned mroe efficiently than those necessitating activity information outside that manifold \cite{sadtler2014}.
+Addtionally, short-term adaptation could also take place in the form of re-activation of former cortical activity together with new behavioural evidence \cite{golub2018}.
+Homeostatic and stability dynamics at the population level can help preserving behavioural representation despite consistent changes in the subsets of involved neurons \cite{gallego2020}.
+Together, these findings suggests how established downstream mappings may constrain the recruitment and consolidation of new learned populations states.
+Here, we adopt the narrower term \emph{readout compatibility} to specify the property of the newly instructed CA1 state of remaining within the activity subspace that a learned output mapping can decode correctly.
+Readout compatibility is therefore considered a functional criteria, meanwhile manifold preservation is a possible process by which such correspondance could be maintained.
+
+In order to imprint prior latent structure in the direct EC connections, an EC-CA1-EC autoencoder is pre-trained before the application of plasticity to store new associations. 
+Particularly, this is a computational trick relying on backpropagation optimization applied to a separate simulation phase, that does not claim neurobiological resemblance.
+At an interpretation level, this pre-trained mapping is meant to encapsulate the accumulation of information through development, lifelong experiences, and relatively stable connections among entorhinal and hippocampal subfields \cite{mcclelland1995, chandra2025, wen2024}. 
+In deep learning, this is a common technique used for extracting principal input features early on, before the proper learning loop is started with a possibly different simulation setup \cite{yosinski2014}.
+Freezing the decoder, namely the CA1-EC weights, after pre-training turns the reconstruction goal into a task in which new CA1 assemblies promped by joint CA3 and EC inputs must remain decipherable by the readout, effectively leveraging and going beyond the learned encoder.
+Such paradigm could in theory be able to support stable decoding over ongoing experiences, although long-term memorization is not within the scope of this project.
+
