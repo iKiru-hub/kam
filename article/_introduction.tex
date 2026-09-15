@@ -44,5 +44,17 @@ Particularly, this is a computational trick relying on backpropagation optimizat
 At an interpretation level, this pre-trained mapping is meant to encapsulate the accumulation of information through development, lifelong experiences, and relatively stable connections among entorhinal and hippocampal subfields \cite{mcclelland1995, chandra2025, wen2024}. 
 In deep learning, this is a common technique used for extracting principal input features early on, before the proper learning loop is started with a possibly different simulation setup \cite{yosinski2014}.
 Freezing the decoder, namely the CA1-EC weights, after pre-training turns the reconstruction goal into a task in which new CA1 assemblies promped by joint CA3 and EC inputs must remain decipherable by the readout, effectively leveraging and going beyond the learned encoder.
-Such paradigm could in theory be able to support stable decoding over ongoing experiences, although long-term memorization is not within the scope of this project.
+Such paradigm could in theory be able to support stable decoding over ongoing experiences, although long-term memorization is not within the scope of this work.
+
+The model used here is deliberately minimal.
+An entorhinal layer EC follows two routes: the autoencoding loop with CA1-EC being the latent layer, and a longer path through CA3-CA1-EC.
+CA3 activity is effectively used as a retrival key used to modify the CA3-CA1 synapses with a BTSP-inspired learning paradigm, such to match the decodability performance achieved by the autoencoder pretraining.
+Two plasticity variants are used, an instructive-driven, based on a more direct synaptic overwrite, and a bounded error-rule, which instead used the difference between instructive and recalled CA1 activity.
+The simulations made intend to assess whether stimuli reconstruction depends on the compatibility of internal neural coordinates, whether shifts in cue-sequences induce reproducible CA1 states, what are the differential computational contributions of the two updates rules, and how they differ under
+matched conditions.
+Futher, it is tested how recall is affected by degraded input observation, and whether the number of distinct cue-pairs affect retrieval accuracy.
+Finally, the goal of the model is to propose structural and operational representational conditions and exposes their consequences in simplified settings, without claiming to follow strict biological constraints. 
+
+
+
 
