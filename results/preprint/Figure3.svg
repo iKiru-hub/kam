@@ -1263,12 +1263,7 @@
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:3.88056px;font-family:Sans;-inkscape-font-specification:'Sans, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;fill:#000000;stroke-width:0.2;stroke-miterlimit:4.1"
        x="117.94823"
        y="95.803696"
-       id="text199"><tspan
-         sodipodi:role="line"
-         id="tspan199"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:3.88056px;font-family:Sans;-inkscape-font-specification:'Sans, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.2"
-         x="117.94823"
-         y="95.803696">F</tspan></text><rect
+       id="text199">F</text><rect
        style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.238164;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4.1"
        id="rect198"
        width="4.2870593"

@@ -1,0 +1,48 @@
+\section{Results}
+
+\subsection{A minimal retrieval-key and instructed-CA1 architecture}
+
+The model architecture is composed of four layers, as illsutrated in Fig. \ref{fig:model}A.
+The entorhinal input $x_{\mathrm{EC}}$ projects through fixed sparse connections $W^{\mathrm{EC}\to\mathrm{CA3}}$ to a CA3 population which produce a retrieval key $x_{\mathrm{CA3}}$.
+The pre-trained encoder $W^{\mathrm{EC}\to\mathrm{CA1}}$ transform the same input into an instructive signal $\mathrm{IS}=W^{\mathrm{EC}\to\mathrm{CA1}}\cdot x_{\mathrm{EC}}$ that modifies CA1 states.
+Plastic CA3-CA1 connections pair the retrieval key with the IS, whereas the $W^{\mathrm{EC}\to\mathrm{CA1}}$ decoder is kept fixed.
+During the recall test, the EC input prompts the generation of the corresponding key through $W^{\mathrm{EC}\to\mathrm{CA3}}$, which is meant to re-active the CA1 cell assemblies corresponding to the latent representation of the associated enthorinal content; then the decoder computes the final readout.
+Such architecture introduces a separation between the process of retrievig learned associations and its expression in a pre-trained output basis.
+
+First, the two learning rules were evaluated with the same inputs and a shared configuration of reference parameters (Fig. \ref{fig:model}B).
+The instructive-drive rule relies on the outer-product of the IS and the CA1 state recalled from CA3 projections.
+The bounded error-driven rule instead uses the difference between CA1 and IS traces to both potentiate CA1 neurons for under-expressed components and depress them for over-expressed one.
+Consequently, both approaches abstraction of rapid instructed plasticity; potentiation under the former rule applies an overwriting of the instructed associations, while under the latter is implements a residual quantity; both approaches abstraction of rapid instructed plasticity.
+
+Track inputs combined a spatial MEC-like segment and a sensory LEC-like cue segment, as showed in Fig. \ref{fig:model}D.
+Two cue identities were placed at fixed position of a circular track and could change locations across trial blocks.
+For simulations testing robustenss to degradation, the model first learned clean laps; plasticity then was frozen while a constant fraction of either MEC or LEC input units was set to zero (Fig.\ref{fig:model}E).
+
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=\textwidth]{figure_1.png}
+    \caption{\textbf{Model architecture and simulation protocol.}
+    \textbf{(A)} EC input produces a fixed sparse CA3-like retrieval key
+    $x_{\mathrm{CA3}}$ and, through a pretrained encoder, an instructed CA1
+    state $x_{\mathrm{IS}}$.
+    Plastic CA3-CA1 weights store their association; a fixed pretrained CA1-EC decoder computes the final readout.
+    \textbf{(B)} Instructive-driven and bounded error-driven plasticity rules.
+    \textbf{(C)} Conceptual reconstruction-error trajectories over first and
+    repeated presentations; colors indicate pattern identity.
+    This panel is a schematic rather than a measured result.
+    \textbf{(D)} Circular track input composed of MEC-like spatial activity and sensory LEC-like cue activity.
+    \textbf{(E)} Selective degradation protocol.
+    Intact laps are stored before plasticity is frozen; a fraction of MEC-like or LEC-like units is then zeroed utilizing a mask kept fixed within a probe lap and resampled across different probes.}
+    \label{fig:model}
+\end{figure}
+
+\subsection{Readout compatibility constrains rapid associative storage}
+
+The first analysis concerned the compatibility of the instructed CA1 code and the learned frozen decoder (Fig.\ref{fig:compatibility}A).
+Twenty independently initialized autoencoders were pre-trained on a dataset of structured MEC-lEC patterns and then frozen.
+The ordering was shuffled, such that simulations retained their marginal spatial-cue organization without expressing any sequence information that might bias the latent learning.
+For each initialization, 28 held-out patterns were saved once under five conditions.
+In the aligned conditons, the IS stayed compatible with the coordinates of the decoder.
+In the fixed-permuation condition, the decoded remained the same while a non-identity permutation was applied to every IS.
+

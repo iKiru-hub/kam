@@ -346,8 +346,12 @@ Models stored 20 intact laps with cue assignment $[0,1]$. During frozen recall,
 a fixed random subset of eligible EC units was zeroed throughout a complete
 probe lap. Masks were sampled independently between probes. Dropped fractions
 were 0, 0.25, 0.50, 0.75, 0.90, and 1.00, with 12 masks per fraction and root
-seed. The Results report the 0.90 partial-degradation point; the curves continue
-to complete ablation for reference.
+seed. Because a modality contained 25 units and the implementation rounded
+$25q$ to an integer, the corresponding numbers removed were 0, 6, 12, 19, 22,
+and 25 units (effective fractions 0, 0.24, 0.48, 0.76, 0.88, and 1.00). The
+Results report the 22-of-25 (0.88) partial-degradation point; figure abscissae
+retain the requested fractions, and the curves continue to complete ablation
+for reference.
 LEC-like degradation operated on the final 25 input units; MEC-like degradation
 operated on the first 25.
 
@@ -439,8 +443,9 @@ A_{\mathrm{pair}}(M)=\frac{1}{M}
 \!\left[(\widehat a_i,\widehat b_i)=(a_i,b_i)\right].
 \label{eq:pair-capacity}
 \end{equation}
-The degraded condition independently removed 50\% of LEC units with four masks
-per stored pair; mask-level exact scores were averaged within pair and then
+The degraded condition independently requested removal of 50\% of LEC units;
+integer rounding removed 12 of 25 units (48\%) with four masks per stored pair.
+Mask-level exact scores were averaged within pair and then
 within seed. Independent decoding at two locations gives nominal chance
 $1/N_{\mathrm{cue}}^2=0.01$. Because the encoding basis was exposed to the
 complete cue vocabulary and the number of training experiences grows with

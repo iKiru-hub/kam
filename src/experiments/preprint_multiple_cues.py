@@ -62,7 +62,7 @@ from experiments.preprint_common import (  # noqa: E402
 # Main scientific choices
 # =============================================================================
 
-N_CUES = 8
+N_CUES = 10
 SEEDS = list(range(53001, 53011))  # holdout seeds, not evolution seeds
 RULES = ("base", "err2")
 RULE_LABELS = {"base": "Instructive-driven", "err2": "Error-driven"}
@@ -592,7 +592,7 @@ def plot_capacity(axis: plt.Axes, conditions: list[dict], levels: list[int]) -> 
     for rule in RULES:
         for metric, linestyle, label in (
             ("clean_pair_accuracy", "-", "clean"),
-            ("degraded_pair_accuracy", "--", f"{int(100 * LEC_DROP_FRACTION)}% LEC drop"),
+            ("degraded_pair_accuracy", "--", "12/25 (48%) LEC drop"),
         ):
             means, sems = [], []
             for capacity in levels:
@@ -614,7 +614,8 @@ def plot_preprint_capacity(output: Path, conditions: list[dict],
     """Save a compact manuscript panel linking capacity and degraded recall.
 
     Color identifies the plasticity rule. Open solid markers show clean recall;
-    filled dashed markers show the same memories after 50% LEC-unit dropout.
+    filled dashed markers show the same memories after 12-of-25 (48%) LEC-unit
+    dropout; the requested fraction is 0.50 and the unit count is rounded.
     The x-axis is kept linear so adjacent points differ by one stored pair.
     """
 
@@ -767,7 +768,7 @@ def build_plots(output: Path, conditions: list[dict], pair_rows: list[dict],
     images = plot_confusion(list(axes), pair_rows, pairs, maximum)
     colorbar = figure.colorbar(images[0], ax=axes.ravel().tolist(), shrink=0.8)
     colorbar.set_label("Recall probability")
-    figure.suptitle(f"B  Pair confusion at capacity {maximum} ({int(100 * LEC_DROP_FRACTION)}% LEC drop)")
+    figure.suptitle(f"B  Pair confusion at capacity {maximum} (12/25, 48% LEC drop)")
     save_plot(figure, output, "plot_multiple_cues_b_confusion")
 
     figure, axis = plt.subplots(figsize=(5.0, 3.5), constrained_layout=True)
@@ -844,6 +845,11 @@ def main() -> None:
         "rules": list(RULES),
         "laps_per_pair": laps_per_pair,
         "lec_drop_fraction": LEC_DROP_FRACTION,
+        "lec_drop_count": int(round(LEC_DROP_FRACTION * (settings["dimension"] // 2))),
+        "lec_drop_effective_fraction": (
+            int(round(LEC_DROP_FRACTION * (settings["dimension"] // 2)))
+            / (settings["dimension"] // 2)
+        ),
         "masks_per_pair": MASKS_PER_PAIR,
         "neutral_variance_threshold": NEUTRAL_VARIANCE_THRESHOLD,
         "mixed_second_component_ratio": MIXED_SECOND_COMPONENT_RATIO,

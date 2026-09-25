@@ -14,15 +14,16 @@ separates the selection of associative content from its expression in a
 pre-existing output basis.
 
 We first evaluated two plasticity rules under matched inputs and a shared
-reference parameter configuration
-(Fig.~\ref{fig:model}B). The instructive-driven rule writes an outer-product
-association gated by the IS without considering the current recalled state.
-The bounded error-driven rule instead potentiates CA3--CA1 synapses for underexpressed
-CA1 components and depresses them for overexpressed components. Repeated
-presentations therefore rewrite the instructed association under the instructive-driven
-rule but correct a residual under the error-driven rule. Both are abstract
-models of rapid instructed plasticity; neither implements the temporal
-eligibility trace or dendritic plateau dynamics of biological BTSP.
+reference parameter configuration (Fig.~\ref{fig:model}B). The instructive-driven
+rule writes an outer-product association between the instructed CA1 state and
+the CA3-like key without considering the current recalled state. The bounded
+error-driven rule instead potentiates CA3--CA1 synapses for underexpressed CA1
+components and depresses them for overexpressed components. Repeated
+presentations therefore rewrite the instructed association under the
+instructive-driven rule but correct a residual under the error-driven rule.
+Both are abstract models of rapid instructed plasticity; neither implements
+the temporal eligibility trace or dendritic plateau dynamics of biological
+BTSP.
 
 Track inputs combined a MEC-like spatial component with a LEC-like cue
 component (Fig.~\ref{fig:model}D). Two cue identities occurred at fixed
@@ -31,16 +32,16 @@ the model first stored intact laps; plasticity was then frozen while a fixed
 fraction of either the MEC-like or LEC-like input units was set to zero
 (Fig.~\ref{fig:model}E).
 
+
 \begin{figure}[!htbp]
     \centering
     \includegraphics[width=\textwidth]{figure_1.png}
     \caption{\textbf{Model architecture and simulation protocol.}
     \textbf{(A)} EC input produces a fixed sparse CA3-like retrieval key
     $x_{\mathrm{CA3}}$ and, through a pretrained encoder, an instructed CA1
-    state $x_{\mathrm{IS}}$. Plastic
-    CA3--CA1 weights store their association; a fixed pretrained CA1--EC
-    decoder reads out recall. \textbf{(B)} Instructive-driven and bounded
-    error-driven update rules.
+    state $x_{\mathrm{IS}}$. Plastic CA3--CA1 weights store their association;
+    a fixed pretrained CA1--EC decoder reads out recall. \textbf{(B)}
+    Instructive-driven and bounded error-driven update rules.
     \textbf{(C)} Conceptual reconstruction-error trajectories over first and
     repeated presentations; colors denote pattern identity. This panel is a
     schematic rather than a measured result. \textbf{(D)} Circular-track input
@@ -52,21 +53,18 @@ fraction of either the MEC-like or LEC-like input units was set to zero
     \label{fig:model}
 \end{figure}
 
+\FloatBarrier
+
 \subsection{Readout compatibility constrains rapid associative storage}
 
-We first isolated the relationship between an instructed CA1 code and its fixed
-output decoder (Fig.~\ref{fig:compatibility}A). Twenty independently
-initialized autoencoders were pretrained on structured MEC+LEC patterns and
-then frozen. Pattern order was shuffled, so this assay retained the marginal
-spatial--cue structure without presenting a traversed track sequence.
-For each initialization, 28 held-out patterns were stored once under five
-paired conditions. In the aligned condition, the IS remained in the
-coordinates learned by the decoder. In the fixed-permutation condition, the
-same non-identity permutation was applied to every IS while the decoder was
-left unchanged. In the matched-decoder condition, the corresponding decoder
-columns were permuted together with the IS. Random-content and no-plasticity
-conditions controlled for storing an incorrect association and for leaving the
-memory unwritten, respectively.
+We first isolated the relationship between an instructed CA1 code and its fixed output decoder (Fig.~\ref{fig:compatibility}A).
+Twenty independently initialized autoencoders were pretrained on structured MEC+LEC patterns and then frozen.
+Pattern order was shuffled, so this assay retained the marginal spatial--cue structure without presenting a traversed track sequence.
+For each initialization, 28 held-out patterns were stored once under five paired conditions.
+In the aligned condition, the IS remained in the coordinates learned by the decoder.
+In the fixed-permutation condition, the same non-identity permutation was applied to every IS while the decoder was left unchanged.
+In the matched-decoder condition, the corresponding decoder columns were permuted together with the IS.
+Random-content and no-plasticity conditions controlled for storing an incorrect association and for leaving the memory unwritten, respectively.
 
 Under the instructive-driven rule, aligned instructions produced a mean output--target
 cosine of 0.880 (95\% confidence interval [CI], 0.870--0.891), whereas a fixed
@@ -198,22 +196,24 @@ producing a mixture of stable and context-dependent recalled CA1 activity.
 We then asked whether the stored association remained usable when one EC input
 modality was selectively corrupted (Fig.~\ref{fig:degradation}). Each model
 stored 20 intact laps with a fixed cue arrangement. Plasticity was frozen, and
-independent masks removed 0, 25, 50, 75, 90, or 100\% of eligible units. Each
-fraction used 12 masks per seed and 20 paired root seeds; the numerical summary
-below focuses on 90\% partial degradation. The principal control
+independent masks requested removal of 0, 25, 50, 75, 90, or 100\% of eligible
+units. Because each modality contained 25 units, the implemented fractions
+were 0, 24, 48, 76, 88, and 100\%, respectively. Each fraction used 12 masks
+per seed and 20 paired root seeds; the numerical summary below focuses on
+22-of-25 (88\%) partial degradation. The principal control
 replaced the normal sparse EC--CA3 map with a dense common map in which every
 CA3-like unit received the same average EC input. This manipulation removes
 item-specific key structure and is therefore a degenerate-key, not a
 sparsity-matched, control.
 
 Under LEC-like degradation, cue identity accuracy for the normal key declined
-from 1.000 to 0.871 at 90\% dropout under the instructive-driven rule (95\% CI
-at 90\%, 0.803--0.938) and from 1.000 to 0.829 under the error-driven
+from 1.000 to 0.871 at 88\% dropout under the instructive-driven rule (95\% CI
+at 88\%, 0.803--0.938) and from 1.000 to 0.829 under the error-driven
 rule (0.766--0.893;
-Fig.~\ref{fig:degradation}A). The corresponding 90\%-dropout changes were
+Fig.~\ref{fig:degradation}A). The corresponding 88\%-dropout changes were
 $-0.129$ ($-0.197$ to $-0.062$) and $-0.171$ ($-0.234$ to $-0.107$).
 MEC output--target cosine remained near its instructive-driven baseline (0.736 at
-baseline and 0.723 at 90\% dropout; change $-0.013$, $-0.029$ to
+baseline and 0.723 at 88\% dropout; change $-0.013$, $-0.029$ to
 $0.003$), whereas it declined from 0.904 to 0.780 under the error-driven rule
 (change $-0.125$,
 $-0.136$ to $-0.113$; Fig.~\ref{fig:degradation}B). Thus spatial output
@@ -222,7 +222,7 @@ strictly invariant under the error-driven rule.
 
 MEC-like degradation produced the complementary loss of position information.
 Nearest-position accuracy declined from 0.163 to 0.070 under the
-instructive-driven rule (90\%-dropout
+instructive-driven rule (88\%-dropout
 change $-0.093$, 95\% CI $-0.106$ to $-0.079$) and from 0.666 to 0.069 under
 the error-driven rule (change $-0.597$, $-0.636$ to $-0.557$; chance $=0.02$;
 Fig.~\ref{fig:degradation}C). Cue identity remained 1.000 for every seed and
@@ -288,7 +288,7 @@ We next tested the selected configurations on 10 held-out seeds while
 increasing associative load from 1 to all 90 non-repeating ordered pairs drawn
 from 10 cue identities (Fig.~\ref{fig:degradation}F). Every pair was presented
 three times, and exact two-cue recall was measured from clean probes and after
-50\% LEC-unit dropout. Instructive-driven clean recall declined from
+12-of-25 (48\%) LEC-unit dropout. Instructive-driven clean recall declined from
 $1.000\pm0.000$ at one pair to $0.210\pm0.043$ at 10 pairs and
 $0.138\pm0.016$ at 90 pairs (mean $\pm$ SEM); corresponding degraded recall
 was $1.000\pm0.000$, $0.035\pm0.012$, and $0.051\pm0.006$. Error-driven clean
@@ -312,6 +312,8 @@ size rather than universal capacity estimates.
     \textbf{(C)} MEC nearest-position accuracy during MEC-only degradation.
     \textbf{(D)} Cue-identity accuracy during MEC-only degradation. Curves show
     mean $\pm$ SEM across 20 seeds after averaging 12 masks within each seed.
+    Abscissae show requested fractions; rounding to whole units produced the
+    effective fractions reported in Methods.
     Blue denotes the normal sparse CA3-like retrieval map; green denotes the
     dense common-key control, which collapses item-specific key structure and
     is not sparsity matched. Dotted horizontal lines denote chance accuracy
@@ -324,7 +326,7 @@ size rather than universal capacity estimates.
     deviation. \textbf{(F)} Exact recall of
     ordered cue pairs as the number stored increased from 1 to 90. Blue denotes
     the instructive-driven rule and red the error-driven rule; open solid curves use intact probes and filled dashed
-    curves use 50\% LEC dropout. Points show mean $\pm$ SEM across 10 held-out
+    curves use 12-of-25 (48\%) LEC dropout. Points show mean $\pm$ SEM across 10 held-out
     seeds, and the dotted line marks chance ($1/100$). Panels E and F use
     separately evolved rule-specific configurations and therefore compare
     operating regimes, whereas panels A--D use the shared reference

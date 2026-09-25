@@ -1,5 +1,5 @@
 \section{Introduction}
-% --
+
 The hippocampal formation is commonly modeled as a system capable of rapidly encoding conjunctive representations of individual episodes and retrieving them from partial cues.
 In hippocampal-indexing and complementary-learning-systems theories, this role is formalized as rapid storage of episodic representations alongside slower cortical learning \citep{teyler1986,mcclelland1995}.
 An effective memory system must therefore distinguish related episodes, select or reconstruct an appropriate stored state, and express the resulting representation in a form usable by downstream circuits.
@@ -7,7 +7,6 @@ The first requirement is central to theories of pattern separation, whereas the 
 Here we focus on the third: the representational coordinates in which retrieved content is expressed.
 This motivates a view of CA1 not merely as a relay or container of individual memories, but as an adaptive interface that organizes successive experiences within a structured neural space.
 
-% --
 The anatomy of the hippocampal formation suggests a distribution of computational roles across its subfields.
 Entorhinal cortex (EC) provides major cortical input to the hippocampus.
 Medial EC (MEC) is often associated with path integration, spatial metrics, and environmental geometry, whereas lateral EC (LEC) is more strongly associated with local sensory, object, and event-related information.
@@ -15,37 +14,42 @@ However, both regions contain mixtures of spatial and nonspatial signals, and th
 The canonical trisynaptic circuit conveys entorhinal layer II input through dentate gyrus and CA3 to CA1, whereas entorhinal layer III provides a direct temporoammonic projection to CA1.
 Autoassociative models assign recurrent CA3 circuitry a central role in content-addressable retrieval \citep{marr1971}.
 Consistent with this view, selective disruption of CA3 NMDA-receptor function impairs recall from partial cues, and CA3 and CA1 ensembles can exhibit regionally distinct responses to environmental change \citep{nakazawa2002,leutgeb2004}.
-% More recent models develop recurrent CA3 dynamics and spatially organized associative scaffolds \citep{li2024,chandra2025}.
 These accounts provide mechanisms by which a stored activity pattern could be selected or completed, but they do not by themselves specify the representational coordinates in which the resulting activity should be expressed at hippocampal output.
 
-% --
 CA1 representations can form and reorganize rapidly.
 Behavioral-timescale synaptic plasticity (BTSP) can create a place field after a single dendritic plateau event and can bidirectionally reshape an existing field according to its relation to the instructive event \citep{bittner2017,milstein2021}.
 EC layer 3 activity has been implicated as an instructive or teaching-related signal for learning-dependent changes in CA1 population activity \citep{grienberger2022}.
 Recent experiments and models further connect BTSP-like dynamics to trial-by-trial field shifts and the stabilization of task-relevant spatial codes \citep{madar2025,vaidya2025}.
 BTSP is therefore potentially relevant not only to the formation of isolated place fields but also to the rapid updating of spatial representations when cues or task contingencies change.
 Computational work additionally shows that BTSP-like rules can support rapid content-addressable storage \citep{wu2025}.
-The present study abstracts this motif as an EC-related instructive signal that modifies CA3–CA1 synaptic weights; it does not model the temporal eligibility trace, dendritic plateau potential, or molecular mechanisms of biological BTSP.
+The present study abstracts this motif as an EC-related instructive signal that modifies CA3--CA1 synaptic weights; it does not model the temporal eligibility trace, dendritic plateau potential, or molecular mechanisms of biological BTSP.
 
-% --
 CA1 activity is also context sensitive.
 Changes in environmental or cue configuration can alter firing rates, field locations, and the active ensemble, producing phenomena commonly described as rate remapping and global remapping \citep{muller1987,leutgeb2005}.
 Direct entorhinal input provides a route by which spatial and nonspatial variables can jointly shape these changes.
 In the model below, separate MEC-like and LEC-like input partitions provide a controlled way to manipulate those variables.
 This is a modeling abstraction used to test pathway-selective perturbations, not a claim that biological MEC and LEC carry pure or independent information channels.
 
-% --
 Our central proposal adds a representational constraint to this circuit motif.
 If rapid plasticity writes a CA1 pattern while the downstream readout remains fixed, the pattern may retain information about an episode yet become functionally unusable if it falls outside the activity subspace or coordinate system to which the readout is tuned.
 Related constraints have been demonstrated outside the hippocampus.
-In brain–computer-interface experiments, motor-cortical perturbations that remained within a pre-existing neural manifold were learned more readily than perturbations requiring activity outside that manifold \citep{sadtler2014}; short-term adaptation could also occur by reassociating an established cortical activity repertoire with new behavioral outputs \citep{golub2018}.
+In brain--computer-interface experiments, motor-cortical perturbations that remained within a pre-existing neural manifold were learned more readily than perturbations requiring activity outside that manifold \citep{sadtler2014}; short-term adaptation could also occur by reassociating an established cortical activity repertoire with new behavioral outputs \citep{golub2018}.
 Stable population-level dynamics can preserve behavioral representations despite substantial changes in the participation of individual neurons \citep{gallego2020}.
 These findings motivate the possibility that established downstream mappings constrain which newly learned population states can be used effectively.
 We use the narrower term \emph{readout compatibility} for the requirement that a newly instructed CA1 state remain within the subset of population activity space that an established output mapping can interpret correctly.
 Readout compatibility is therefore a functional criterion, whereas manifold preservation is one possible geometric mechanism by which compatibility could be maintained.
 
-% --
-To instantiate prior structure, an EC--CA1--EC autoencoder is pretrained before new associations are stored. This is a computational device, not a claim that CA1 is biologically optimized by backpropagation in a separate phase. Biologically, the pretrained mapping is intended as an abstraction of structure accumulated through development, prior experience, and relatively stable connectivity between entorhinal and hippocampal circuits \citep{mcclelland1995,chandra2025,wen2024}. In deep learning, pretraining can play an analogous engineering role by establishing reusable features before rapid adaptation, although the mechanisms, objectives, and substrates differ \citep{yosinski2014}. Freezing the decoder after pretraining turns compatibility into an explicit assay: a new CA1 state must remain legible to the established readout rather than being rescued by encoder--decoder co-adaptation. Such a relation could, in principle, support stable decoding across successive experiences, but long-term stability is not tested here.
+To instantiate prior structure, an EC--CA1--EC autoencoder is pretrained before new associations are stored.
+This is a computational device, not a claim that CA1 is biologically optimized by backpropagation in a separate phase.
+Biologically, the pretrained mapping is intended as an abstraction of structure accumulated through development, prior experience, and relatively stable connectivity between entorhinal and hippocampal circuits \citep{mcclelland1995,chandra2025,wen2024}.
+In deep learning, pretraining can play an analogous engineering role by establishing reusable features before rapid adaptation, although the mechanisms, objectives, and substrates differ \citep{yosinski2014}.
+Freezing the decoder after pretraining turns compatibility into an explicit assay: a new CA1 state must remain legible to the established readout rather than being rescued by encoder--decoder co-adaptation.
+Such a relation could, in principle, support stable decoding across successive experiences, but long-term stability is not tested here.
 
-% --
-We study this idea in a deliberately minimal model. EC input is transformed into two representations: a discriminable CA3-like retrieval key and a pretrained instructed CA1 target state. Plastic CA3--CA1 synapses associate the key with that target state, and a frozen CA1--EC decoder reconstructs the recalled representation. We compare an instructive-driven rule with a bounded error-driven rule that corrects the discrepancy between instructed and recalled CA1 activity. The simulations ask whether accurate reconstruction depends on coordinate compatibility, whether cue-sequence changes induce reproducible CA1 reconfiguration, and how the two update rules differ under matched conditions and near separately selected operating points. We further test how recall changes when MEC-like or LEC-like EC input is selectively degraded, and how exact pattern-recall accuracy changes as more ordered cue pairs are stored. The resulting claims are constructive and conditional: the model proposes a representational principle and exposes its consequences, but does not establish that biological CA3 or CA1 implements the exact architecture, pretraining procedure, or synaptic rules used here.
+We study this idea in a deliberately minimal model.
+EC input is transformed into two representations: a discriminable CA3-like retrieval key and a pretrained instructed CA1 target state.
+Plastic CA3--CA1 synapses associate the key with that target state, and a frozen CA1--EC decoder reconstructs the recalled representation.
+We compare an instructive-driven rule with a bounded error-driven rule that corrects the discrepancy between instructed and recalled CA1 activity.
+The simulations ask whether accurate reconstruction depends on coordinate compatibility, whether cue-sequence changes induce reproducible CA1 reconfiguration, and how the two update rules differ under matched conditions and near separately selected operating points.
+We further test how recall changes when MEC-like or LEC-like EC input is selectively degraded, and how exact pattern-recall accuracy changes as more ordered cue pairs are stored.
+The resulting claims are constructive and conditional: the model proposes a representational principle and exposes its consequences, but does not establish that biological CA3 or CA1 implements the exact architecture, pretraining procedure, or synaptic rules used here.

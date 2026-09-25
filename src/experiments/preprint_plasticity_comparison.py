@@ -9,8 +9,8 @@ The comparison deliberately focuses on four pre-registered-style contrasts:
 1. Figure 2A: aligned minus fixed-permutation reconstruction cosine;
 2. Figure 2B: tuning similarity at swap transitions minus matched no-swap
    transitions;
-3. Figure 3A: cue accuracy after 90% LEC degradation; and
-4. Figure 3C: position accuracy after 90% MEC degradation.
+3. Figure 3A: cue accuracy after 22-of-25 (88%) LEC degradation; and
+4. Figure 3C: position accuracy after 22-of-25 (88%) MEC degradation.
 
 Each line joins the two rules for one shared root seed.  Thus the plot shows
 rule effects within identical encoders, EC inputs, CA3 wiring, and masks.
@@ -83,7 +83,7 @@ def figure_3_metrics(arrays: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
     fractions = np.asarray(arrays["fractions"], dtype=float)
     matches = np.flatnonzero(np.isclose(fractions, 0.90))
     if len(matches) != 1:
-        raise ValueError("Figure 3 arrays must contain exactly one 90% degradation level.")
+        raise ValueError("Figure 3 arrays must contain exactly one requested 0.90 degradation level.")
     partial = int(matches[0])
     # Mean masks within seed before any comparison between rules.
     return {
@@ -148,8 +148,8 @@ def main() -> None:
     labels = (
         ("compatibility_cost", "Readout compatibility", "Aligned − permuted cosine"),
         ("cue_swap_delta", "Cue-swap reconfiguration", "Swap − no-swap tuning similarity"),
-        ("lec_cue_accuracy_90", "LEC degradation", "Cue accuracy at 90% loss"),
-        ("mec_position_accuracy_90", "MEC degradation", "Position accuracy at 90% loss"),
+        ("lec_cue_accuracy_90", "LEC degradation", "Cue accuracy at 22/25 (88%) loss"),
+        ("mec_position_accuracy_90", "MEC degradation", "Position accuracy at 22/25 (88%) loss"),
     )
     figure, axes = plt.subplots(2, 2, figsize=(9.5, 6.8), constrained_layout=True)
     for axis, (metric, title, ylabel) in zip(axes.flat, labels):

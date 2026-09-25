@@ -111,6 +111,8 @@
   ],
   "laps_per_pair": 3,
   "lec_drop_fraction": 0.5,
+  "lec_drop_count": 12,
+  "lec_drop_effective_fraction": 0.48,
   "masks_per_pair": 4,
   "neutral_variance_threshold": 0.001,
   "mixed_second_component_ratio": 0.5,
