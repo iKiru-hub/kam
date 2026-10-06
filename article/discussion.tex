@@ -1,173 +1,138 @@
 \section{Discussion}
 
-The central result is a representational constraint rather than a new claim
-about hippocampal capacity. In this minimal architecture, a CA3-like retrieval
-key selects associative content, plastic CA3--CA1 weights express that content
-as a CA1 state, and a fixed decoder determines whether the state remains usable
-at the output. A coordinate permutation preserves the instructed vector's
-values yet disrupts reconstruction when the decoder is not transformed with
-it. The matched-decoder rescue makes the logic exact: rapid plasticity must
-preserve, or co-adapt with, the representational coordinates assumed by
-recipient circuits. This motivates viewing CA1 not only as a locus of
-experience-dependent activity, but also as an adaptive interface that places
-retrieved content within a structured neural space. Such a space could allow
-successive experiences to remain decodable even while individual fields and
-participating neurons change.
+This study isolates a constraint on rapid associative learning: information
+stored in a population state must remain accessible to the circuit that reads
+it. A fixed permutation preserved the values of the instructed CA1 vector
+but impaired reconstruction by an unchanged decoder. Transforming the decoder
+with the same permutation restored performance. This rescue follows from the
+model's coordinate symmetry, rather than providing an independent empirical
+discovery. Its value is to separate an incompatible readout from degradation
+of the target representation. The additional track, degradation, and load
+assays show how associative learning operates within the compatible basis,
+and where its performance fails.
 
-This proposal complements rather than replaces existing accounts of
-hippocampal memory. Autoassociative CA3 theories explain how a stored state can
-be selected from a partial cue, whereas BTSP models explain how temporally broad
-instructive events can rapidly alter CA1 synapses
-\citep{nakazawa2002,bittner2017,wu2025}. The present model abstracts selection
-as a non-recurrent CA3-like key and asks what must additionally hold when the
-selected state is expressed at hippocampal output. The relationship to
-neural-manifold work is conceptual: those studies concern motor cortical
-learning, not hippocampal memory, but similarly show that an unchanged readout
-assigns meaning only to particular population coordinates
-\citep{sadtler2014,golub2018}. Readout compatibility is therefore a general
-systems constraint instantiated here in a hippocampal circuit motif. The
-simulations do not test retention across days or years; long-term decodability
-is a hypothesis about what preserving this relation might enable, not an
-observed outcome.
+The contribution is therefore not the introduction of structured hippocampal
+representations or of a learning role for CA1. Earlier models assign the
+direct EC--CA1 pathway a role in learning shared statistical structure
+\citep{schapiro2017}, and scaffold-based theories use pre-existing retrieval
+states to organize new associations \citep{chandra2025}. Our model makes a
+related but narrower distinction between retrieval-key construction,
+CA3--CA1 association, and output decoding. It removes recurrent retrieval
+dynamics to expose the relation between the latter two operations. This
+simplification allows a controlled compatibility assay, but precludes
+claims that the architecture accounts for the broader episodic or spatial
+capacities of those models.
 
-Pretraining and rapid plasticity have distinct computational roles in this
-proposal. Pretraining establishes a sparse representational basis together with
-the decoder that gives its coordinates meaning; rapid CA3--CA1 learning then
-places a new, key-addressable experience within that basis. This resembles
-feature reuse after pretraining in deep networks \citep{yosinski2014}, but the
-analogy is functional rather than mechanistic. Likewise, the covariance matrix
-adaptation evolution strategy (CMA-ES) used in separate autoencoder and
-rule-specific MTL searches was an engineering procedure, not a proposed neural
-learning mechanism. The final MTL search retained the common reference
-autoencoder basis. Its development-set fitness combined clean recall
-with two selective-degradation scores, making parameter choice explicit but
-necessarily task dependent. In a biological circuit, the
-basis could reflect development, prior learning, and ongoing
-entorhinal--hippocampal organization rather than a separate optimization phase.
-The frozen decoder is an assay of compatibility, not a claim that biological
-recipient pathways are immutable. The broader prediction is that changes in a
-CA1 code and its downstream readouts must remain coordinated.
+Pretraining also sets the scope of generalization. In the track assays the
+autoencoder was exposed to the same generated lap banks later used for
+associative storage. Novelty therefore resides in the CA3--CA1 associations,
+not in learning an unseen input distribution. The circuit additionally omits
+dentate gyrus, explicit inhibition, and consolidation; these omissions make it
+an assay of the proposed constraint rather than a comprehensive hippocampal
+model.
 
-The cue-track simulations connect readout compatibility to context-dependent
-reconfiguration. Exchanging cue identities produced abrupt changes in recalled
-CA1 tuning under both plasticity rules, whereas matched no-swap controls
-remained stable at the same lap boundaries. Event alignment showed that most
-of the change occurred on the first exchanged-cue lap and that consecutive-lap
-similarity largely recovered on the next lap. Population-map similarity formed
-alternating blocks: representations were similar within a cue assignment and
-again when that assignment recurred, rather than drifting monotonically across
-the experiment. After learning, both rules produced continuous mixtures of
-spatially stable and cue-modulated units, with broad unit-level endpoint
-similarities. This behavior is qualitatively consistent with cue-sensitive
-field and rate changes and with evidence that EC-directed BTSP can form, shift,
-and stabilize CA1 fields around behaviorally relevant features
-\citep{leutgeb2005,grienberger2022,madar2025,vaidya2025}. On this
-interpretation, instructed plasticity acts as an update operation on a spatial
-cognitive map: it can insert, weaken, or reposition fields as relevant cues
-change. In the present two-context task, the block structure is better
-described as cue-dependent re-expression and updating than as the formation of
-an unconstrained new map at every transition. The simulations are not a
-quantitative model of biological remapping, however, and the unit distributions
-were not compared with recorded field statistics. Their narrower implication
-is that reconfiguration should be evaluated not only by how much CA1 activity
-changes, but also by whether the new population state remains interpretable at
-the output.
+Compatibility also differs from representational invariance. A code need
+not remain unchanged if its variations preserve the output required by a
+task, or if downstream weights adapt appropriately. Motor-cortical studies
+demonstrate constraints imposed by an existing activity repertoire
+\citep{sadtler2014,golub2018}; stable latent dynamics further distinguish
+population-level structure from fixed decoding of individual recorded
+neurons \citep{gallego2020}. Models of self-healing readouts offer a
+complementary solution in which downstream plasticity tracks changes in the
+input code \citep{rule2022}. Here the decoder is deliberately frozen.
+Accordingly, the simulations establish the cost of a mismatch under a fixed
+readout, not the necessity of preserving CA1 coordinates when recipient
+circuits are free to adapt. Long-term stability and representational drift
+remain outside the tested regime.
 
-Comparing the two update rules clarifies why the form of rapid plasticity
-matters. The two rules produced similar aligned one-shot reconstruction under
-the shared reference configuration. The instructive-driven rule showed a larger
-drop in tuning similarity at cue exchanges, followed by a more gradual recovery
-over the next laps. The error-driven rule performed a bounded residual
-correction and recovered most consecutive-lap stability by the following lap;
-after repeated track experience it also produced greater spatial stability and
-much higher clean position accuracy. These
-differences should not be reduced to a single ranking. The instructive-driven
-rule is closer in spirit to an instructed write, whereas the error-driven rule
-adds a computational mechanism
-for correcting under- and overexpressed CA1 components. The shared-reference
-panels reveal consequences of the update signal under matched conditions. The
-separate CMA-ES searches ask a complementary question and identify markedly
-different operating regimes: the instructive-driven solution uses broader
-EC--CA3 fan-in and sharper CA3 selection, whereas the error-driven solution
-uses narrower fan-in, a steeper CA1 recall nonlinearity, and a larger learning
-rate. The sensitivity and load panels consequently compare
-complete optimized regimes, not update equations in isolation. Keeping these
-two comparisons separate prevents a favorable parameterization from being
-mistaken for an intrinsic property of a plasticity rule.
+The two plasticity rules implement different computational uses of an
+instruction. The instructive-driven rule updates an association without
+comparing the target with current recall; the error-driven rule corrects
+under- and overexpressed CA1 components through bounded synaptic changes.
+Both yielded similar aligned one-shot reconstruction under the reference
+configuration, but repeated error-driven learning produced higher clean
+position accuracy and greater cross-context spatial stability. These results
+show that matching the target basis does not guarantee identical learning
+dynamics or equally discriminable outputs. Although motivated by rapid
+instructed plasticity \citep{bittner2017,milstein2021,wu2025}, neither rule
+implements a temporal eligibility trace or a dendritic plateau. In
+particular, the signed target--recall discrepancy in the error-driven rule
+is a computational assumption, not an experimentally identified CA1 error
+signal. Evidence for entorhinal teaching signals and nonspatial BTSP-like
+field formation supports the motif, but not this exact implementation
+\citep{grienberger2022,dorian2026a}.
 
-The local sensitivity analysis provides limited evidence that the selected
-behavior is not confined to one numerically exact point. Moderate perturbations
-often preserved much of the composite score, whereas extreme CA3 sparsity or
-gain perturbations were strongly detrimental. This is not a
-structural-identifiability analysis: parameters were varied one at a time and
-integer rounding or clipping created plateaus. Although the perturbations were
-evaluated on 10 seeds independent of the search, the selected values should
-therefore be read as reproducible
-working configurations within stated bounds, not uniquely inferred biological
-parameters.
+The cue-track results reveal reproducible context dependence rather than
+unconstrained creation of a new map at each transition. Population maps were
+similar within a cue assignment and when that assignment recurred.
+Consecutive-lap tuning similarity fell at exchanges and recovered on the
+following lap, while individual units showed continuous mixtures of spatial
+stability and cue modulation. These features are qualitatively related to
+cue-sensitive changes in hippocampal firing \citep{muller1987,leutgeb2005}
+and to learning-related CA1 field reorganization
+\citep{grienberger2022,madar2025,vaidya2025}. However, the transition assay
+changes both the training context and the context used for the recall probe.
+The boundary discontinuity therefore combines changes in the learned weights
+with the immediate effect of presenting a different retrieval key. Pausing
+plasticity during each probe prevents further learning during measurement;
+it does not isolate the contribution of plasticity to the transition.
+Fixed-context probes across training, together with context switches at fixed
+weights, would be needed to distinguish learning-driven reorganization from
+cue-dependent re-expression. Nor were the simulated unit distributions fitted
+to biological field statistics or used to classify rate and global remapping.
 
-The degradation experiments distinguish robustness to partial input from
-mechanistic pattern completion. With the normal key map, recall remained
-informative after substantial input loss, and selective removal of MEC-like or
-LEC-like activity preferentially affected the corresponding readout. Yet the
-CA3-like population has no recurrent connections or attractor settling.
-Robustness arises from a distributed feedforward input-to-key map followed by a
-learned key-to-content association. Degraded-cue recall alone therefore does
-not identify a recurrent completion mechanism. A biological claim about CA3
-pattern completion would require explicit recurrent dynamics and comparison
-with interventions that alter those dynamics \citep{nakazawa2002,li2024}.
+The degradation experiments likewise support a specific interpretation.
+Partial input loss left useful output information under the normal key map,
+and corruption of one input partition preferentially affected its associated
+readout. Yet there is no recurrent CA3 network or attractor settling:
+robustness arises from a distributed feedforward input-to-key transformation
+and the learned key-to-content mapping. Degraded-input reconstruction alone
+cannot identify a recurrent completion mechanism
+\citep{nakazawa2002,li2024}. The dense common-key control makes every CA3-like
+unit receive the same EC average and eliminates item-specific keys. Its
+failure establishes the importance of distinguishable keys in this circuit,
+not a unique advantage of sparse connectivity. Sparsity-matched and
+dimensionality-matched controls would be required for that stronger claim.
 
-The dense common-key control also has a deliberately narrow interpretation. It
-forces all CA3-like units to receive the same EC average and thus destroys
-item-specific key structure while changing connection density and sparsity. Its
-failure shows that a non-specific common key cannot support these associations;
-it does not show that the selected sparse wiring is uniquely necessary or
-optimal. Likewise, the MEC/LEC dissociation is partly expected from the
-constructed input and readout partitions. Its value is as an internal
-validation that the shared CA1 basis can retain access to an intact component,
-not as evidence for strict anatomical modularity. Sparsity-matched controls
-would be needed to separate the effects of connection density, dimensionality,
-and key discriminability.
+The constructed MEC/LEC partition also limits anatomical interpretation.
+Each input half has a designated information type and corresponding readout,
+so part of the observed dissociation is expected by design. Biological medial
+and lateral EC contain mixed signals, and both can contribute to nonspatial
+CA1 learning \citep{henriksen2010,deshmukh2011,dorian2026a}. Moreover, the
+retrieval query and reconstruction target are derived from the same EC
+pattern. Removing input units tests recovery of missing components of a
+previously experienced pattern; it does not test retrieval of an independently
+specified episode feature absent from the query. Such a heteroassociative
+task would provide a stronger test of cue-to-content retrieval.
 
-Several additional limitations define the scope of the work. The model omits
-dentate gyrus, recurrent CA3 dynamics, attractor competition, inhibition,
-consolidation, and explicit long-term drift of neurons or readouts. MEC and LEC
-are simplified input halves despite mixed selectivity in both regions. The CA1
-basis is obtained from a shallow autoencoder rather than a biologically
-specified developmental process, and the plasticity equations are bounded
-abstractions rather than temporal or molecular models of BTSP. The
-compatibility manipulation is deliberately synthetic, and its matched-decoder
-rescue is an equivariance control rather than independent biological evidence.
-For the track assays, the autoencoder was pretrained on the same generated lap
-bank later used for associative storage, so novelty resides in the CA3--CA1
-associations rather than in the input distribution or representational basis.
-Moreover, the EC query used to generate the retrieval key contains the features
-that are reconstructed at the output; degradation makes this query partial but
-does not test recovery of wholly unobserved episode content.
-Finally, the principal track assay contains only two cue identities. The
-additional 10-cue load experiment exposes interference across as many as 90
-ordered pairs, but it does not yield a universal capacity: the encoding basis
-was pretrained on the full cue vocabulary, the amount of training increased
-with load, and only one cue-overlap structure and population size were tested.
+The optimization-informed analyses extend, but do not replace, the matched
+rule comparison. Separate searches selected markedly different fan-in,
+sparsity, gain, and learning-rate combinations. Their sensitivity and load
+curves therefore compare complete operating regimes, not update equations
+in isolation. Held-out perturbations indicate that useful performance extends
+beyond one exact parameter vector, while large changes can be detrimental.
+One-at-a-time perturbations do not establish global robustness or identify
+unique biological parameters. Similarly, the 90-pair load assay measures an
+empirical interference profile. The autoencoder already represents the full
+cue vocabulary, total training increases with load, and the 10-cue templates
+are sparser than those in the two-cue assay. Exact-pair reconstruction should
+not be interpreted as evidence for learning temporal associations between
+the cues or as a universal storage-capacity estimate.
 
-These limitations suggest direct next tests. Model performance should depend
-more strongly on compatibility between an instructed CA1 state and its output
-basis than on the magnitude of CA1 change alone. Degraded-cue recall should
-track retrieval-key discriminability across sparsity-matched controls. The
-steep load-dependent decline and intermediate-load error-driven advantage
-motivate factorial tests that hold total writes and cue-identity coverage fixed
-while varying the number of stored pairs; such controls could distinguish rule
-effects from serial order and regularization. Experimentally, the broad
-prediction is
-that learning-related CA1 reconfiguration can remain behaviorally useful when
-recipient populations preserve or acquire an appropriate readout, whereas an
-equally large but readout-incompatible change should impair retrieval.
+Several tests follow directly from these limitations. First, varying target
+coordinates and decoder adaptation independently could compare preservation
+of a fixed readout with compensatory downstream learning. Second, crossing
+probe context with learning history would separate immediate key-dependent
+responses from lasting changes in CA1 weights. Third, load experiments that
+hold total writes, cue coverage, and template sparsity fixed would clarify
+the sources of interference. More broadly, biological tests should compare
+the behavioral consequences of CA1 changes with their effects on recipient
+populations, rather than treating the magnitude of CA1 change alone as a
+measure of memory disruption.
 
-Within these bounds, the model offers a compact proposal linking a previously
-established representational basis, rapid instructed plasticity,
-retrieval-key-based selection, and downstream readability. CA1 activity can
-change as a cognitive map is updated yet remain useful if retrieved content is
-expressed in coordinates that recipient circuits can interpret. Readout
-compatibility is therefore a useful axis for evaluating models of rapid
-hippocampal learning and for asking how a changing hippocampal code might
-support decodable experience over longer timescales.
+Within these bounds, the model provides a compact demonstration of how a
+previously established representational basis can support rapid associative
+storage. Its central implication is relational: the usefulness of a retrieved
+CA1 state depends on the mapping that interprets it. Readout compatibility is
+thus a testable constraint on models of hippocampal learning, while its
+biological implementation and long-term maintenance remain open questions.

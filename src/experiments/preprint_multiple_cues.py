@@ -641,8 +641,6 @@ def plot_preprint_capacity(output: Path, conditions: list[dict],
 
     chance = 1.0 / (N_CUES ** 2)
     axis.axhline(chance, color="0.55", linestyle=":", linewidth=1)
-    axis.text(levels[-1], chance + 0.018, f"chance = {chance:.2f}",
-              color="0.45", fontsize=7, ha="right")
     axis.set_xlim(1, levels[-1])
     axis.set_xticks(np.linspace(1, levels[-1], 6, dtype=int))
     axis.set(
@@ -661,10 +659,10 @@ def plot_preprint_capacity(output: Path, conditions: list[dict],
         Line2D([0], [0], color="0.25", marker="o", markerfacecolor="white",
                linestyle="-", label="Clean input"),
         Line2D([0], [0], color="0.25", marker="o", markerfacecolor="0.25",
-               linestyle="--", label=f"{int(100 * LEC_DROP_FRACTION)}% LEC drop"),
+               linestyle="--", label="48% LEC drop"),
     ]
     first_legend = axis.legend(handles=rule_handles, frameon=False, fontsize=7,
-                               loc="lower left")
+                               loc="upper right", bbox_to_anchor=(1, 0.84))
     axis.add_artist(first_legend)
     axis.legend(handles=condition_handles, frameon=False, fontsize=7,
                 loc="upper right")

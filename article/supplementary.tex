@@ -78,7 +78,8 @@ accuracy,
 J_{\mathrm{clean}}=\frac{1}{3}
 (C_{\mathrm{EC}}+A_{\mathrm{pos}}+A_{\mathrm{cue}}).
 \end{equation}
-At 85\% MEC dropout, the score averaged position and cue accuracy; at 85\% LEC
+The requested 85\% dropout removed 21 of 25 units (84\%) in either modality.
+At MEC dropout, the score averaged position and cue accuracy; at LEC
 dropout, it averaged cue accuracy and MEC output cosine:
 \begin{align}
 J_{\mathrm{MECdrop}}&=\frac{1}{2}
@@ -131,7 +132,7 @@ narrower fan-in, lower CA3 gain, steeper CA1 recall, and a larger learning
 rate. These values should not be interpreted as biological estimates or as
 proof of global optimality. They indicate that, under the stated objective and
 bounds, the two update rules favor different computational regimes. The local multiplier analysis in
-Fig.~\ref{fig:degradation}E probes the immediate neighborhood of these selected
+Fig.~\ref{fig:optimization}A probes the immediate neighborhood of these selected
 vectors; Eq.~\ref{eq:local-sensitivity} and its limitations are described in
 Methods.
 
@@ -161,7 +162,7 @@ Methods.
     autoencoders, memory hyperparameters, CA3 wiring seeds, storage order, and
     corruption masks; only the CA3--CA1 update differed. They are distinct from
     the rule-specific evolved operating regimes in
-    Fig.~\ref{fig:degradation}E,F and Table~\ref{tab:evolved-parameters}.}
+    Fig.~\ref{fig:optimization}A,B and Table~\ref{tab:evolved-parameters}.}
     \label{fig:rule-comparison}
 \end{figure}
 

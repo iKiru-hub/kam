@@ -176,6 +176,7 @@ INPUT ../abstract.tex
 INPUT ../abstract.tex
 INPUT ../abstract.tex
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/cm/cmbx10.tfm
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/cm/cmti10.tfm
 INPUT ../introduction.tex
 INPUT ../introduction.tex
 INPUT ../introduction.tex
@@ -216,6 +217,10 @@ INPUT ../figures/preprint/figure_3.pdf
 INPUT ../figures/preprint/figure_3.pdf
 INPUT ../figures/preprint/figure_3.pdf
 INPUT ../figures/preprint/figure_3.pdf
+INPUT ../figures/preprint/figure_4.pdf
+INPUT ../figures/preprint/figure_4.pdf
+INPUT ../figures/preprint/figure_4.pdf
+INPUT ../figures/preprint/figure_4.pdf
 INPUT ../discussion.tex
 INPUT ../discussion.tex
 INPUT ../discussion.tex
@@ -236,7 +241,6 @@ INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/cm/cmtt10.tfm
 INPUT ./main.bbl
 INPUT ./main.bbl
 INPUT main.bbl
-INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/cm/cmti10.tfm
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/cm/cmbx7.tfm
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/cm/cmbx5.tfm
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/cm/cmss10.tfm
@@ -277,7 +281,6 @@ INPUT /usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.p
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb
-INPUT /usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb

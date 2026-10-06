@@ -1,0 +1,1172 @@
+    Readout-compatible CA1 plasticity supports cue-dependent
+ reconfiguration and degraded-cue recall in a minimal hippocampal
+                              model
+
+                                             Author Name
+
+
+                                                 Abstract
+
+         Rapid memory formation requires retrieved content to remain interpretable by downstream
+     circuits. We examine this requirement, termed readout compatibility, in a minimal hippocampal
+     model. Entorhinal cortex (EC) input generates a CA3-like retrieval key and a pretrained CA1
+     target; plastic CA3–CA1 synapses associate the two, and a fixed CA1–EC decoder reconstructs
+     the input. Across 20 paired initializations, permuting the target’s CA1 coordinates impaired
+     one-shot reconstruction under both an instructive-driven rule (mean output–target cosine: 0.880
+     aligned, 0.247 permuted) and a bounded error-driven rule (0.872, 0.178). Correspondingly
+     permuting the decoder restored performance, isolating a coordinate mismatch rather than loss of
+     information from the target. On a circular track, exchanging cue identities produced reproducible
+     changes in recalled CA1 tuning and alternating population states associated with cue assignment.
+     Both rules generated heterogeneous spatially stable and cue-modulated responses. During frozen
+     recall, selective lateral or medial EC degradation preferentially impaired cue or position readout,
+     respectively; a common-key control that eliminated item-specific CA3 activity failed even with
+     intact inputs. Separate parameter searches identified distinct operating regimes, and held-out
+     sensitivity and load analyses revealed parameter dependence and interference across up to 90
+     ordered cue pairs. These simulations show how rapid associative learning can express retrieved
+     content in coordinates compatible with an established readout. They demonstrate cue-dependent
+     reconfiguration and degraded-input robustness in a feedforward architecture, not recurrent CA3
+     pattern completion, a biological mechanism for maintaining compatibility, or long-term memory
+     stability.
+
+
+
+1    Introduction
+
+Episodic memory requires a circuit to distinguish related experiences, retrieve stored content
+from a partial cue, and express that content in a form that other circuits can use. Hippocampal-
+indexing and complementary-learning-systems theories explain how rapid hippocampal storage
+can complement slower cortical learning [16, 23]. Within this framework, pattern separation
+limits interference and pattern completion supports retrieval. Here we focus on a complementary
+requirement: compatibility between a retrieved population state and the downstream mapping that
+interprets it. A representation may preserve information while changing the correspondence between
+neural activity and its readout. Successful retrieval therefore depends not only on what is stored,
+but also on the coordinates in which it is expressed.
+The hippocampal circuit provides a useful setting in which to examine this requirement. Entorhinal
+cortex (EC) reaches CA1 through both the trisynaptic pathway, via dentate gyrus and CA3, and the
+
+
+                                                     1
+direct temporoammonic projection. Autoassociative theories assign recurrent CA3 circuitry a central
+role in content-addressable retrieval [15], consistent with impaired partial-cue recall after selective
+disruption of CA3 NMDA-receptor function [19]. CA3 and CA1 also exhibit distinct population
+responses to environmental changes [11]. Computational accounts already give CA1 and its direct
+entorhinal input roles beyond relaying CA3 output: in a complementary-learning-systems model
+within the hippocampus, the monosynaptic pathway learns statistical structure while the trisynaptic
+pathway supports memory for individual episodes [22]. More recently, scaffold-based models have
+separated content storage from the dynamics that generate stable retrieval states [2]. Our question
+is narrower than either account: given an established output mapping, how does the compatibility
+of a newly instructed CA1 state affect its subsequent reconstruction?
+Rapid instructed plasticity provides a candidate computational motif. Behavioral-timescale synaptic
+plasticity (BTSP) can create a CA1 place field after a single dendritic plateau event and bidirectionally
+reshape existing fields [1, 17]. EC layer 3 activity can provide teaching-related input for learning-
+dependent CA1 reorganization [7]. Experiments and models link BTSP-like dynamics to trial-by-trial
+field shifts and stabilization of task-relevant spatial codes [14, 24], while computational work shows
+how BTSP-inspired rules can support rapid content-addressable storage [25]. Recent evidence also
+extends the empirical motivation beyond spatial tasks: large calcium events consistent with BTSP
+accompany, and experimentally induced events can drive, rapid formation of odor responses in CA1
+[4]. These findings motivate an EC-related instruction that modifies CA3–CA1 synapses. They do
+not establish that a biological instructive signal specifies the complete population target used in our
+model.
+The proposed constraint also relates to work on neural population geometry and readout stability.
+In motor-cortical brain–computer interfaces, perturbations within an existing neural manifold are
+learned more readily than perturbations requiring activity outside it [21]; short-term adaptation can
+also reassign an established activity repertoire to different outputs [6]. Stable latent dynamics can
+support cross-day behavioral decoding even when fixed decoders applied directly to recorded neurons
+deteriorate [5]. Such latent stability should not be equated with stability of a neuron-by-neuron
+readout. Conversely, models of adaptive readouts show how downstream plasticity can compensate
+for an evolving population code [20]. We use readout compatibility as a functional criterion: a
+recalled CA1 state is compatible to the extent that an established decoder reconstructs its intended
+content. This criterion neither requires every neuron to retain its tuning nor identifies compatibility
+with membership of a particular neural manifold.
+To make this criterion explicit, we pretrain an EC–CA1–EC autoencoder and then freeze its encoder
+and decoder. Plastic CA3–CA1 synapses subsequently associate a feedforward CA3-like retrieval
+key with the encoder-defined CA1 target. The pretrained basis abstracts structure accumulated
+before the associative learning assay; it is not a proposed biological backpropagation mechanism.
+Prior theoretical work motivates using established structure to support new associations [2, 22],
+and pretraining offers an engineering analogue of feature reuse [26]. Freezing the decoder prevents
+downstream adaptation from compensating for changes in the instructed coordinates. The model
+thus tests the consequences of compatibility under controlled conditions, rather than explaining
+how biological circuits acquire or maintain it.
+We compare an instructive-driven update, which depends on the target but not the recalled CA1 state,
+with a bounded error-driven update that corrects the target–recall discrepancy. First, a coordinate-
+permutation assay separates information preserved in an instructed vector from its accessibility to
+a fixed decoder. Second, a cue-guided track assay tests context-dependent CA1 reconfiguration.
+
+
+                                                   2
+Third, selective input degradation tests reconstruction when spatial or cue information is reduced.
+For these manipulations, EC is partitioned into MEC-like spatial and LEC-like cue inputs. This
+separation is experimental bookkeeping, not an anatomical claim: both medial and lateral EC
+contain mixtures of spatial and nonspatial signals [3, 4, 9, 10]. Finally, rule-specific parameter
+searches, held-out sensitivity analyses, and an ordered-cue-pair load assay assess how the results
+depend on the operating regime. Together, these tests evaluate a representational constraint on
+rapid associative learning without attributing recurrent dynamics or long-term stability to this
+minimal circuit.
+
+
+2     Results
+
+2.1   A minimal retrieval-key and instructed-CA1 architecture
+
+The model contains four functional components (Fig. 1A). Entorhinal input, denoted xEC , projects
+through a fixed sparse map to a CA3-like population that provides a retrieval key. A separately
+pretrained EC–CA1 encoder transforms the same input into an instructed CA1 state (IS). Plastic
+CA3–CA1 weights associate the retrieval key with the IS, whereas the corresponding pretrained CA1–
+EC decoder remains fixed. During recall, the EC input regenerates a key, the learned association
+reconstructs a CA1 state, and the decoder maps that state back to EC output. This architecture
+separates the selection of associative content from its expression in a pre-existing output basis.
+We first evaluated two plasticity rules under matched inputs and a shared reference parameter
+configuration (Fig. 1B). The instructive-driven rule writes an outer-product association between
+the instructed CA1 state and the CA3-like key without considering the current recalled state.
+The bounded error-driven rule instead potentiates CA3–CA1 synapses for underexpressed CA1
+components and depresses them for overexpressed components. Repeated presentations therefore
+rewrite the instructed association under the instructive-driven rule but correct a residual under the
+error-driven rule. Both are abstract models of rapid instructed plasticity; neither implements the
+temporal eligibility trace or dendritic plateau dynamics of biological BTSP.
+Track inputs combined a MEC-like spatial component with a LEC-like cue component (Fig. 1D).
+Two cue identities occurred at fixed positions and could exchange locations across blocks. For
+degradation tests, the model first stored intact laps; plasticity was then frozen while a fixed fraction
+of either the MEC-like or LEC-like input units was set to zero (Fig. 1E).
+
+
+2.2   Readout compatibility constrains rapid associative storage
+
+We first isolated the relationship between an instructed CA1 code and its fixed output decoder
+(Fig. 2A). Twenty independently initialized autoencoders were pretrained on structured MEC+LEC
+patterns and then frozen. Pattern order was shuffled, so this assay retained the marginal spatial–cue
+structure without presenting a traversed track sequence. For each initialization, 28 held-out patterns
+were stored once under five paired conditions. In the aligned condition, the IS remained in the
+coordinates learned by the decoder. In the fixed-permutation condition, the same non-identity
+permutation was applied to every IS while the decoder was left unchanged. In the matched-decoder
+condition, the corresponding decoder columns were permuted together with the IS. Random-content
+and no-plasticity conditions controlled for storing an incorrect association and for leaving the
+
+
+                                                   3
+Figure 1: Model architecture and simulation protocol. (A) EC input produces a fixed sparse CA3-like
+retrieval key xCA3 and, through a pretrained encoder, an instructed CA1 state xIS . Plastic CA3–CA1 weights
+store their association; a fixed pretrained CA1–EC decoder reads out recall. (B) Instructive-driven and
+bounded error-driven update rules. (C) Conceptual reconstruction-error trajectories over first and repeated
+presentations; colors denote pattern identity. This panel is a schematic rather than a measured result.
+(D) Circular-track input composed of MEC-like spatial activity and LEC-like cue activity. (E) Selective
+degradation protocol. Intact laps are stored before plasticity is frozen; a fraction of MEC-like or LEC-like
+units is then zeroed using a mask held fixed within a probe lap and resampled across probes.
+
+
+
+
+                                                     4
+memory unwritten, respectively.
+Under the instructive-driven rule, aligned instructions produced a mean output–target cosine of
+0.880 (95% confidence interval [CI], 0.870–0.891), whereas a fixed coordinate permutation reduced it
+to 0.247 (0.207–0.286). The paired aligned-minus-permuted difference was 0.634 (0.592–0.676). The
+same coordinate dependence appeared under the error-driven rule: aligned and permuted means
+were 0.872 (0.858–0.887) and 0.178 (0.147–0.209), respectively, giving a paired difference of 0.694
+(0.658–0.731). Permuting the decoder together with the IS restored the aligned mean exactly for
+each rule. Random-content recall remained lower (0.355 for the instructive-driven rule and 0.315
+for the error-driven rule), as did the shared no-plasticity control (0.114). The matched-decoder
+restoration is an algebraic coordinate control: the permutation preserves the IS values but changes
+their meaning to the unchanged decoder. Reconstruction therefore depends on compatibility between
+the instructed CA1 coordinates and the fixed output basis, not on information content alone. Under
+this reference configuration, the two rules reached similar aligned one-shot recall despite using
+different update signals: the instructive-driven rule performs a target-gated associative update,
+whereas the error-driven rule makes a bounded residual correction.
+
+
+2.3   Cue exchanges induce reproducible CA1 reconfiguration
+
+We next exposed the model to 40 track laps in which two cue identities exchanged positions every 10
+laps (Fig. 2B). A paired no-swap control used the same root seeds, pretrained encoder and decoder,
+MEC-like trajectories, lap count, plasticity parameters, and exact EC–CA3 projection, but retained
+the initial cue assignment throughout. After every training lap, plasticity was paused and the model
+was probed in the context scheduled for that lap.
+For the instructive-driven rule, mean unit-wise tuning similarity between consecutive probes fell to
+0.365 at cue exchanges (95% CI, 0.348–0.382), compared with 0.845 at the same lap boundaries in
+the no-swap control (0.832–0.857). The paired swap-minus-control difference was −0.479 (−0.498
+to −0.461). Under the error-driven rule, exchange-boundary similarity was 0.451 (0.436–0.466),
+compared with 0.827 in the matched control (0.817–0.838), for a paired difference of −0.376 (−0.396
+to −0.356). At non-exchange transitions in the alternating schedule, similarity remained high for
+both the instructive-driven rule (0.833, 0.823–0.843) and the error-driven rule (0.821, 0.814–0.828).
+The abrupt tuning changes were therefore associated with the altered cue sequence rather than with
+continued learning alone.
+In a separate realization of the same protocol, we aligned the three exchange events to their
+first post-exchange lap (Fig. 2E). Under the instructive-driven rule, consecutive-lap similarity at
+the exchange was 0.375 (95% CI, 0.351–0.398), versus 0.851 (0.839–0.863) at matched no-swap
+boundaries; the paired difference was −0.477 (−0.499 to −0.454). Under the error-driven rule, the
+corresponding values were 0.462 (0.443–0.480) and 0.833 (0.822–0.845), with a paired difference of
+−0.372 (−0.391 to −0.352). By the following lap, similarity recovered to 0.769 (0.756–0.783) and
+0.819 (0.806–0.832), respectively. Thus the response was concentrated at the cue exchange rather
+than developing as nonspecific drift over the subsequent block.
+Because the probe context also changes at an exchange, this discontinuity does not by itself
+distinguish synaptic updating from the immediate response to a different retrieval cue.
+The lap-by-lap population representational-similarity matrix provided a complementary view
+(Fig. 2F). Within-block maps remained similar, exchanges separated the sequence into distinct
+
+
+                                                 5
+blocks, and nonadjacent blocks carrying the same cue assignment resembled one another. The model
+therefore alternated between cue-dependent population states rather than accumulating a wholly
+novel map after every block. Retrospective comparison with the final map of each new block further
+showed that the first post-exchange representation was already closer to the eventual adapted map
+than to the pre-exchange map, followed by smaller within-block changes (Supplementary Fig. S2A,B).
+Endpoint similarities were broadly distributed across CA1 units, demonstrating that the population
+effect was not produced by a single uniform response class (Supplementary Fig. S2C,D).
+After learning, plasticity was frozen and both cue arrangements were probed. The representative
+error-driven population contained spatially stable fields, amplitude-modulated responses, and fields
+whose preferred position changed with cue identity (Fig. 2C). Across seeds, mean unit-wise, mean-
+centered spatial stability was 0.330 (95% CI, 0.297–0.363) under the instructive-driven rule and 0.464
+(0.441–0.486) under the error-driven rule. Mean absolute cue modulation was 0.132 (0.130–0.135)
+and 0.124 (0.120–0.128), respectively. In both rules, the unit-level distributions were continuous
+rather than separated into discrete response classes (Fig. 2D), and strong cue modulation was
+concentrated among units with low or negative cross-context stability. These distributions are
+descriptive: units nested within a seed were not treated as independent replicates, and the analysis
+is not a formal classification of rate versus global remapping. Operationally, changing the cue
+arrangement changed both the EC-derived instruction and the CA3-like key, producing a mixture
+of stable and context-dependent recalled CA1 activity.
+
+
+2.4   Selective EC degradation dissociates cue and spatial readout
+
+We then asked whether the stored association remained usable when one EC input modality was
+selectively corrupted (Fig. 3). Each model stored 20 intact laps with a fixed cue arrangement.
+Plasticity was frozen, and independent masks requested removal of 0, 25, 50, 75, 90, or 100% of
+eligible units. Because each modality contained 25 units, the implemented fractions were 0, 24, 48,
+76, 88, and 100%, respectively. Each fraction used 12 masks per seed and 20 paired root seeds; the
+numerical summary below focuses on 22-of-25 (88%) partial degradation. The principal control
+replaced the normal sparse EC–CA3 map with a dense common map in which every CA3-like unit
+received the same average EC input. This manipulation removes item-specific key structure and is
+therefore a degenerate-key, not a sparsity-matched, control.
+Under LEC-like degradation, cue identity accuracy for the normal key declined from 1.000 to 0.871 at
+88% dropout under the instructive-driven rule (95% CI at 88%, 0.803–0.938) and from 1.000 to 0.829
+under the error-driven rule (0.766–0.893; Fig. 3A). The corresponding 88%-dropout changes were
+−0.129 (−0.197 to −0.062) and −0.171 (−0.234 to −0.107). MEC output–target cosine remained
+near its instructive-driven baseline (0.736 at baseline and 0.723 at 88% dropout; change −0.013,
+−0.029 to 0.003), whereas it declined from 0.904 to 0.780 under the error-driven rule (change −0.125,
+−0.136 to −0.113; Fig. 3B). Thus spatial output remained substantially readable under LEC-like
+corruption, although it was not strictly invariant under the error-driven rule.
+MEC-like degradation produced the complementary loss of position information. Nearest-position
+accuracy declined from 0.163 to 0.070 under the instructive-driven rule (88%-dropout change
+−0.093, 95% CI −0.106 to −0.079) and from 0.666 to 0.069 under the error-driven rule (change
+−0.597, −0.636 to −0.557; chance = 0.02; Fig. 3C). Cue identity remained 1.000 for every seed
+and degradation level under both rules (Fig. 3D). The low baseline position accuracy under the
+instructive-driven rule is itself informative: repeated error-driven correction yielded a substantially
+
+
+                                                  6
+ A                                                    B
+
+
+
+
+ C                                                     D
+
+
+
+
+ E                                                               F
+
+
+
+
+Figure 2: Readout compatibility and cue-dependent CA1 reconfiguration. (A) Output–target
+cosine for shuffled MEC+LEC samples in aligned, fixed-permutation, matched-decoder, random-content, and
+no-plasticity conditions for the instructive-driven rule (left) and error-driven rule (right). Grey points are
+seed means across 28 stored memories; black points and error bars show mean ± SEM across 20 seeds. (B)
+Mean unit-wise tuning similarity between consecutive scheduled-context probes for the instructive-driven
+rule (left) and error-driven rule (right). Purple denotes the cue-exchange schedule and grey the matched
+no-swap control; vertical dashed lines mark exchanges. Curves show mean ± SEM across 20 paired seeds.
+(C) Recalled CA1 activity on the same track under cue contexts A (left) and B (right) for the representative
+error-driven seed. Units have the same order and are sorted by preferred position across contexts; color
+limits are shared. (D) Unit-level relationship between mean-centered spatial stability and cue modulation for
+the instructive-driven rule (left) and error-driven rule (right), pooling 50 units from each of 20 seeds (1,000
+points per rule). The vertical line marks zero stability. Panels C and D illustrate heterogeneous stable and
+cue-dependent responses but do not formally classify remapping type; confidence intervals in the text use
+seed-level summaries. (E) Event-aligned consecutive-lap tuning similarity for the instructive-driven rule (left)
+and error-driven rule (right) in the cue-exchange schedule and exact-wiring no-swap control. Lap zero is the
+first post-exchange lap; values were averaged across three exchanges within each seed and curves show mean
+± SEM across 20 seeds. (F) Error-driven lap-by-lap population-map similarity, averaged across 20 seeds.
+Before comparison, each unit was mean-centered over track position and the full position-by-unit map was
+vectorized. Dashed lines mark cue-exchange boundaries. Panels B and E used identical EC–CA3 projections
+in the exchange and no-swap schedules for each rule; panel F shows the error-driven exchange schedule.
+
+
+
+
+                                                       7
+more discriminable spatial readout before degradation, whereas the instructive-driven rule did
+not. The two rules should therefore not be interpreted as starting from equivalent clean spatial
+performance.
+The dense common-key control remained at chance for cue identity (0.5) and position (0.02)
+even without degradation, and produced low spatial-output cosine. Its failure establishes that
+a non-specific common key cannot support the associations, but does not isolate sparsity from
+key discriminability. Together, the normal-key results demonstrate degraded-cue robustness and
+pathway-selective failure within this architecture. They do not establish recurrent pattern completion:
+the CA3-like layer has no attractor dynamics, and recall deteriorates once the feedforward retrieval
+key loses discriminability. Supplementary Fig. S1 collects four seed-paired contrasts that summarize
+how the rule choice changes these effects.
+A                                                        B
+
+
+
+
+C                                                        D
+
+
+
+
+Figure 3: Selective EC degradation during frozen recall. Each pair of plots shows the instructive-
+driven rule on the left and the error-driven rule on the right, under the shared reference configuration.
+(A) Cue-identity accuracy during LEC-only degradation. (B) MEC output–target cosine during LEC-only
+degradation. (C) Nearest-position accuracy during MEC-only degradation. (D) Cue-identity accuracy during
+MEC-only degradation. Curves show mean ± SEM across 20 seeds after averaging 12 masks within each
+seed. Abscissae show requested fractions; whole-unit rounding gave effective fractions of 0, 24, 48, 76, 88,
+and 100%. Blue denotes the normal sparse key map; green denotes the dense common-key control, which
+eliminates item-specific key structure and is not sparsity matched. Dotted lines denote chance accuracy where
+applicable. Plasticity was disabled during every probe.
+
+
+
+2.5    Parameter optimization identifies rule-specific operating regimes and load-
+       dependent trade-offs
+
+The matched reference configuration above isolates consequences of changing the update equation,
+but it need not be favorable to both rules. We therefore performed separate covariance matrix
+adaptation evolution strategy (CMA-ES) searches for the instructive-driven and error-driven rules on
+three fixed development seeds. Within each generated MEC+LEC lap, storage samples were shuffled
+before learning, preserving the input distribution while removing adjacent track states. The objective
+equally weighted clean recall, recall after 21-of-25 (84%) MEC-like degradation, and recall after 21-
+
+
+                                                     8
+of-25 (84%) LEC-like degradation (nominal requested fraction, 85%); these development evaluations
+were not treated as experimental replicates. To keep the representational basis common across the
+principal and optimization-informed analyses, these searches fixed KCA1 = 5 and both autoencoder
+gains at 25. The independently selected medial-temporal-lobe (MTL) model configurations used
+fan-in 36, KCA3 = 6, βCA3 = 286.747, βCA1 = 9.160, and α = 0.03366 for the instructive-driven rule,
+versus fan-in 9, KCA3 = 5, βCA3 = 54.400, βCA1 = 26.928, and α = 0.08197 for the error-driven rule.
+Their development-set composite scores were 0.714 and 0.818, respectively. Because both parameter
+vectors were selected on the same three seeds used to define the objective, these values describe
+optimization outcomes rather than unbiased estimates of generalization.
+A one-parameter-at-a-time analysis evaluated multipliers from 0.1 to 9 around each selected vector
+while fixing all other parameters (Fig. 4A). Ten independent evaluation seeds, disjoint from the
+search seeds, supplied paired score differences and their across-seed standard deviations. The
+composite score changed smoothly near most selected values but was not uniformly insensitive. The
+largest mean decreases were produced by applying the largest KCA3 multiplier to instructive-driven
+plasticity (−0.231) and reducing βCA3 tenfold for error-driven plasticity (−0.477). The requested
+ninefold increase in KCA3 was clipped from 54 to the allowed maximum of 49. Small positive mean
+differences at a few tested points were at most 0.002 and were small relative to their across-seed
+variation. The analysis therefore supports a local operating region while revealing important
+parameter asymmetries; it is not a global robustness guarantee.
+We next tested the selected configurations on 10 held-out seeds while increasing associative load
+from 1 to all 90 non-repeating ordered pairs drawn from 10 cue identities (Fig. 4B). Every pair was
+presented three times, and exact two-cue recall was measured from clean probes and after 12-of-25
+(48%) LEC-unit dropout. Instructive-driven clean recall declined from 1.000 ± 0.000 at one pair to
+0.210 ± 0.043 at 10 pairs and 0.138 ± 0.016 at 90 pairs (mean ± SEM); corresponding degraded
+recall was 1.000 ± 0.000, 0.035 ± 0.012, and 0.051 ± 0.006. Error-driven clean recall was 1.000 ± 0.000,
+0.390±0.046, and 0.151±0.022 at the same loads, with degraded values of 0.775±0.095, 0.098±0.024,
+and 0.046 ± 0.003. Thus both selected regimes exhibited interference as load increased, with an
+error-driven advantage at intermediate clean load but convergence toward low exact-pair recall at
+the largest load. These curves are empirical load profiles for this cue vocabulary, training schedule,
+and model size rather than universal capacity estimates.
+
+
+
+
+                                                   9
+A
+
+
+
+
+B
+
+
+
+
+Figure 4: Parameter sensitivity and cue-pair load in separately optimized operating regimes.
+(A) Change in the composite recall score when one parameter is multiplied by the indicated factor and
+the others remain fixed at that rule’s selected values. Integer parameters were rounded and model-valid
+bounds enforced. Each cell reports the paired mean score change and its across-seed standard deviation over
+10 evaluation seeds. (B) Exact ordered-pair recall as load increases from 1 to 90 pairs. Blue denotes the
+instructive-driven rule and red the error-driven rule. Open solid curves use intact inputs; filled dashed curves
+use 12-of-25 (48%) LEC dropout. Points show mean ± SEM across 10 held-out seeds; the dotted line marks
+nominal chance (1/100). Both panels use rule-specific parameter vectors and therefore compare operating
+regimes, not update equations alone.
+
+
+
+
+                                                      10
+3    Discussion
+
+This study isolates a constraint on rapid associative learning: information stored in a population
+state must remain accessible to the circuit that reads it. A fixed permutation preserved the values
+of the instructed CA1 vector but impaired reconstruction by an unchanged decoder. Transforming
+the decoder with the same permutation restored performance. This rescue follows from the model’s
+coordinate symmetry, rather than providing an independent empirical discovery. Its value is to
+separate an incompatible readout from degradation of the target representation. The additional
+track, degradation, and load assays show how associative learning operates within the compatible
+basis, and where its performance fails.
+The contribution is therefore not the introduction of structured hippocampal representations or of a
+learning role for CA1. Earlier models assign the direct EC–CA1 pathway a role in learning shared
+statistical structure [22], and scaffold-based theories use pre-existing retrieval states to organize
+new associations [2]. Our model makes a related but narrower distinction between retrieval-key
+construction, CA3–CA1 association, and output decoding. It removes recurrent retrieval dynamics
+to expose the relation between the latter two operations. This simplification allows a controlled
+compatibility assay, but precludes claims that the architecture accounts for the broader episodic or
+spatial capacities of those models.
+Compatibility also differs from representational invariance. A code need not remain unchanged if
+its variations preserve the output required by a task, or if downstream weights adapt appropriately.
+Motor-cortical studies demonstrate constraints imposed by an existing activity repertoire [6, 21];
+stable latent dynamics further distinguish population-level structure from fixed decoding of individual
+recorded neurons [5]. Models of self-healing readouts offer a complementary solution in which
+downstream plasticity tracks changes in the input code [20]. Here the decoder is deliberately frozen.
+Accordingly, the simulations establish the cost of a mismatch under a fixed readout, not the necessity
+of preserving CA1 coordinates when recipient circuits are free to adapt. Long-term stability and
+representational drift remain outside the tested regime.
+The two plasticity rules implement different computational uses of an instruction. The instructive-
+driven rule updates an association without comparing the target with current recall; the error-driven
+rule corrects under- and overexpressed CA1 components through bounded synaptic changes. Both
+yielded similar aligned one-shot reconstruction under the reference configuration, but repeated
+error-driven learning produced higher clean position accuracy and greater cross-context spatial
+stability. These results show that matching the target basis does not guarantee identical learning
+dynamics or equally discriminable outputs. Although motivated by rapid instructed plasticity
+[1, 17, 25], neither rule implements a temporal eligibility trace or a dendritic plateau. In particular,
+the signed target–recall discrepancy in the error-driven rule is a computational assumption, not an
+experimentally identified CA1 error signal. Evidence for entorhinal teaching signals and nonspatial
+BTSP-like field formation supports the motif, but not this exact implementation [4, 7].
+The cue-track results reveal reproducible context dependence rather than unconstrained creation
+of a new map at each transition. Population maps were similar within a cue assignment and
+when that assignment recurred. Consecutive-lap tuning similarity fell at exchanges and recovered
+on the following lap, while individual units showed continuous mixtures of spatial stability and
+cue modulation. These features are qualitatively related to cue-sensitive changes in hippocampal
+firing [12, 18] and to learning-related CA1 field reorganization [7, 14, 24]. However, the transition
+assay changes both the training context and the context used for the recall probe. The boundary
+
+
+                                                  11
+discontinuity therefore combines changes in the learned weights with the immediate effect of
+presenting a different retrieval key. Pausing plasticity during each probe prevents further learning
+during measurement; it does not isolate the contribution of plasticity to the transition. Fixed-
+context probes across training, together with context switches at fixed weights, would be needed to
+distinguish learning-driven reorganization from cue-dependent re-expression. Nor were the simulated
+unit distributions fitted to biological field statistics or used to classify rate and global remapping.
+The degradation experiments likewise support a specific interpretation. Partial input loss left
+useful output information under the normal key map, and corruption of one input partition
+preferentially affected its associated readout. Yet there is no recurrent CA3 network or attractor
+settling: robustness arises from a distributed feedforward input-to-key transformation and the
+learned key-to-content mapping. Degraded-input reconstruction alone cannot identify a recurrent
+completion mechanism [13, 19]. The dense common-key control makes every CA3-like unit receive
+the same EC average and eliminates item-specific keys. Its failure establishes the importance of
+distinguishable keys in this circuit, not a unique advantage of sparse connectivity. Sparsity-matched
+and dimensionality-matched controls would be required for that stronger claim.
+The constructed MEC/LEC partition also limits anatomical interpretation. Each input half has
+a designated information type and corresponding readout, so part of the observed dissociation is
+expected by design. Biological medial and lateral EC contain mixed signals, and both can contribute
+to nonspatial CA1 learning [3, 4, 10]. Moreover, the retrieval query and reconstruction target are
+derived from the same EC pattern. Removing input units tests recovery of missing components of
+a previously experienced pattern; it does not test retrieval of an independently specified episode
+feature absent from the query. Such a heteroassociative task would provide a stronger test of
+cue-to-content retrieval.
+The optimization-informed analyses extend, but do not replace, the matched rule comparison.
+Separate searches selected markedly different fan-in, sparsity, gain, and learning-rate combinations.
+Their sensitivity and load curves therefore compare complete operating regimes, not update equations
+in isolation. Held-out perturbations indicate that useful performance extends beyond one exact
+parameter vector, while large changes can be detrimental. One-at-a-time perturbations do not
+establish global robustness or identify unique biological parameters. Similarly, the 90-pair load
+assay measures an empirical interference profile. The autoencoder already represents the full cue
+vocabulary, total training increases with load, and the 10-cue templates are sparser than those in
+the two-cue assay. Exact-pair reconstruction should not be interpreted as evidence for learning
+temporal associations between the cues or as a universal storage-capacity estimate.
+Several tests follow directly from these limitations. First, varying target coordinates and decoder
+adaptation independently could compare preservation of a fixed readout with compensatory down-
+stream learning. Second, crossing probe context with learning history would separate immediate
+key-dependent responses from lasting changes in CA1 weights. Third, load experiments that hold
+total writes, cue coverage, and template sparsity fixed would clarify the sources of interference.
+More broadly, biological tests should compare the behavioral consequences of CA1 changes with
+their effects on recipient populations, rather than treating the magnitude of CA1 change alone as a
+measure of memory disruption.
+Within these bounds, the model provides a compact demonstration of how a previously established
+representational basis can support rapid associative storage. Its central implication is relational: the
+usefulness of a retrieved CA1 state depends on the mapping that interprets it. Readout compatibility
+is thus a testable constraint on models of hippocampal learning, while its biological implementation
+
+
+                                                  12
+and long-term maintenance remain open questions.
+
+
+4     Methods
+
+4.1    Implementation, reproducibility, and statistical treatment
+
+Simulations were implemented in Python using NumPy and PyTorch and run on CPU. Figures 2 and
+3A–D used 20 root seeds (51001–51020); sensitivity used 10 independent root seeds (54001–54010),
+and the cue-pair load experiment used 10 held-out root seeds (53001–53010). Autoencoder and
+MTL hyperparameter searches used separate fixed development seeds (41001–41003 and 42001–
+42003, respectively). Conditions and plasticity rules within an experiment were paired by root seed
+whenever their parameterization permitted a paired comparison. The experiment scripts write a
+resolved JSON configuration, compressed NumPy arrays, and a tidy CSV source-data table; plotting
+functions generate the individual panels from those saved arrays. The composed vector figures do
+not alter the underlying values.
+For the evolution-informed analyses, bounded hyperparameter configurations were selected using the
+covariance matrix adaptation evolution strategy (CMA-ES), a stochastic derivative-free optimizer
+[8]. A standalone autoencoder search minimized held-out reconstruction error. Independent MTL
+searches maximized a composite of clean and selectively degraded recall for each plasticity rule
+while retaining the common reference autoencoder basis; the two searches therefore report related
+but non-composed engineering analyses. Search data, objectives, bounds, and selected values are
+reported in Appendix A. The shared reference configuration was retained separately to provide a
+matched update-rule comparison and was not produced by the rule-specific searches. CMA-ES is an
+outer-loop engineering procedure, distinct from Adam-based autoencoder pretraining and from the
+local CA3–CA1 updates studied here. Optimization generations and development seeds were not
+counted as experimental replicates.
+The unit of computational replication was the root seed, not an individual memory, CA1 unit, track
+position, or corruption mask. Values were first averaged over observations nested within a seed and
+then summarized across seeds. For a seed-level statistic ys , s = 1, . . . , S, curves and error bars show
+ȳ ± SEM(y), where
+                                                    v
+                              S                     u               S
+                            1X                      u        1    X
+                       ȳ =      ys ,   SEM(y) = t                      (ys − ȳ)2 .                    (1)
+                            S                          S(S − 1)
+                               s=1                                  s=1
+
+Confidence intervals (CIs) reported for the principal 20-seed experiments are two-sided 95% Student-t
+intervals over seed-level values, ȳ ± t0.975,S−1 SEM(y). Contrasts use paired seed-level differences
+        (A)    (B)
+ds = ys − ys rather than differences between independently aggregated conditions. These
+intervals quantify sensitivity to sampled initializations and inputs, not uncertainty over a biological
+population. No null-hypothesis significance tests or multiple-comparison corrections were applied;
+all analyses are descriptive simulation results.
+
+
+4.2    EC patterns and the pretrained CA1 basis
+
+EC input, CA1, and CA3-like populations each contained 50 units. A one-hidden- layer autoencoder
+mapped EC input to a 50-unit CA1 representation and back to a 50-unit EC output. CA1 activity
+
+                                                    13
+used a differentiable top-K sparse activation with KCA1 = 5; output activity used a sigmoid decoder.
+The shared reference configuration in Figs. 2 and 3 used latent and output gains of 25. The separate
+autoencoder CMA-ES analysis in Appendix A explored whether those gains could be improved, but
+its selected values were not substituted into the final MTL searches or figure-generating simulations.
+Linear encoder and decoder biases were disabled. Specifically, if z(1) ≥ · · · ≥ z(N ) are the sorted
+preactivations, the activation threshold and sparse nonlinearity were
+                                       z(K) + z(K+1)
+                            ϑK (z) =                 ,                                            (2)
+                                             2
+                                                                          1
+                        [SK,β (z)]i = σ(β[zi − ϑK (z)]) ,     σ(u) =           .                  (3)
+                                                                       1 + e−u
+Thus approximately K units lay above the adaptive half-activation threshold, while gradients
+remained defined near that threshold. For EC pattern xEC ∈ {0, 1}50 , encoder E, and decoder D,
+pretraining computed
+
+                                   xIS = SKCA1 ,βlatent (ExEC ),                                  (4)
+                                  x
+                                  eEC = σ(βout DxIS ),                                            (5)
+                                                  N
+                                             1 X (n)    (n) 2
+                                  LAE =          eEC − xEC .
+                                                 x                                                (6)
+                                           N dEC            2
+                                                 n=1
+
+The weights were trained with Adam (learning rate 0.001, batch size 64) to minimize Eq. 6.
+Pretraining occurred before CA3–CA1 storage, after which the encoder and decoder were fixed.
+The encoder therefore supplied the instructed CA1 state (IS), and the decoder defined the output
+coordinates against which compatibility was tested.
+For the readout-compatibility experiment, the autoencoder was trained for 1024 epochs on 2,000
+structured MEC+LEC samples and evaluated on 250 held-out samples. Twenty-eight additional
+patterns were reserved for one-shot associative storage. Samples were drawn from independently
+generated laps containing both cue assignments and shuffled before training, validation, and storage;
+the assay therefore preserved marginal MEC+LEC structure without a sequential track traversal.
+For the cue-reconfiguration experiment, the autoencoder was trained for 256 epochs on the 40
+training laps and evaluated on 10 separately generated laps. For the degradation experiment, it
+was trained for 256 epochs on 20 intact laps and evaluated on five separately generated laps. In
+the load experiment it was trained for 256 epochs on the complete bank of pair-specific storage
+laps and evaluated on independently generated pair probes, so the frozen basis did not change with
+associative load. Each lap contained 50 positions.
+Track inputs contained 25 MEC-like and 25 LEC-like units. For position p ∈ {0, . . . , L − 1} on a
+circular track of length L = 50, circular distance was dL (p, µ) = min(|p − µ|, L − |p − µ|). MEC unit
+i had a preferred position µi from an even tiling of the track and Gaussian activation probability
+                                       "                #
+                                          1 dL (p, µi ) 2
+                                             
+                           gi (p) = exp −                   ,     σMEC = 5.                        (7)
+                                          2     σMEC
+
+Binary MEC activity was sampled independently as xMEC,i (p) ∼ Bernoulli(gi (p)). Two fixed,
+non-overlapping 25-dimensional LEC cue templates q1 and q2 were centered at c1 = 10 and c2 = 30.
+
+
+
+
+                                                   14
+Cue j was present with probability
+                                           "                 #
+                                               1 dL (p, cj ) 2
+                                                 
+                           gjcue (p) = exp  −                    ,                                 (8)
+                                               2     4
+                             Pj (p) = clip[0,1] 2σ 40[gjcue (p) − 0.1] − 1 .
+                                                                     
+                                                                                                   (9)
+
+If the Bernoulli cue-presence sample was positive, the LEC block was set to qj ; otherwise it was
+zero. The complete entorhinal target was the concatenation xEC (p) = [xMEC (p); xLEC (p)]. This
+stochastic construction generated different laps from the same underlying spatial and cue statistics.
+Each of the two fixed cue templates activated a disjoint block of ⌊25/2⌋ = 12 LEC units; the
+remaining unit was unused.
+
+
+4.3   CA3-like retrieval keys and CA3–CA1 plasticity
+
+EC input was projected to 50 CA3-like units through a fixed sparse matrix followed by a differentiable
+top-K activation. In the shared reference configuration, all principal experiments used 29 EC inputs
+per CA3-like unit, KCA3 = 3, βCA3 = 170.6, and α = 0.092. The normal track map was constructed
+to balance EC participation across CA3-like units. CA3–CA1 weights were initialized to zero. The
+CA1 recall activation used KCA1 = 5, with inverse temperature 41.8. Figure 4A,B instead used the
+rule-specific values selected by CMA-ES and listed in Appendix A.
+Writing and recall used the same fixed EC–CA3 projection A and frozen decoder D. At weight
+state Wt , the complete forward computation was
+
+                                      xCA3 = SKCA3 ,βCA3 (AxEC ),                                 (10)
+                                      xCA1 = S5,βCA1 (Wt xCA3 ),                                  (11)
+                                       x
+                                       bEC = σ(βout DxCA1 ).                                      (12)
+
+Each selected input to a CA3-like unit had projection weight 1/50; all other entries of A were zero.
+Consequently, the convergence parameter controlled which EC components contributed to a key,
+whereas the top-K nonlinearity controlled key population sparsity. Equation 12 was also used to
+compute the pre-update recall state required by the error-driven rule.
+Let xEC denote the EC input/target, xCA3 its retrieval key, xIS the instructed CA1 state produced
+by the fixed encoder, and xCA1 the state recalled through the current CA3–CA1 weights Wt . The
+instructive-driven update was
+
+                                Wt+1 = (1 − αxIS ) ⊙ Wt + αxIS xT
+                                                                CA3 ,                             (13)
+
+where the first term is broadcast across presynaptic dimensions. For the bounded error-driven rule,
+
+                   e+ = [xIS − xCA1 ]+ ,                            e− = [xCA1 − xIS ]+ ,         (14)
+                                                                        −
+                  δ = α(e+ xT
+                    +
+                               CA3 )(1 − Wt ),                      δ       = α(e− xT
+                                                                                    CA3 )Wt ,     (15)
+                Wt+1 = clip[0,1] (Wt + δ + − δ − ).                                               (16)
+
+Recalled CA1 activity was obtained by applying the same target sparsity to Wt xCA3 and was passed
+through the fixed pretrained decoder. The instructive-driven rule depends on the instructed target
+and presynaptic key but not the current recall error. The error-driven rule separates the residual
+
+                                                      15
+into positive and negative components, such that under- and overexpressed CA1 components drive
+bounded potentiation and depression, respectively. All products between equally shaped arrays
+were elementwise unless an outer product or matrix product is shown explicitly. Memories were
+presented sequentially, and Wt+1 was carried to the next item or position without replay, batching,
+or gradient descent through the local plasticity dynamics.
+
+
+4.4   Paired plasticity-rule design
+
+Both rules were evaluated in every main experiment. In the matched reference experiments (Figs. 2
+and 3A–D), they shared EC inputs, pretrained autoencoder weights, memory hyperparameters,
+CA3 wiring seeds, storage order, and–in the degradation experiment–corruption masks. Each
+rule had its own CA3–CA1 weight matrix, which changed according to the corresponding update.
+These comparisons therefore isolate the update equation within one common operating regime.
+Supplementary Fig. S1 collects four paired contrasts derived directly from those result arrays; it is
+not a separate simulation.
+The optimization, sensitivity, and cue-pair load analyses answer a different question: how each
+rule behaves near a separately selected operating point. Those analyses shared data-generation
+procedures and random-seed streams but used rule-specific CA3 fan-in, sparsity, gains, and learning
+rates. Their between-rule differences therefore reflect complete operating regimes and must not be
+attributed to the update equation alone.
+
+
+4.5   Readout-compatibility experiment
+
+For each seed, the 28 held-out EC patterns were assigned CA3-like retrieval keys and pretrained
+CA1 instructions, then written once in a shared random order. The aligned condition used the
+original IS and decoder. The fixed-permutation condition applied one seed-specific CA1 permutation
+to every IS while leaving the decoder unchanged. The matched-decoder condition used the same
+permuted instructions and correspondingly permuted decoder columns. The random-content
+condition associated each key with a shuffled memory instruction. The no-plasticity condition
+retained zero CA3–CA1 weights. Recall was evaluated using cosine similarity between reconstructed
+EC output and the corresponding EC target. Each seed’s plotted value is its mean across 28
+memories.
+More explicitly, let P be the permutation matrix and h = xIS . The aligned condition stored h and
+read it with D; the fixed-permutation condition stored P h but retained D; and the matched-decoder
+condition used P h together with D′ = DP T . In the idealized exact-recall case,
+                                      D′ P h = DP T P h = Dh,                                   (17)
+so matched decoder relabeling restores the original output coordinates without restoring the original
+CA1 unit identities. The same relation holds throughout learning: starting from zero weights,
+both update rules and the CA1 activation commute with row permutation, giving Wt′ = P Wt and
+x′CA1 = P xCA1 at each step, up to numerical precision. The matched decoder therefore restores the
+output even when recall is imperfect. This control isolates coordinate compatibility from a generic
+effect of permutation. Similarity between two nonzero vectors u and v was
+                                                       uT v
+                                       cos(u, v) =             ;                                (18)
+                                                     ∥u∥2 ∥v∥2
+
+                                                 16
+zero-norm cases were assigned similarity zero by the numerical implementation.
+
+
+4.6    Cue-reconfiguration experiment
+
+Models learned 40 complete laps. Cue identities exchanged positions every 10 laps, alternating
+between assignments [0, 1] and [1, 0]. The matched no-swap schedule retained [0, 1] for all 40 laps.
+Within a seed, the schedules shared the pretrained autoencoder, initial CA3–CA1 weights, MEC-like
+trajectory, lap count, plasticity parameters, and the exact EC–CA3 projection; only cue identity
+after the first 10 laps differed by design. Both plasticity rules used this same projection. Thus all
+schedule contrasts in Fig. 2B,E,F are paired at the level of the root seed and fixed retrieval-key
+wiring.
+Panels B–D and the event-aligned/population-map analyses in panels E–F were generated by
+separate scripts using the same root-seed range and protocol but different random substreams for
+tracks, autoencoders, and probes. Their boundary estimates are therefore separate realizations, not
+alternative summaries of identical trajectories. Pairing of exchange and no-swap conditions applies
+within each realization.
+After each training lap, plasticity was paused while both fixed cue contexts were probed; the probe
+matching the context scheduled for that lap was retained for the transition analysis. For each
+CA1 unit, activity was mean-centered across positions before calculating cosine similarity between
+consecutive spatial tuning curves. Similarities were then averaged across units. Cue-exchange
+transitions were compared with the same lap boundaries in the paired no-swap model.
+Let fℓci (p) be the frozen-probe activity of CA1 unit i at position     PL−1  p, after training lap ℓ, under cue
+context c, and define the centered curve fℓci (p) = fℓci (p) − L    −1
+                                                                          r=0 fℓci (r). Consecutive-lap tuning
+                                          e
+similarity was
+                                             NCA1
+                                         1 X
+                                Tℓ =               cos(feℓcℓ i , feℓ−1,cℓ−1 ,i ).                           (19)
+                                      NCA1
+                                                  i=1
+
+The transition statistic compared Tℓ at boundaries ℓ ∈ {10, 20, 30} with the same boundaries in the
+matched no-swap run.
+For the exact-wiring event analysis, each boundary e ∈ {10, 20, 30} was treated as relative lap τ = 0,
+the first lap learned under the exchanged cue assignment. The analysis window was τ ∈ {−3, . . . , 9}.
+Let ce+τ be the context scheduled at that relative lap. The final pre-exchange probe and the final
+probe of the ensuing ten-lap block defined the old and adapted references, respectively:
+                                              1     X                                   
+                            Rold (e, τ ) =              cos fee+τ,ce+τ ,i , fee−1,ce−1 ,i ,                (20)
+                                             NCA1
+                                                    i
+                                              1     X                                   
+                          Radapt (e, τ ) =              cos fee+τ,ce+τ ,i , fee+9,ce+9 ,i .                (21)
+                                             NCA1
+                                                    i
+
+The adapted reference is retrospective: it describes convergence toward the state reached at the end
+of a block and is not a prediction of a future map. Consecutive-lap similarity used Eq. 19 at each
+e + τ . Values were first averaged over the three events within a root seed and then summarized
+across seeds. The no-swap control was indexed by the same nominal boundaries, although its cue
+assignment did not change.
+
+
+
+                                                        17
+For the population representational-similarity matrix, the complete position-by-unit probe map
+after lap ℓ was centered independently for each unit over position and vectorized as
+                                              
+                                        1 T
+                          vℓ = vec fℓ − 11 fℓ ,        Pℓm = cos(vℓ , vm ).                (22)
+                                        L
+
+The displayed matrix is the elementwise mean of P across 20 root seeds. Unit-level endpoint
+similarity was Uei = cos(fee−1,ce−1 ,i , fee+9,ce+9 ,i ). Its empirical cumulative distribution was computed
+within each seed after pooling that seed’s three exchange events; the plotted curve and uncertainty
+were then calculated across seeds, avoiding treatment of individual CA1 units as independent
+replicates.
+After the final lap, plasticity remained frozen and the two cue contexts were probed. For each CA1
+unit, spatial stability was the cosine similarity between its two mean-centered context tuning curves.
+Cue modulation was the mean absolute activity difference between contexts. These metrics quantify
+context sensitivity but do not themselves classify rate or global remapping. Heat maps show the
+error-driven seed whose mean stability and modulation were closest to the across-seed medians;
+units were ordered by preferred position across the two contexts. For final-lap contexts a and b, the
+plotted unit-level quantities were
+
+                                       Si = cos(feai , febi ),                                         (23)
+                                                    L−1
+                                                1   X
+                                      Mi =                |fai (p) − fbi (p)|.                         (24)
+                                                L
+                                                    p=0
+
+Here Si measures preservation of spatial profile after removing mean firing, whereas Mi retains
+absolute context-dependent rate differences; their joint distribution therefore separates two comple-
+mentary aspects of mixed tuning.
+
+
+4.7    Selective degradation experiments
+
+Models stored 20 intact laps with cue assignment [0, 1]. During frozen recall, a fixed random subset
+of eligible EC units was zeroed throughout a complete probe lap. Masks were sampled independently
+between probes. Dropped fractions were 0, 0.25, 0.50, 0.75, 0.90, and 1.00, with 12 masks per fraction
+and root seed. Because a modality contained 25 units and the implementation rounded 25q to an
+integer, the corresponding numbers removed were 0, 6, 12, 19, 22, and 25 units (effective fractions
+0, 0.24, 0.48, 0.76, 0.88, and 1.00). The Results report the 22-of-25 (0.88) partial-degradation
+point; figure abscissae retain the requested fractions, and the curves continue to complete ablation
+for reference. LEC-like degradation operated on the final 25 input units; MEC-like degradation
+operated on the first 25.
+For dropped fraction q and mask replicate r, a binary mask m(q,r) ∈ {0, 1}50 set round(25q) randomly
+selected coordinates in the targeted input half to zero and left all other coordinates at one. The
+same mask was held fixed for all positions of that probe lap:
+                                        (q,r)
+                                       xEC (p) = m(q,r) ⊙ xEC (p).                                     (25)
+
+Plasticity was disabled during these probes, so degradation altered retrieval evidence but did not
+rewrite the stored association.
+
+
+                                                          18
+Cue identity was decoded at the two cue positions by cosine comparison between recalled LEC
+output and the two fixed cue templates. Spatial accuracy was the fraction of recalled MEC outputs
+whose nearest clean MEC target had the correct track-position index; chance was therefore 1/50.
+MEC output cosine was averaged across all positions. For every curve, the 12 mask-level values
+were first averaged within a seed before means and uncertainty were calculated across seeds.
+Writing xbLEC (cj ) for recalled LEC output at cue center cj and x∗MEC (p) for the clean MEC target
+at position p, the three reported metrics were
+                             2                                  
+                           1X
+                    Acue =     1 j = arg max cos(b
+                                                 xLEC (cj ), qk ) ,                             (26)
+                           2            k∈{1,2}
+                             j=1
+                             L−1                                              
+                           1 X                                         ∗
+                    Apos =      1 p = arg    max        cos(b
+                                                            xMEC (p), xMEC (u)) ,               (27)
+                           L              u∈{0,...,L−1}
+                              p=0
+                              L−1
+                         1 X
+                  CMEC =         xMEC (p), x∗MEC (p)).
+                             cos(b                                                              (28)
+                         L
+                              p=0
+
+Cue accuracy has two-class chance level 1/2, whereas exact-position accuracy has chance level
+1/L = 1/50. MEC cosine is graded and has no corresponding uniform-classification chance line.
+The dense common-key control replaced the EC–CA3 map with a matrix whose every entry was
+1/50. All CA3-like units consequently received the same average EC input and generated a common,
+non-item-specific key. Because this control also changes connection density and sparsity relative
+to the normal map, it tests the need for key discriminability rather than the isolated effect of
+sparse connectivity. In matrix notation the control used Aij = 1/50 for all i, j; hence every CA3
+preactivation was identical for a given input. Equation 3 therefore returned the same 0.5-valued
+vector for every input, rather than an item-specific key.
+
+
+4.8   Evolution-informed sensitivity and cue-pair load
+
+The local sensitivity analysis started from each rule’s independently selected parameter vector θr∗ .
+For parameter j and multiplier m ∈ {0.1, 0.3, 0.5, 0.7, 1, 1.5, 2, 3, 7, 9}, it evaluated
+                                             ∗        ∗
+                                ∆Jrjm = Jr (θr,−j , mθr,j ) − Jr (θr∗ ),                        (29)
+
+using the same composite objective on 10 independent seeds (54001–54010), disjoint from the MTL
+search seeds. Cells report the mean paired change from the unperturbed vector together with
+the across-seed standard deviation. Fan-in and KCA3 were rounded to integers. Values outside
+model-valid ranges were clipped, so repeated cells can occur when several multipliers map to the
+same integer or bound. This is a one-at-a-time local analysis; it does not measure compensatory
+interactions among parameters or global identifiability.
+For the load experiment, Ncue = 10 fixed LEC templates generated Ncue (Ncue − 1) = 90 ordered,
+non-repeating assignments to the two cue positions. Within each of 10 held-out seeds, assignments
+were organized in balanced offset rounds and shuffled within rounds. A capacity condition selected
+the first M ∈ {1, . . . , 90} assignments from this same bank. The autoencoder basis was pretrained
+once per seed on laps spanning all 90 assignments and then held fixed across M . Each selected pair
+was written in three cycles, with pair order independently shuffled within each cycle.
+
+                                                  19
+The template generator assigned each of the 10 cues a disjoint block of ⌊25/10⌋ = 2 active LEC
+units, leaving five units unused. Consequently, this assay differs from the two-cue experiments in
+both vocabulary size and template sparsity.
+Recall used an independently generated intact probe for every stored pair. Cue identity at each
+location was decoded by maximum cosine similarity to the 10 templates. Exact pair accuracy
+required both identities to be correct,
+                                                  M
+                                                1 X h                         i
+                                 Apair (M ) =       1 (b
+                                                       ai , bbi ) = (ai , bi ) .                           (30)
+                                                M
+                                                   i=1
+
+The degraded condition independently requested removal of 50% of LEC units; integer rounding
+removed 12 of 25 units (48%) with four masks per stored pair. Mask-level exact scores were averaged
+within pair and then within seed. Independent decoding at two locations gives nominal chance
+    2 = 0.01. Because the encoding basis was exposed to the complete cue vocabulary and the
+1/Ncue
+number of training experiences grows with M , this experiment is an operational load curve, not
+an estimate of an architecture-independent storage capacity. The nominal chance line assumes
+independent uniform guesses; a decoder restricted to the 90 non-repeating ordered pairs would
+instead have chance accuracy 1/90.
+
+
+Data and code availability
+
+The simulations underlying Figs. 2, 3, 4, and Supplementary Figs. S1 and S2 are generated by
+the scripts in src/experiments. This includes the autoencoder and MTL CMA-ES searches,
+local parameter-sensitivity analysis, and cue-pair load experiment. Resolved configurations, se-
+lected parameter files, compressed numerical arrays, and tidy source-data tables are stored in
+results/preprint. A permanent public archive and accession identifier will be added before public
+posting.
+
+
+References
+ [1] Katie C. Bittner, Aaron D. Milstein, Christine Grienberger, Sandro Romani, and Jeffrey C. Magee.
+     Behavioral time scale synaptic plasticity underlies CA1 place fields. Science, 357(6355):1033–1036,
+     September 2017. ISSN 0036-8075, 1095-9203. doi: 10.1126/science.aan3846.
+
+ [2] Sarthak Chandra, Sugandha Sharma, Rishidev Chaudhuri, and Ila Fiete. Episodic and associative
+     memory from spatial scaffolds in the hippocampus. Nature, 638:739–751, January 2025. ISSN 1476-4687.
+     doi: 10.1038/s41586-024-08392-y.
+
+ [3] Sachin S. Deshmukh and James J. Knierim. Representation of non-spatial and spatial information in the
+     lateral entorhinal cortex. Frontiers in Behavioral Neuroscience, 5:69, 2011. doi: 10.3389/fnbeh.2011.00069.
+
+ [4] Conor C. Dorian, Jiannis Taxidis, Ahmet Arac, and Peyman Golshani. Rapid formation of non-spatial
+     hippocampal representations consistent with behavioral timescale synaptic plasticity is modulated by
+     entorhinal input. Nature Communications, 17(1):5098, April 2026. ISSN 2041-1723. doi: 10.1038/
+     s41467-026-71503-y.
+
+ [5] Juan A. Gallego, Matthew G. Perich, Raeed H. Chowdhury, Sara A. Solla, and Lee E. Miller. Long-term
+     stability of cortical population dynamics underlying consistent behavior. Nature Neuroscience, 23(2):
+     260–270, February 2020. ISSN 1546-1726. doi: 10.1038/s41593-019-0555-4.
+
+
+                                                         20
+ [6] Matthew D. Golub, Patrick T. Sadtler, Emily R. Oby, Kristin M. Quick, Stephen I. Ryu, Elizabeth C.
+     Tyler-Kabara, Aaron P. Batista, Steven M. Chase, and Byron M. Yu. Learning by neural reassociation.
+     Nature Neuroscience, 21(4):607–616, 2018. doi: 10.1038/s41593-018-0095-3.
+ [7] Christine Grienberger and Jeffrey C. Magee. Entorhinal cortex directs learning-related changes in
+     CA1 representations. Nature, 611(7936):554–562, November 2022. ISSN 1476-4687. doi: 10.1038/
+     s41586-022-05378-6.
+ [8] Nikolaus Hansen. The CMA evolution strategy: A tutorial. arXiv preprint arXiv:1604.00772, 2016. doi:
+     10.48550/arXiv.1604.00772.
+ [9] Eric L. Hargreaves, Geeta Rao, Inah Lee, and James J. Knierim. Major dissociation between medial
+     and lateral entorhinal input to dorsal hippocampus. Science, 308(5729):1792–1794, 2005. doi: 10.1126/
+     science.1110449.
+[10] Espen J. Henriksen, Laura L. Colgin, Carol A. Barnes, Menno P. Witter, May-Britt Moser, and Edvard I.
+     Moser. Spatial Representation along the Proximodistal Axis of CA1. Neuron, 68(1):127–137, October
+     2010. ISSN 0896-6273. doi: 10.1016/j.neuron.2010.08.042.
+[11] Stefan Leutgeb, Jill K. Leutgeb, Alessandro Treves, May-Britt Moser, and Edvard I. Moser. Distinct
+     ensemble codes in hippocampal areas CA3 and CA1. Science, 305(5688):1295–1298, 2004. doi: 10.1126/
+     science.1100265.
+[12] Stefan Leutgeb, Jill K. Leutgeb, Carol A. Barnes, Edvard I. Moser, Bruce L. McNaughton, and May-Britt
+     Moser. Independent codes for spatial and episodic memory in hippocampal neuronal ensembles. Science,
+     309(5734):619–623, 2005. doi: 10.1126/science.1114037.
+[13] Yiding Li, John J. Briguglio, Sandro Romani, and Jeffrey C. Magee. Mechanisms of memory-supporting
+     neuronal dynamics in hippocampal area CA3. Cell, 187(24):6804–6819.e21, November 2024. ISSN
+     0092-8674. doi: 10.1016/j.cell.2024.09.041.
+[14] Antoine D. Madar, Anqi Jiang, Can Dong, and Mark E. J. Sheffield. Synaptic plasticity rules driving
+     representational shifting in the hippocampus. Nature Neuroscience, 28(4):848–860, April 2025. ISSN
+     1546-1726. doi: 10.1038/s41593-025-01894-6.
+[15] D. Marr. Simple memory: A theory for archicortex. Philosophical Transactions of the Royal Society of
+     London. B, Biological Sciences, 262(841):23–81, July 1971. ISSN 0080-4622. doi: 10.1098/rstb.1971.0078.
+[16] James L. McClelland, Bruce L. McNaughton, and Randall C. O’Reilly. Why there are complementary
+     learning systems in the hippocampus and neocortex: Insights from the successes and failures of connec-
+     tionist models of learning and memory. Psychological Review, 102(3):419–457, 1995. ISSN 1939-1471.
+     doi: 10.1037/0033-295X.102.3.419.
+[17] Aaron D Milstein, Yiding Li, Katie C Bittner, Christine Grienberger, Ivan Soltesz, Jeffrey C Magee, and
+     Sandro Romani. Bidirectional synaptic plasticity rapidly modifies hippocampal representations. eLife,
+     10:e73046, December 2021. ISSN 2050-084X. doi: 10.7554/eLife.73046.
+[18] Robert U. Muller and John L. Kubie. The effects of changes in the environment on the spatial firing
+     of hippocampal complex-spike cells. Journal of Neuroscience, 7(7):1951–1968, 1987. doi: 10.1523/
+     JNEUROSCI.07-07-01951.1987.
+[19] Kazu Nakazawa, Michael C. Quirk, Raymond A. Chitwood, Masahiko Watanabe, Mark F. Yeckel,
+     Linus D. Sun, Akira Kato, C. A. Carr, Daniel Johnston, Matthew A. Wilson, and Susumu Tonegawa.
+     Requirement for hippocampal CA3 NMDA receptors in associative memory recall. Science, 297(5579):
+     211–218, 2002. doi: 10.1126/science.1071795.
+[20] Michael E. Rule and Timothy O’Leary. Self-healing codes: How stable neural populations can track
+     continually reconfiguring neural representations. Proceedings of the National Academy of Sciences, 119
+     (7):e2106692119, 2022. doi: 10.1073/pnas.2106692119.
+
+
+                                                    21
+[21] Patrick T. Sadtler, Kristin M. Quick, Matthew D. Golub, Steven M. Chase, Stephen I. Ryu, Elizabeth C.
+     Tyler-Kabara, Byron M. Yu, and Aaron P. Batista. Neural constraints on learning. Nature, 512(7515):
+     423–426, 2014. doi: 10.1038/nature13665.
+
+[22] Anna C. Schapiro, Nicholas B. Turk-Browne, Matthew M. Botvinick, and Kenneth A. Norman. Comple-
+     mentary learning systems within the hippocampus: A neural network modelling approach to reconciling
+     episodic memory with statistical learning. Philosophical Transactions of the Royal Society B: Biological
+     Sciences, 372(1711):20160049, January 2017. ISSN 0962-8436. doi: 10.1098/rstb.2016.0049.
+
+[23] Timothy J. Teyler and Pascal DiScenna. The hippocampal memory indexing theory. Behavioral
+     Neuroscience, 100(2):147–154, 1986. ISSN 1939-0084. doi: 10.1037/0735-7044.100.2.147.
+
+[24] Sachin P. Vaidya, Guanchun Li, Raymond A. Chitwood, Yiding Li, and Jeffrey C. Magee. Formation of
+     an expanding memory representation in the hippocampus. Nature Neuroscience, 28(7):1510–1518, July
+     2025. ISSN 1546-1726. doi: 10.1038/s41593-025-01986-3.
+
+[25] Yujie Wu and Wolfgang Maass. A simple model for Behavioral Time Scale Synaptic Plasticity (BTSP) pro-
+     vides content addressable memory with binary synapses and one-shot learning. Nature Communications,
+     16(1):342, January 2025. ISSN 2041-1723. doi: 10.1038/s41467-024-55563-6.
+
+[26] Jason Yosinski, Jeff Clune, Yoshua Bengio, and Hod Lipson. How transferable are features in deep
+     neural networks? In Advances in Neural Information Processing Systems, volume 27, pages 3320–3328.
+     Curran Associates, Inc., 2014.
+
+
+
+
+                                                     22
+Supplementary material
+
+Appendix A: Evolutionary hyperparameter selection
+
+Optimization strategy
+
+Hyperparameters were selected with the covariance matrix adaptation evolution strategy (CMA-ES),
+a stochastic, derivative-free optimizer for nonlinear and non-convex objectives [8]. CMA-ES sampled
+a multivariate normal population in standardized coordinates and adapted its mean, covariance,
+and global step size from candidate rankings. If g is a standardized genome, model parameters were
+decoded as
+                                       θ(g) = clip[ℓ,u] (c + s ⊙ g),                           (31)
+where c, s, ℓ, and u are the parameter-wise centers, scales, lower bounds, and upper bounds.
+Count-valued parameters were rounded to the nearest integer after clipping. A quadratic penalty
+discouraged samples outside the standardized bounds before clipping. Candidate evaluations were
+parallelized across CPU processes, but parallelization did not change the objective.
+The search was used only for engineering model selection. Model weights were not encoded in the
+genome: autoencoder weights were still learned with Adam, and CA3–CA1 weights were still changed
+by the local plasticity rule. Fixed development seeds made candidate evaluations deterministic and
+comparable. No seed was optimized separately, and development seeds were disjoint from the 20
+seeds used for the matched principal experiments, the 10 independent seeds used for sensitivity
+analysis, and the 10 seeds used for the cue-pair load test. A single CMA-ES run was performed
+for each reported search, so the results characterize the selected run rather than variability across
+independent optimizer restarts.
+
+
+Autoencoder objective
+
+The autoencoder search varied KCA1 , the latent sparse-activation gain βlatent , and the decoder
+gain βout . It used three development seeds (41001–41003). For each candidate and seed, separate
+autoencoders were trained for 64 epochs on (i) 1,024 sparse binary EC patterns and (ii) 20 MEC+LEC
+track laps, then tested on 128 disjoint sparse patterns and five independently generated track laps.
+The minimized objective was
+                                       3                                
+                                     1X 1                   1
+                           JAE (θ) =         Lsparse,s (θ) + Ltrack,s (θ) ,                      (32)
+                                     3     2                2
+                                       s=1
+
+where each L is mean squared validation reconstruction error. The search used 96 generations of
+seven candidates (672 candidate evaluations) with boundary-penalty coefficient 0.1. The selected
+values were KCA1 = 5, βlatent = 3.912370, and βout = 25.333004. Their mean sparse, track, and
+equally weighted validation MSEs were 0.001770, 0.000593, and 0.001182, respectively.
+
+
+Medial-temporal-lobe (MTL) recall objective
+
+The autoencoder search above documents an alternative basis optimization. For the final MTL
+searches and all figure-generating simulations, however, we retained the common reference basis
+
+                                                 23
+(KCA1 = 5, βlatent = βout = 25), avoiding a simultaneous change of representational basis and
+associative rule. Five MTL parameters were then optimized independently for the instructive-driven
+and error-driven rules: EC–CA3 fan-in F , CA3 target activity KCA3 , CA3 and CA1 inverse-
+temperature gains, and plasticity rate α. For each of three development seeds (42001–42003), one
+autoencoder, one bank of clean training and validation laps, and fixed MEC/LEC corruption masks
+were prepared before optimization and reused for every candidate and both rules. Storage vectors
+were shuffled within each generated lap, with cue locations carried along with their samples. This
+preserved the marginal MEC+LEC distribution while removing sequential adjacency and traversal
+order.
+After 20 clean storage laps, three components were calculated. Clean recall was the mean of
+full-output cosine, exact-position accuracy, and cue-identity accuracy,
+                                          1
+                                  Jclean = (CEC + Apos + Acue ).                                 (33)
+                                          3
+The requested 85% dropout removed 21 of 25 units (84%) in either modality. At MEC dropout,
+the score averaged position and cue accuracy; at LEC dropout, it averaged cue accuracy and MEC
+output cosine:
+                                         1
+                               JMECdrop = (AMECdrop + AMECdrop  ),                               (34)
+                                         2 pos         cue
+                                         1             LECdrop
+                               JLECdrop = (ALECdrop + CMEC     ).                                (35)
+                                         2 cue
+Each degraded component was averaged over six fixed masks per modality. CMA-ES maximized
+the equally weighted mean over components and development seeds,
+                                           3
+                                        1 X Jclean,s + JMECdrop,s + JLECdrop,s
+                        JMTL (θ, r) =                                          ,                 (36)
+                                        3                   3
+                                         s=1
+
+for rule r. Each rule used 96 generations of eight candidates (768 candidate evaluations) and
+boundary-penalty coefficient 0.05.
+
+Table 1: MTL CMA-ES search domains and selected values. Fan-in and KCA3 are integer counts.
+Scores are evaluated on the three fixed development seeds and are therefore optimization, not holdout,
+performance.
+
+             Parameter           Search range      Center    Instructive-driven   Error-driven
+             EC–CA3 fan-in F             1–49          29                  36               9
+             KCA3                        1–15           3                   6               5
+             βCA3                       5–300       170.6          286.747318       54.400011
+             βCA1                       5–120        41.8            9.160055       26.928441
+             α                    0.005–0.400       0.092            0.033657        0.081975
+             Jclean                            –         –            0.700864       0.935067
+             JMECdrop                          –         –            0.539444       0.565000
+             JLECdrop                          –         –            0.901139       0.953269
+             JMTL                              –         –            0.713816       0.817779
+
+
+The two searches converged to quantitatively different retrieval regimes. The instructive-driven
+solution used broader EC–CA3 fan-in and a sharper CA3 activation but a softer CA1 recall
+
+                                                    24
+nonlinearity; the error-driven solution used narrower fan-in, lower CA3 gain, steeper CA1 recall, and
+a larger learning rate. These values should not be interpreted as biological estimates or as proof of
+global optimality. They indicate that, under the stated objective and bounds, the two update rules
+favor different computational regimes. The local multiplier analysis in Fig. 4A probes the immediate
+neighborhood of these selected vectors; Eq. 29 and its limitations are described in Methods.
+
+
+
+
+Figure S1: Seed-paired comparison of instructive-driven and error-driven plasticity. Each grey
+line joins instructive-driven and error-driven values obtained from the same root seed; colored points are
+individual seed-level values and black points with error bars show mean ± SEM across 20 seeds. (Upper left)
+Readout-compatibility effect, defined as aligned minus fixed-permutation output–target cosine in Fig. 2A.
+(Upper right) Cue-exchange effect, defined as tuning similarity at exchange boundaries minus similarity at
+the same boundaries in the no-swap control in Fig. 2B. (Lower left) Cue identity accuracy after 22-of-25
+(88%) LEC-like degradation in Fig. 3A. (Lower right) Nearest-position accuracy after 22-of-25 (88%)
+MEC-like degradation in Fig. 3C. These contrasts refer to the shared-reference experiments in Figs. 2 and
+3A–D: both rules shared inputs, pretrained autoencoders, memory hyperparameters, CA3 wiring seeds, storage
+order, and corruption masks; only the CA3–CA1 update differed. They are distinct from the rule-specific
+evolved operating regimes in Fig. 4A,B and Table 1.
+
+
+
+
+                                                    25
+A                                                        B
+
+
+
+
+C                                                        D
+
+
+
+
+Figure S2: Reference-map dynamics and heterogeneity after cue exchange. (A,B) Similarity of
+the current CA1 tuning map to the final pre-exchange map (purple) and to the final map of the ensuing
+ten-lap block (orange), for instructive-driven (A) and error-driven (B) plasticity. Relative lap zero is the
+first lap learned after cue exchange. The adapted-map reference is retrospective and therefore equals one at
+the block endpoint by construction; the informative result is the abrupt crossover at exchange followed by
+smaller within-block changes. (C,D) Seed-averaged empirical cumulative distributions of unit-level tuning
+similarity between the pre-exchange and block-end maps for instructive-driven (C) and error-driven (D)
+plasticity. Purple denotes cue exchange and grey the matched no-swap control. For every curve, events and
+units were aggregated within each root seed before the mean and SEM were calculated across 20 seeds. These
+distributions describe population heterogeneity and do not treat units as independent replicates. All panels
+use the exact same EC–CA3 projection in the exchange and no-swap schedules.
+
+
+
+
+                                                    26
+
